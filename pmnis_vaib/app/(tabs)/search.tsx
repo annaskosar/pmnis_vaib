@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function SearchScreen() {
     const categories = [
@@ -52,6 +53,9 @@ export default function SearchScreen() {
                 return <Feather name="circle" size={20} color="#111" />;
         }
     };
+
+    const router = useRouter();
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -125,7 +129,16 @@ export default function SearchScreen() {
 
                         if (isSale) {
                             return (
-                                <TouchableOpacity key={index} style={styles.saleWrapper}>
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.saleWrapper}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/(tabs)/search_category',
+                                            params: { category: item },
+                                        })
+                                    }
+                                >
                                     <ImageBackground
                                         source={require('../../assets/images_app/search.png')}
                                         style={styles.saleCard}
@@ -141,6 +154,12 @@ export default function SearchScreen() {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.categoryCard}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/search_category',
+                                        params: { category: item },
+                                    })
+                                }
                             >
                                 {content}
                             </TouchableOpacity>

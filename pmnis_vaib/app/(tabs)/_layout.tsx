@@ -3,9 +3,14 @@ import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
 
 function CustomTabBar({ state, navigation }: any) {
     const insets = useSafeAreaInsets();
+    const pathname = usePathname();
+
+    const isSearchActive = pathname.startsWith('/search');
+
 
     return (
         <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
@@ -18,7 +23,7 @@ function CustomTabBar({ state, navigation }: any) {
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.navItem, state.index === 1 && styles.activeNavItem]}
+                style={[styles.navItem, isSearchActive && styles.activeNavItem]}
                 onPress={() => navigation.navigate('search')}
             >
                 <Feather name="search" size={25} color="#5f5f5f" />
