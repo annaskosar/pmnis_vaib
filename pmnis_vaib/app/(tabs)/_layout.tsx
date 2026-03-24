@@ -68,6 +68,7 @@ export default function TabLayout() {
             <Tabs.Screen name="cart" />
             <Tabs.Screen name="wardrobe" />
             <Tabs.Screen name="account" options={{ href: null }} />
+            <Tabs.Screen name="search_items" options={{ href: null }} />
         </Tabs>
     );
 }

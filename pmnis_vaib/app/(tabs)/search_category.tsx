@@ -174,7 +174,19 @@ export default function SearchCategoryScreen() {
                     <Text style={styles.subtitle}>Browse products</Text>
 
                     {items.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.itemRow}>
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.itemRow}
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/search_items',
+                                    params: {
+                                        category: categoryName,
+                                        subcategory: item,
+                                    },
+                                })
+                            }
+                        >
                             <Text style={styles.itemText}>{item}</Text>
                             <Feather name="chevron-right" size={20} color="#111" />
                         </TouchableOpacity>
