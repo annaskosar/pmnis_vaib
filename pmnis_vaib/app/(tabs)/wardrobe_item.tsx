@@ -6,18 +6,19 @@ import {
     SafeAreaView,
     TouchableOpacity,
     ImageBackground,
-    Image,
     ScrollView,
     TextInput,
     KeyboardAvoidingView,
     Platform,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useWardrobe } from '../../context/wardrobe_context';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 
 
 export default function WardrobeItemScreen() {
@@ -26,6 +27,9 @@ export default function WardrobeItemScreen() {
     const { getWardrobeItemById, updateWardrobeItem, deleteWardrobeItem } = useWardrobe();
 
     const item = typeof itemId === 'string' ? getWardrobeItemById(itemId) : undefined;
+    const [imageLoading, setImageLoading] = React.useState(true);
+
+
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [editedName, setEditedName] = React.useState(item?.name ?? '');
@@ -41,8 +45,23 @@ export default function WardrobeItemScreen() {
             setEditedImage(item.image);
             setIsEditing(false);
             setShowDeleteModal(false);
+            setImageLoading(true);
         }
-    }, [item]);
+    }, [itemId, item]);
+
+    const displayImage = isEditing ? editedImage : item?.image;
+
+
+    if (!item) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.missingWrapper}>
+                    <Text style={styles.missingText}>Item not found</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
 
     const handleChangePhoto = async () => {
         Alert.alert(
@@ -60,9 +79,9 @@ export default function WardrobeItemScreen() {
                         }
 
                         const result = await ImagePicker.launchCameraAsync({
-                            mediaTypes: ['images'],
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
                             allowsEditing: false,
-                            quality: 1,
+                            quality: 0.3,
                         });
 
                         if (!result.canceled) {
@@ -81,9 +100,9 @@ export default function WardrobeItemScreen() {
                         }
 
                         const result = await ImagePicker.launchImageLibraryAsync({
-                            mediaTypes: ['images'],
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
                             allowsEditing: false,
-                            quality: 1,
+                            quality: 0.3,
                         });
 
                         if (!result.canceled) {
@@ -110,6 +129,8 @@ export default function WardrobeItemScreen() {
 
         setIsEditing(false);
     };
+
+
 
     const resetEditState = () => {
         if (!item) return;
@@ -143,18 +164,18 @@ export default function WardrobeItemScreen() {
         router.replace('/(tabs)/wardrobe');
     };
 
-    if (!item) {
-        return (
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.missingWrapper}>
-                    <Text style={styles.missingText}>Item not found</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    const formatDateTime = (timestamp?: number | null) => {
+        if (!timestamp) return null;
 
-    const imageSource =
-        typeof editedImage === 'string' ? { uri: editedImage } : editedImage;
+        return new Date(timestamp).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -185,11 +206,37 @@ export default function WardrobeItemScreen() {
 
                     <View style={styles.content}>
                         <View style={styles.previewCard}>
-                            <Image
-                                source={imageSource}
-                                style={styles.previewImage}
-                                resizeMode="contain"
-                            />
+                            {imageLoading && (
+                                <View style={styles.loaderWrapper}>
+                                    <ActivityIndicator size="large" color="#8a8a8a" />
+                                </View>
+                            )}
+
+                            {displayImage && (
+                                <Image
+                                    source={displayImage}
+                                    style={[
+                                        styles.previewImage,
+                                        { opacity: imageLoading ? 0 : 1 },
+                                    ]}
+                                    contentFit="contain"
+                                    cachePolicy="memory-disk"
+                                    transition={0}
+                                    onLoadStart={() => setImageLoading(true)}
+                                    onLoad={() => setImageLoading(false)}
+                                    onError={() => setImageLoading(false)}
+                                />
+                            )}
+                        </View>
+                        <View style={styles.metaContainer}>
+                            <Text style={styles.metaText}>
+                                {item.updatedAt
+                                    ? `edited ${formatDateTime(item.updatedAt)}`
+                                    : item.createdAt
+                                        ? `added ${formatDateTime(item.createdAt)}`
+                                        : ''
+                                }
+                            </Text>
                         </View>
 
                         {isEditing ? (
@@ -456,7 +503,7 @@ const styles = StyleSheet.create({
     actionButtonsRow: {
         flexDirection: 'row',
         gap: 12,
-        marginTop: 18,
+        marginTop: 48,
     },
 
     primaryButtonHalf: {
@@ -567,5 +614,22 @@ const styles = StyleSheet.create({
         color: '#111',
         fontSize: 15,
         fontWeight: '700',
+    },
+
+    loaderWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
+    },
+
+    metaContainer: {
+        marginTop: 6,
+        alignItems: 'flex-end',
+    },
+
+    metaText: {
+        fontSize: 12,
+        color: '#9a9a9a',
     },
 });

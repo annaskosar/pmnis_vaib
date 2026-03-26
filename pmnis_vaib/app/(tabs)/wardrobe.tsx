@@ -7,7 +7,6 @@ import {
     TextInput,
     ImageBackground,
     TouchableOpacity,
-    Image,
     ScrollView,
     Alert,
 } from 'react-native';
@@ -17,6 +16,8 @@ import { useWardrobe } from '../../context/wardrobe_context';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { Dimensions } from 'react-native';
+import { ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 
 export default function WardrobeScreen() {
     const router = useRouter();
@@ -24,6 +25,7 @@ export default function WardrobeScreen() {
     const actionGap = 14;
     const actionsWidth = actionButtonSize;
     const actionsHeight = actionButtonSize * 2 + actionGap;
+    const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
 
     const { wardrobeItems, deleteWardrobeItem, togglePinWardrobeItem } = useWardrobe();
 
@@ -83,13 +85,13 @@ export default function WardrobeScreen() {
         const result = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: false,
-            quality: 1,
+            quality: 0.3,
         });
 
         if (!result.canceled) {
             const imageUri = result.assets[0].uri;
 
-            router.push({
+            router.replace({
                 pathname: '/wardrobe_add',
                 params: { imageUri },
             });
@@ -107,7 +109,7 @@ export default function WardrobeScreen() {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: false,
-            quality: 1,
+            quality: 0.3,
         });
 
         if (!result.canceled) {
@@ -159,6 +161,16 @@ export default function WardrobeScreen() {
 
         return 0;
     });
+
+    const handleImageLoadStart = (id: string) => {
+        setLoadingImages((prev) => ({ ...prev, [id]: true }));
+    };
+
+    const handleImageLoadEnd = (id: string) => {
+        setLoadingImages((prev) => ({ ...prev, [id]: false }));
+    };
+
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -228,14 +240,29 @@ export default function WardrobeScreen() {
                                                 <Feather name="map-pin" size={12} color="#fff" />
                                             </View>
                                         )}
+
+                                        {loadingImages[item.id] && (
+                                            <View style={styles.loaderWrapper}>
+                                                <ActivityIndicator size="small" color="#999" />
+                                            </View>
+                                        )}
+
                                         <Image
                                             source={
                                                 typeof item.image === 'string'
-                                                    ? { uri: item.image }
+                                                    ? item.image
                                                     : item.image
                                             }
-                                            style={styles.image}
-                                            resizeMode="cover"
+                                            style={[
+                                                styles.image,
+                                                { opacity: loadingImages[item.id] ? 0 : 1 },
+                                            ]}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                            transition={150}
+                                            onLoadStart={() => handleImageLoadStart(item.id)}
+                                            onLoad={() => handleImageLoadEnd(item.id)}
+                                            onError={() => handleImageLoadEnd(item.id)}
                                         />
                                     </View>
 
@@ -272,11 +299,13 @@ export default function WardrobeScreen() {
                             <Image
                                 source={
                                     typeof selectedItem.image === 'string'
-                                        ? { uri: selectedItem.image }
+                                        ? selectedItem.image
                                         : selectedItem.image
                                 }
                                 style={styles.image}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                transition={150}
                             />
                         </View>
 
@@ -459,5 +488,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#111',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+
+    loaderWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
     },
 });

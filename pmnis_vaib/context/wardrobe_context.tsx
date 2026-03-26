@@ -7,6 +7,8 @@ export type WardrobeItem = {
     additionalInfo?: string;
     isPinned?: boolean;
     pinnedAt?: number | null;
+    createdAt: number;
+    updatedAt?: number | null;
 };
 
 type WardrobeContextType = {
@@ -34,6 +36,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '2',
@@ -42,6 +46,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '3',
@@ -50,6 +56,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '4',
@@ -58,6 +66,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '5',
@@ -66,6 +76,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '6',
@@ -74,6 +86,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '7',
@@ -82,6 +96,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
         {
             id: '8',
@@ -90,13 +106,17 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
             additionalInfo: '',
             isPinned: false,
             pinnedAt: null,
+            createdAt: Date.now(),
+            updatedAt: null,
         },
     ]);
 
-    const addWardrobeItem = (item: Omit<WardrobeItem, 'id'>) => {
+    const addWardrobeItem = (item: Omit<WardrobeItem, 'id' | 'createdAt' | 'updatedAt'>) => {
         setWardrobeItems(prev => [
             {
                 id: Date.now().toString(),
+                createdAt: Date.now(),
+                updatedAt: null,
                 isPinned: false,
                 pinnedAt: null,
                 ...item,
@@ -111,12 +131,16 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
 
     const updateWardrobeItem = (
         id: string,
-        updates: Partial<Omit<WardrobeItem, 'id'>>
+        updates: Partial<Omit<WardrobeItem, 'id' | 'createdAt'>>
     ) => {
         setWardrobeItems(prev =>
             prev.map(item =>
                 item.id === id
-                    ? { ...item, ...updates }
+                    ? {
+                        ...item,
+                        ...updates,
+                        updatedAt: Date.now(),
+                    }
                     : item
             )
         );
