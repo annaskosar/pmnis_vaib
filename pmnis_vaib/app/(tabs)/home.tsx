@@ -77,6 +77,10 @@ export default function HomeScreen() {
                             />
                         </ImageBackground>
 
+                        <TouchableOpacity style={styles.iconButton}>
+                            <Feather name="heart" size={20} color="#393939" />
+                        </TouchableOpacity>
+
                         <TouchableOpacity
                             style={styles.profileButton}
                             onPress={() => router.push('/(tabs)/account')}
@@ -315,6 +319,14 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         borderWidth: 1.5,
         borderColor: '#6a6a6a',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f3f3f3',
+    },
+
+    iconButton: {
+        width: 44,
+        height: 44,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#f3f3f3',

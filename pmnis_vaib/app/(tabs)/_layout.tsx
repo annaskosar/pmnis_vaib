@@ -4,6 +4,7 @@ import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
+import { WardrobeProvider } from '../../context/wardrobe_context';
 
 function CustomTabBar({ state, navigation }: any) {
     const insets = useSafeAreaInsets();
@@ -56,20 +57,24 @@ function CustomTabBar({ state, navigation }: any) {
 
 export default function TabLayout() {
     return (
-        <Tabs
-            tabBar={(props) => <CustomTabBar {...props} />}
-            screenOptions={{
-                headerShown: false,
-            }}
-        >
-            <Tabs.Screen name="home" />
-            <Tabs.Screen name="search" />
-            <Tabs.Screen name="builder" />
-            <Tabs.Screen name="cart" />
-            <Tabs.Screen name="wardrobe" />
-            <Tabs.Screen name="account" options={{ href: null }} />
-            <Tabs.Screen name="search_items" options={{ href: null }} />
-        </Tabs>
+        <WardrobeProvider>
+            <Tabs
+                tabBar={(props) => <CustomTabBar {...props} />}
+                screenOptions={{
+                    headerShown: false,
+                }}
+            >
+                <Tabs.Screen name="home" />
+                <Tabs.Screen name="search" />
+                <Tabs.Screen name="builder" />
+                <Tabs.Screen name="cart" />
+                <Tabs.Screen name="wardrobe" />
+                <Tabs.Screen name="account" options={{ href: null }} />
+                <Tabs.Screen name="search_items" options={{ href: null }} />
+                <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
+                <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
+            </Tabs>
+        </WardrobeProvider>
     );
 }
 
