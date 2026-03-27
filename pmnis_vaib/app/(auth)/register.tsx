@@ -25,10 +25,12 @@ export default function RegisterScreen() {
 
     users.push({ name, email, password });
     await AsyncStorage.setItem('users', JSON.stringify(users));
+    await AsyncStorage.setItem('currentUser', JSON.stringify({ name, email })); // ← PRIDAJ TOTO
 
     Alert.alert('Hotovo!', 'Účet vytvorený!', [
-      { text: 'OK', onPress: () => router.replace('/(tabs)/home') }
+      { text: 'OK', onPress: () => router.replace('/(dotaznik)/step1') }
     ]);
+
 };
 
   return (
