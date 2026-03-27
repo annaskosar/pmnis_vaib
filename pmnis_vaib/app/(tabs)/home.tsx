@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -13,8 +13,20 @@ import {
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
+    const [userName, setUserName] = useState('');
+
+    useEffect(() => {
+        AsyncStorage.getItem('currentUser').then(data => {
+            if (data) {
+                const user = JSON.parse(data);
+                setUserName(user.name);
+            }
+        });
+    }, []);
+
     const cards = [
         { image: require('../../assets/images_app/model2.png'), label: 'denim' },
         { image: require('../../assets/images_app/model3.png'), label: 'dress' },
@@ -69,7 +81,6 @@ export default function HomeScreen() {
                             imageStyle={{ borderRadius: 12 }}
                         >
                             <Feather name="search" size={18} color="#393939" />
-
                             <TextInput
                                 placeholder="Search"
                                 placeholderTextColor="#393939"
@@ -98,7 +109,6 @@ export default function HomeScreen() {
 
                     <View style={styles.headingWrapper}>
                         <Text style={styles.headingLineBlack}>New</Text>
-
                         <View style={styles.collectionRow}>
                             <Text style={styles.headingLineBlack}>collecti</Text>
                             <Text style={styles.headingLineWhite}>on</Text>
@@ -133,6 +143,7 @@ export default function HomeScreen() {
                             ))}
                         </View>
                     ))}
+
                     {/* CTA box */}
                     <ImageBackground
                         source={require('../../assets/images_app/search.png')}
@@ -140,9 +151,8 @@ export default function HomeScreen() {
                         imageStyle={{ borderRadius: 16 }}
                     >
                         <Text style={styles.ctaText}>
-                            Hey [meno], try the new assistant for creating your dream outfits
+                            Hey {userName}, try the new assistant for creating your dream outfits
                         </Text>
-
                         <TouchableOpacity
                             style={styles.ctaButton}
                             onPress={() => router.push('/(tabs)/builder')}>
@@ -153,7 +163,6 @@ export default function HomeScreen() {
                     {/* Favorite categories */}
                     <View style={styles.favoritesSection}>
                         <Text style={styles.favoritesTitle}>Your favorite categories</Text>
-
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -181,7 +190,6 @@ export default function HomeScreen() {
                     {/* Your taste */}
                     <View style={styles.tasteSection}>
                         <Text style={styles.tasteTitle}>Your taste</Text>
-
                         <View style={styles.productsGrid}>
                             {products.map((item, index) => (
                                 <View key={index} style={styles.productCard}>
@@ -190,17 +198,14 @@ export default function HomeScreen() {
                                         style={styles.productImage}
                                         resizeMode="cover"
                                     />
-
                                     <Text style={styles.productName}>{item.name}</Text>
                                     <Text style={styles.productPrice}>{item.price}</Text>
-
                                     <TouchableOpacity style={styles.cartButton}>
                                         <Feather name="shopping-cart" size={16} color="#111" />
                                     </TouchableOpacity>
                                 </View>
                             ))}
                         </View>
-
                         <TouchableOpacity
                             style={styles.showAllButton}
                             onPress={() => router.push('/(tabs)/search')}
@@ -216,15 +221,12 @@ export default function HomeScreen() {
                                 source={require('../../assets/images_app/model2.png')}
                                 style={styles.duplicateImage}
                             />
-
                             <Feather name="arrow-right" size={25} color="#393939" style={styles.middleArrow} />
-
                             <Image
                                 source={require('../../assets/images_app/model2_pixel.png')}
                                 style={styles.duplicateImage}
                             />
                         </View>
-
                         <View style={styles.duplicateBottomRow}>
                             <View style={styles.duplicateTextBlock}>
                                 <Text style={styles.duplicateTitle}>Duplicate?</Text>
@@ -232,7 +234,6 @@ export default function HomeScreen() {
                                     Add your items in your wardrobe and check for duplicates.
                                 </Text>
                             </View>
-
                             <TouchableOpacity
                                 style={styles.duplicateButton}
                                 onPress={() => router.push('/(tabs)/wardrobe')}>
@@ -246,7 +247,6 @@ export default function HomeScreen() {
                     <View style={styles.brandsSection}>
                         <Text style={styles.brandsTitle}>Brand picks</Text>
                         <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
-
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
@@ -264,8 +264,6 @@ export default function HomeScreen() {
                         </ScrollView>
                     </View>
 
-
-
                 </ScrollView>
             </View>
         </SafeAreaView>
@@ -277,25 +275,21 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f3f3f3',
     },
-
     container: {
         flex: 1,
         backgroundColor: '#f3f3f3',
         paddingHorizontal: 14,
         paddingTop: 8,
     },
-
     scrollContent: {
         paddingBottom: 20,
     },
-
     topBar: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 14,
         gap: 10,
     },
-
     searchWrapper: {
         flex: 1,
         height: 44,
@@ -305,14 +299,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         overflow: 'hidden',
     },
-
     searchInput: {
         flex: 1,
         marginLeft: 8,
         fontSize: 16,
         color: '#222',
     },
-
     profileButton: {
         width: 44,
         height: 44,
@@ -323,7 +315,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#f3f3f3',
     },
-
     iconButton: {
         width: 44,
         height: 44,
@@ -331,61 +322,51 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#f3f3f3',
     },
-
     heroImage: {
         width: '100%',
         height: 500,
         borderRadius: 0,
         backgroundColor: '#e9e9e9',
     },
-
     headingWrapper: {
         marginTop: -120,
         marginBottom: 50,
         paddingLeft: 2,
     },
-
     collectionRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
-
     headingLineBlack: {
         fontSize: 39,
         lineHeight: 43,
         fontWeight: '500',
         color: '#111',
     },
-
     headingLineWhite: {
         fontSize: 39,
         lineHeight: 43,
         fontWeight: '500',
         color: '#fff',
     },
-
     cardsRow: {
         flexDirection: 'row',
         gap: 10,
         marginTop: 12,
     },
-
     card: {
         flex: 1,
         backgroundColor: '#ededed',
         overflow: 'hidden',
     },
-
     cardImage: {
         width: '100%',
         height: 190,
         justifyContent: 'flex-end',
     },
-
     cardGradient: {
         ...StyleSheet.absoluteFillObject,
     },
-
     cardLabel: {
         position: 'absolute',
         left: 10,
@@ -394,28 +375,24 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontWeight: '500',
     },
-
     newSection: {
         marginTop: 10,
         marginBottom: 6,
         paddingHorizontal: 2,
     },
-
     newTitle: {
         fontSize: 22,
         fontWeight: '700',
         color: '#111',
         marginBottom: 4,
-        letterSpacing: -0.7
+        letterSpacing: -0.7,
     },
-
     newSubtitle: {
         fontSize: 13,
         color: '#393939',
         lineHeight: 18,
         letterSpacing: 0.2,
     },
-
     ctaWrapper: {
         marginTop: 20,
         borderRadius: 16,
@@ -423,15 +400,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         overflow: 'hidden',
     },
-
     ctaText: {
         color: '#111',
         fontSize: 18,
-        fontWeight: 700,
+        fontWeight: '700',
         lineHeight: 23,
         marginBottom: 12,
     },
-
     ctaButton: {
         alignSelf: 'center',
         backgroundColor: '#111',
@@ -439,46 +414,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderRadius: 20,
     },
-
     ctaButtonText: {
         color: '#fff',
         fontSize: 13,
         fontWeight: '600',
     },
-
     favoritesSection: {
         marginTop: 40,
     },
-
     favoritesTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: '#111',
         marginBottom: 12,
     },
-
     favoritesScroll: {
         paddingRight: 14,
     },
-
     favoriteCard: {
         width: 108,
         height: 108,
         marginRight: 10,
     },
-
     favoriteCardImage: {
         width: '100%',
         height: '100%',
         justifyContent: 'flex-end',
         overflow: 'hidden',
     },
-
     favoriteCardGradient: {
         ...StyleSheet.absoluteFillObject,
         borderRadius: 14,
     },
-
     favoriteCardLabel: {
         color: '#fff',
         fontSize: 14,
@@ -486,48 +453,40 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingBottom: 10,
     },
-
     tasteSection: {
         marginTop: 32,
     },
-
     tasteTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: '#111',
         marginBottom: 14,
     },
-
     productsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
-
     productCard: {
         width: '48%',
         marginBottom: 18,
     },
-
     productImage: {
         width: '100%',
         height: 180,
         borderRadius: 10,
         backgroundColor: '#eee',
     },
-
     productName: {
         marginTop: 8,
         fontSize: 14,
         color: '#111',
     },
-
     productPrice: {
         fontSize: 13,
         color: '#6b6b6b',
         marginTop: 2,
     },
-
     cartButton: {
         position: 'absolute',
         top: 8,
@@ -536,7 +495,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 6,
     },
-
     showAllButton: {
         marginTop: 16,
         alignSelf: 'center',
@@ -545,62 +503,52 @@ const styles = StyleSheet.create({
         paddingHorizontal: 50,
         borderRadius: 20,
     },
-
     showAllText: {
         fontSize: 14,
         fontWeight: '600',
         color: '#fff',
     },
-
     duplicateWrapper: {
         marginTop: 30,
         backgroundColor: '#d9d8d8',
         padding: 16,
         borderRadius: 16,
     },
-
     duplicateImagesRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 16,
     },
-
     duplicateImage: {
         width: 128,
         height: 150,
         borderRadius: 12,
         backgroundColor: '#ddd',
     },
-
     middleArrow: {
         marginHorizontal: 8,
     },
-
     duplicateBottomRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
         gap: 12,
     },
-
     duplicateTextBlock: {
         flex: 1,
     },
-
     duplicateTitle: {
         fontSize: 24,
         fontWeight: '700',
         color: '#111',
         marginBottom: 6,
     },
-
     duplicateText: {
         fontSize: 14,
         color: '#393939',
         lineHeight: 19,
     },
-
     duplicateButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -610,35 +558,29 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         borderRadius: 20,
     },
-
     duplicateButtonText: {
         color: '#fff',
         fontWeight: '600',
         fontSize: 13,
     },
-
     brandsSection: {
         marginTop: 32,
         marginBottom: 20,
     },
-
     brandsTitle: {
         fontSize: 20,
         fontWeight: '700',
         color: '#111',
         marginBottom: 4,
     },
-
     brandsSubtitle: {
         fontSize: 13,
         color: '#393939',
         marginBottom: 14,
     },
-
     brandsScroll: {
         paddingRight: 14,
     },
-
     brandCard: {
         width: 110,
         height: 70,
@@ -647,7 +589,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         backgroundColor: '#eee',
     },
-
     brandImage: {
         width: '100%',
         height: '100%',
