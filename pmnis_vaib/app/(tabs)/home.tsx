@@ -10,21 +10,90 @@ import {
     ScrollView,
     ImageBackground,
 } from 'react-native';
-import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const allProducts = [
+    {
+        image: require('../../assets/images_app/model8.png'),
+        name: 'Oversized denim jacket',
+        price: '€79.99',
+        budget: 'mid',
+        styles: ['Casual', 'Streetwear', 'Vintage'],
+        colors: ['Modrá'],
+        gender: ['Žena'],
+    },
+    {
+        image: require('../../assets/images_app/model9.png'),
+        name: 'Summer dress',
+        price: '€49.99',
+        budget: 'mid',
+        styles: ['Casual', 'Boho'],
+        colors: ['Modrá'],
+        gender: ['Žena'],
+    },
+    {
+        image: require('../../assets/images_app/model10.png'),
+        name: 'One shoulder top',
+        price: '€39.99',
+        budget: 'low',
+        styles: ['Streetwear', 'Minimalist', 'Elegantný'],
+        colors: ['Čierna'],
+        gender: ['Žena'],
+    },
+    {
+        image: require('../../assets/images_app/model11.png'),
+        name: 'Adidas sport set',
+        price: '€89.99',
+        budget: 'high',
+        styles: ['Sporty', 'Casual', 'Streetwear'],
+        colors: ['Zelená', 'Biela'],
+        gender: ['Žena', 'Muž'],
+    },
+];
+
 export default function HomeScreen() {
     const [userName, setUserName] = useState('');
+    const [filteredProducts, setFilteredProducts] = useState(allProducts);
+    const router = useRouter();
 
     useEffect(() => {
-        AsyncStorage.getItem('currentUser').then(data => {
-            if (data) {
-                const user = JSON.parse(data);
+        const loadData = async () => {
+            const userData = await AsyncStorage.getItem('currentUser');
+            if (userData) {
+                const user = JSON.parse(userData);
                 setUserName(user.name);
             }
-        });
+
+            const profileData = await AsyncStorage.getItem('userProfile');
+            if (profileData) {
+                const profile = JSON.parse(profileData);
+
+                const filtered = allProducts.filter(product => {
+                const genderMatch = profile.gender
+                    ? product.gender.includes(profile.gender)
+                    : true;
+
+                const budgetMatch = profile.budget
+                    ? product.budget === profile.budget
+                    : true;
+                const styleMatch = profile.styles?.length
+                    ? product.styles.some((s: string) => profile.styles.includes(s))
+                    : true;
+                const colorMatch = profile.colors?.length
+                    ? product.colors.some((c: string) => profile.colors.includes(c))
+                    : true;
+
+                return genderMatch && (budgetMatch || styleMatch || colorMatch);
+            });
+
+                setFilteredProducts(filtered.length > 0 ? filtered : allProducts);
+            }
+        };
+
+        loadData();
     }, []);
 
     const cards = [
@@ -36,29 +105,6 @@ export default function HomeScreen() {
         { image: require('../../assets/images_app/model7.png'), label: 'favorites' },
     ];
 
-    const products = [
-        {
-            image: require('../../assets/images_app/model8.png'),
-            name: 'Oversized denim jacket',
-            price: '€79.99',
-        },
-        {
-            image: require('../../assets/images_app/model9.png'),
-            name: 'Summer dress',
-            price: '€49.99',
-        },
-        {
-            image: require('../../assets/images_app/model10.png'),
-            name: 'Spring set',
-            price: '€69.99',
-        },
-        {
-            image: require('../../assets/images_app/model11.png'),
-            name: 'Classic sneakers',
-            price: '€89.99',
-        },
-    ];
-
     const brands = [
         require('../../assets/images_app/brand1.png'),
         require('../../assets/images_app/brand2.png'),
@@ -66,8 +112,6 @@ export default function HomeScreen() {
         require('../../assets/images_app/brand4.png'),
         require('../../assets/images_app/brand5.png'),
     ];
-
-    const router = useRouter();
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -187,11 +231,11 @@ export default function HomeScreen() {
                         </ScrollView>
                     </View>
 
-                    {/* Your taste */}
+                    {/* Your taste — personalizované */}
                     <View style={styles.tasteSection}>
                         <Text style={styles.tasteTitle}>Your taste</Text>
                         <View style={styles.productsGrid}>
-                            {products.map((item, index) => (
+                            {filteredProducts.map((item, index) => (
                                 <View key={index} style={styles.productCard}>
                                     <Image
                                         source={item.image}
@@ -271,326 +315,68 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#f3f3f3',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#f3f3f3',
-        paddingHorizontal: 14,
-        paddingTop: 8,
-    },
-    scrollContent: {
-        paddingBottom: 20,
-    },
-    topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 14,
-        gap: 10,
-    },
+    safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
+    container: { flex: 1, backgroundColor: '#f3f3f3', paddingHorizontal: 14, paddingTop: 8 },
+    scrollContent: { paddingBottom: 20 },
+    topBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 10 },
     searchWrapper: {
-        flex: 1,
-        height: 44,
-        borderRadius: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        overflow: 'hidden',
+        flex: 1, height: 44, borderRadius: 12, flexDirection: 'row',
+        alignItems: 'center', paddingHorizontal: 12, overflow: 'hidden',
     },
-    searchInput: {
-        flex: 1,
-        marginLeft: 8,
-        fontSize: 16,
-        color: '#222',
-    },
+    searchInput: { flex: 1, marginLeft: 8, fontSize: 16, color: '#222' },
     profileButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1.5,
-        borderColor: '#6a6a6a',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f3f3f3',
+        width: 44, height: 44, borderRadius: 22, borderWidth: 1.5,
+        borderColor: '#6a6a6a', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f3f3',
     },
-    iconButton: {
-        width: 44,
-        height: 44,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#f3f3f3',
-    },
-    heroImage: {
-        width: '100%',
-        height: 500,
-        borderRadius: 0,
-        backgroundColor: '#e9e9e9',
-    },
-    headingWrapper: {
-        marginTop: -120,
-        marginBottom: 50,
-        paddingLeft: 2,
-    },
-    collectionRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-    },
-    headingLineBlack: {
-        fontSize: 39,
-        lineHeight: 43,
-        fontWeight: '500',
-        color: '#111',
-    },
-    headingLineWhite: {
-        fontSize: 39,
-        lineHeight: 43,
-        fontWeight: '500',
-        color: '#fff',
-    },
-    cardsRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginTop: 12,
-    },
-    card: {
-        flex: 1,
-        backgroundColor: '#ededed',
-        overflow: 'hidden',
-    },
-    cardImage: {
-        width: '100%',
-        height: 190,
-        justifyContent: 'flex-end',
-    },
-    cardGradient: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    cardLabel: {
-        position: 'absolute',
-        left: 10,
-        bottom: 10,
-        fontSize: 16,
-        color: '#ffffff',
-        fontWeight: '500',
-    },
-    newSection: {
-        marginTop: 10,
-        marginBottom: 6,
-        paddingHorizontal: 2,
-    },
-    newTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 4,
-        letterSpacing: -0.7,
-    },
-    newSubtitle: {
-        fontSize: 13,
-        color: '#393939',
-        lineHeight: 18,
-        letterSpacing: 0.2,
-    },
-    ctaWrapper: {
-        marginTop: 20,
-        borderRadius: 16,
-        paddingVertical: 24,
-        paddingHorizontal: 16,
-        overflow: 'hidden',
-    },
-    ctaText: {
-        color: '#111',
-        fontSize: 18,
-        fontWeight: '700',
-        lineHeight: 23,
-        marginBottom: 12,
-    },
-    ctaButton: {
-        alignSelf: 'center',
-        backgroundColor: '#111',
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        borderRadius: 20,
-    },
-    ctaButtonText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    favoritesSection: {
-        marginTop: 40,
-    },
-    favoritesTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 12,
-    },
-    favoritesScroll: {
-        paddingRight: 14,
-    },
-    favoriteCard: {
-        width: 108,
-        height: 108,
-        marginRight: 10,
-    },
-    favoriteCardImage: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'flex-end',
-        overflow: 'hidden',
-    },
-    favoriteCardGradient: {
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 14,
-    },
-    favoriteCardLabel: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-        paddingLeft: 10,
-        paddingBottom: 10,
-    },
-    tasteSection: {
-        marginTop: 32,
-    },
-    tasteTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 14,
-    },
-    productsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    productCard: {
-        width: '48%',
-        marginBottom: 18,
-    },
-    productImage: {
-        width: '100%',
-        height: 180,
-        borderRadius: 10,
-        backgroundColor: '#eee',
-    },
-    productName: {
-        marginTop: 8,
-        fontSize: 14,
-        color: '#111',
-    },
-    productPrice: {
-        fontSize: 13,
-        color: '#6b6b6b',
-        marginTop: 2,
-    },
-    cartButton: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 6,
-    },
-    showAllButton: {
-        marginTop: 16,
-        alignSelf: 'center',
-        backgroundColor: '#111',
-        paddingVertical: 10,
-        paddingHorizontal: 50,
-        borderRadius: 20,
-    },
-    showAllText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#fff',
-    },
-    duplicateWrapper: {
-        marginTop: 30,
-        backgroundColor: '#d9d8d8',
-        padding: 16,
-        borderRadius: 16,
-    },
-    duplicateImagesRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    duplicateImage: {
-        width: 128,
-        height: 150,
-        borderRadius: 12,
-        backgroundColor: '#ddd',
-    },
-    middleArrow: {
-        marginHorizontal: 8,
-    },
-    duplicateBottomRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        gap: 12,
-    },
-    duplicateTextBlock: {
-        flex: 1,
-    },
-    duplicateTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 6,
-    },
-    duplicateText: {
-        fontSize: 14,
-        color: '#393939',
-        lineHeight: 19,
-    },
-    duplicateButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#111',
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 20,
-    },
-    duplicateButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 13,
-    },
-    brandsSection: {
-        marginTop: 32,
-        marginBottom: 20,
-    },
-    brandsTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 4,
-    },
-    brandsSubtitle: {
-        fontSize: 13,
-        color: '#393939',
-        marginBottom: 14,
-    },
-    brandsScroll: {
-        paddingRight: 14,
-    },
-    brandCard: {
-        width: 110,
-        height: 70,
-        marginRight: 10,
-        borderRadius: 12,
-        overflow: 'hidden',
-        backgroundColor: '#eee',
-    },
-    brandImage: {
-        width: '100%',
-        height: '100%',
-    },
+    iconButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f3f3' },
+    heroImage: { width: '100%', height: 500, borderRadius: 0, backgroundColor: '#e9e9e9' },
+    headingWrapper: { marginTop: -120, marginBottom: 50, paddingLeft: 2 },
+    collectionRow: { flexDirection: 'row', alignItems: 'baseline' },
+    headingLineBlack: { fontSize: 39, lineHeight: 43, fontWeight: '500', color: '#111' },
+    headingLineWhite: { fontSize: 39, lineHeight: 43, fontWeight: '500', color: '#fff' },
+    cardsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    card: { flex: 1, backgroundColor: '#ededed', overflow: 'hidden' },
+    cardImage: { width: '100%', height: 190, justifyContent: 'flex-end' },
+    cardGradient: { ...StyleSheet.absoluteFillObject },
+    cardLabel: { position: 'absolute', left: 10, bottom: 10, fontSize: 16, color: '#ffffff', fontWeight: '500' },
+    newSection: { marginTop: 10, marginBottom: 6, paddingHorizontal: 2 },
+    newTitle: { fontSize: 22, fontWeight: '700', color: '#111', marginBottom: 4, letterSpacing: -0.7 },
+    newSubtitle: { fontSize: 13, color: '#393939', lineHeight: 18, letterSpacing: 0.2 },
+    ctaWrapper: { marginTop: 20, borderRadius: 16, paddingVertical: 24, paddingHorizontal: 16, overflow: 'hidden' },
+    ctaText: { color: '#111', fontSize: 18, fontWeight: '700', lineHeight: 23, marginBottom: 12 },
+    ctaButton: { alignSelf: 'center', backgroundColor: '#111', paddingVertical: 8, paddingHorizontal: 20, borderRadius: 20 },
+    ctaButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    favoritesSection: { marginTop: 40 },
+    favoritesTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 12 },
+    favoritesScroll: { paddingRight: 14 },
+    favoriteCard: { width: 108, height: 108, marginRight: 10 },
+    favoriteCardImage: { width: '100%', height: '100%', justifyContent: 'flex-end', overflow: 'hidden' },
+    favoriteCardGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
+    favoriteCardLabel: { color: '#fff', fontSize: 14, fontWeight: '600', paddingLeft: 10, paddingBottom: 10 },
+    tasteSection: { marginTop: 32 },
+    tasteTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 14 },
+    productsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+    productCard: { width: '48%', marginBottom: 18 },
+    productImage: { width: '100%', height: 180, borderRadius: 10, backgroundColor: '#eee' },
+    productName: { marginTop: 8, fontSize: 14, color: '#111' },
+    productPrice: { fontSize: 13, color: '#6b6b6b', marginTop: 2 },
+    cartButton: { position: 'absolute', top: 8, right: 8, backgroundColor: '#fff', borderRadius: 16, padding: 6 },
+    showAllButton: { marginTop: 16, alignSelf: 'center', backgroundColor: '#111', paddingVertical: 10, paddingHorizontal: 50, borderRadius: 20 },
+    showAllText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+    duplicateWrapper: { marginTop: 30, backgroundColor: '#d9d8d8', padding: 16, borderRadius: 16 },
+    duplicateImagesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    duplicateImage: { width: 128, height: 150, borderRadius: 12, backgroundColor: '#ddd' },
+    middleArrow: { marginHorizontal: 8 },
+    duplicateBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
+    duplicateTextBlock: { flex: 1 },
+    duplicateTitle: { fontSize: 24, fontWeight: '700', color: '#111', marginBottom: 6 },
+    duplicateText: { fontSize: 14, color: '#393939', lineHeight: 19 },
+    duplicateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#111', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20 },
+    duplicateButtonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+    brandsSection: { marginTop: 32, marginBottom: 20 },
+    brandsTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 4 },
+    brandsSubtitle: { fontSize: 13, color: '#393939', marginBottom: 14 },
+    brandsScroll: { paddingRight: 14 },
+    brandCard: { width: 110, height: 70, marginRight: 10, borderRadius: 12, overflow: 'hidden', backgroundColor: '#eee' },
+    brandImage: { width: '100%', height: '100%' },
 });
