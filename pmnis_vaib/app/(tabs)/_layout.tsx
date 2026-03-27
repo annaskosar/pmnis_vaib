@@ -78,6 +78,7 @@ export default function TabLayout() {
                         <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
                         <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
                         <Tabs.Screen name="create_cart" options={{ href: null }} />
+                        <Tabs.Screen name="product_detail" options={{ href: null }} />
                     </Tabs>
                 </CartProvider>
             </WardrobeProvider>

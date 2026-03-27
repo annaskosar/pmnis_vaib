@@ -13,6 +13,14 @@ import {
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Dimensions } from 'react-native';
+import { Modal, Pressable, Alert } from 'react-native';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Asset } from 'expo-asset';
+
+const CARD_WIDTH = Dimensions.get('window').width * 0.48 - 8;
+const IMAGE_HEIGHT = 245;
 
 export default function SearchItemsScreen() {
     const router = useRouter();
@@ -36,36 +44,88 @@ export default function SearchItemsScreen() {
         style: 'All',
     });
 
+    const [previewVisible, setPreviewVisible] = React.useState(false);
+    const [selectedPreview, setSelectedPreview] = React.useState<{
+        image: any;
+        name: string;
+    } | null>(null);
+
+    const openPreview = (image: any, name: string) => {
+        setSelectedPreview({ image, name });
+        setPreviewVisible(true);
+    };
+
+
+    const saveImageToPhone = async () => {
+        try {
+            if (!selectedPreview) return;
+
+            const permission = await MediaLibrary.requestPermissionsAsync();
+
+            if (!permission.granted) {
+                Alert.alert('Permission needed', 'Please allow access to your photos to save the image.');
+                return;
+            }
+
+            const asset = Asset.fromModule(selectedPreview.image);
+            await asset.downloadAsync();
+
+            if (!asset.localUri) {
+                Alert.alert('Error', 'Image could not be prepared for saving.');
+                return;
+            }
+
+            const fileName = asset.localUri.split('/').pop() || `vaib-image-${Date.now()}.png`;
+            const newPath = FileSystem.documentDirectory + fileName;
+
+            await FileSystem.copyAsync({
+                from: asset.localUri,
+                to: newPath,
+            });
+
+            await MediaLibrary.createAssetAsync(newPath);
+
+            Alert.alert('Saved', 'Image was saved to your phone.');
+        } catch (error) {
+            Alert.alert('Error', 'Something went wrong while saving the image.');
+            console.log(error);
+        }
+    };
+
     const products = [
         {
-            image: require('../../assets/images_app/model8.png'),
+            images: [
+                require('../../assets/images_app/model8.png'),
+                require('../../assets/images_app/model9.png'),
+                require('../../assets/images_app/model10.png'),
+            ],
             name: 'Basic fitted top',
             price: '€24.99',
         },
         {
-            image: require('../../assets/images_app/model9.png'),
+            images: [
+                require('../../assets/images_app/model9.png'),
+                require('../../assets/images_app/model10.png'),
+                require('../../assets/images_app/model11.png'),
+            ],
             name: 'Ribbed long sleeve top',
             price: '€29.99',
         },
         {
-            image: require('../../assets/images_app/model10.png'),
+            images: [
+                require('../../assets/images_app/model10.png'),
+                require('../../assets/images_app/model8.png'),
+            ],
             name: 'Soft cropped top',
             price: '€21.99',
         },
         {
-            image: require('../../assets/images_app/model11.png'),
+            images: [
+                require('../../assets/images_app/model11.png'),
+                require('../../assets/images_app/model9.png'),
+            ],
             name: 'Minimal tank top',
             price: '€18.99',
-        },
-        {
-            image: require('../../assets/images_app/model8.png'),
-            name: 'Classic white top',
-            price: '€26.99',
-        },
-        {
-            image: require('../../assets/images_app/model9.png'),
-            name: 'Oversized basic tee',
-            price: '€27.99',
         },
     ];
 
@@ -505,23 +565,120 @@ export default function SearchItemsScreen() {
                     <View style={styles.productsGrid}>
                         {products.map((item, index) => (
                             <View key={index} style={styles.productCard}>
-                                <Image
-                                    source={item.image}
-                                    style={styles.productImage}
-                                    resizeMode="cover"
-                                />
+                                <View style={styles.imageSliderWrapper}>
+                                    <ScrollView
+                                        horizontal
+                                        pagingEnabled
+                                        showsHorizontalScrollIndicator={false}
+                                        nestedScrollEnabled
+                                        bounces={false}
+                                        overScrollMode="never"
+                                        decelerationRate="fast"
+                                        snapToInterval={CARD_WIDTH}
+                                        snapToAlignment="start"
+                                        disableIntervalMomentum
+                                    >
+                                        {item.images.map((img, imgIndex) => (
+                                            <TouchableOpacity
+                                                key={imgIndex}
+                                                activeOpacity={1}
+                                                onPress={() =>
+                                                    router.push({
+                                                        pathname: '/(tabs)/product_detail',
+                                                        params: {
+                                                            name: item.name,
+                                                            price: item.price,
+                                                            category: categoryName ?? '',
+                                                            subcategory: subcategoryName ?? '',
+                                                        },
+                                                    })
+                                                }
+                                                onLongPress={() => openPreview(img, item.name)}
+                                                delayLongPress={250}
+                                            >
+                                                <Image
+                                                    source={img}
+                                                    style={styles.productImage}
+                                                    resizeMode="cover"
+                                                />
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
 
                                 <TouchableOpacity style={styles.cartButton}>
                                     <Feather name="shopping-cart" size={16} color="#111" />
                                 </TouchableOpacity>
 
-                                <Text style={styles.productPrice}>{item.price}</Text>
-                                <Text style={styles.productName}>{item.name}</Text>
+                                <View style={styles.productInfoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.productPrice}>{item.price}</Text>
+                                        <Text
+                                            style={styles.productName}
+                                            numberOfLines={2}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {item.name}
+                                        </Text>
+                                    </View>
+
+                                    <TouchableOpacity
+                                        style={styles.heartButton}
+                                        onPress={() => {}}
+                                    >
+                                        <Feather name="heart" size={22} color="#111" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         ))}
                     </View>
                 </ScrollView>
             </View>
+
+            <Modal
+                visible={previewVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setPreviewVisible(false)}
+            >
+                <View style={styles.previewOverlay}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => setPreviewVisible(false)}
+                    />
+
+                    {selectedPreview && (
+                        <View style={styles.previewContent}>
+                            <Image
+                                source={selectedPreview.image}
+                                style={styles.previewImage}
+                                resizeMode="cover"
+                            />
+
+                            <View style={styles.previewBottomSheet}>
+                                <View>
+                                    <Text style={styles.previewBrand}>VAIB</Text>
+                                    <Text
+                                        style={styles.previewName}
+                                        numberOfLines={2}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {selectedPreview.name}
+                                    </Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.saveButton}
+                                    onPress={saveImageToPhone}
+                                >
+                                    <Feather name="download" size={16} color="#fff" />
+                                    <Text style={styles.saveButtonText}>SAVE</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -839,15 +996,14 @@ const styles = StyleSheet.create({
     },
 
     productCard: {
-        width: '48%',
+        width: CARD_WIDTH,
         marginBottom: 22,
         position: 'relative',
     },
 
     productImage: {
-        width: '100%',
-        height: 245,
-        borderRadius: 0,
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
         backgroundColor: '#d9d9d9',
     },
 
@@ -861,7 +1017,6 @@ const styles = StyleSheet.create({
     },
 
     productPrice: {
-        marginTop: 12,
         fontSize: 18,
         fontWeight: '700',
         color: '#111',
@@ -872,6 +1027,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#5f5f5f',
         lineHeight: 18,
+        height: 36,
         marginBottom: 10,
     },
 
@@ -890,5 +1046,88 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6f6f6f',
         fontWeight: '500',
+    },
+
+    imageSliderWrapper: {
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
+        overflow: 'hidden',
+        backgroundColor: '#d9d9d9',
+    },
+
+    heartButton: {
+        marginRight: 10,
+        marginTop: 2,
+    },
+
+    productInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginTop: 12,
+    },
+
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    previewContent: {
+        width: '92%',
+        alignItems: 'center',
+    },
+
+    previewImage: {
+        width: '100%',
+        height: '72%',
+        maxHeight: 650,
+        borderRadius: 18,
+        backgroundColor: '#e9e9e9',
+    },
+
+    previewBottomSheet: {
+        marginTop: 14,
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: 18,
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    previewBrand: {
+        fontSize: 13,
+        color: '#8a8a8a',
+        fontWeight: '600',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+
+    previewName: {
+        fontSize: 16,
+        color: '#111',
+        fontWeight: '700',
+        maxWidth: 220,
+    },
+
+    saveButton: {
+        backgroundColor: '#111',
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 0.6,
     },
 });
