@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type WishlistItem = {
     id: string;
@@ -22,16 +23,54 @@ const WishlistContext = React.createContext<WishlistContextType | undefined>(und
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
     const [wishlistItems, setWishlistItems] = React.useState<WishlistItem[]>([]);
+    const [userEmail, setUserEmail] = React.useState<string | null>(null);
+
+    // Načítaj email a wishlist pri štarte
+    React.useEffect(() => {
+        const loadWishlist = async () => {
+            try {
+                const userData = await AsyncStorage.getItem('currentUser');
+                if (!userData) return;
+                const user = JSON.parse(userData);
+                const email = user.email;
+                setUserEmail(email);
+
+                const stored = await AsyncStorage.getItem(`wishlist_${email}`);
+                if (stored) {
+                    setWishlistItems(JSON.parse(stored));
+                }
+            } catch (e) {
+                console.log('Error loading wishlist:', e);
+            }
+        };
+        loadWishlist();
+    }, []);
+
+    // Ulož wishlist pri každej zmene
+    const saveWishlist = async (items: WishlistItem[], email: string | null) => {
+        if (!email) return;
+        try {
+            await AsyncStorage.setItem(`wishlist_${email}`, JSON.stringify(items));
+        } catch (e) {
+            console.log('Error saving wishlist:', e);
+        }
+    };
 
     const addToWishlist = (item: WishlistItem) => {
         setWishlistItems(prev => {
             if (prev.find(i => i.id === item.id)) return prev;
-            return [...prev, item];
+            const updated = [...prev, item];
+            saveWishlist(updated, userEmail);
+            return updated;
         });
     };
 
     const removeFromWishlist = (id: string) => {
-        setWishlistItems(prev => prev.filter(i => i.id !== id));
+        setWishlistItems(prev => {
+            const updated = prev.filter(i => i.id !== id);
+            saveWishlist(updated, userEmail);
+            return updated;
+        });
     };
 
     const isInWishlist = (id: string) => {

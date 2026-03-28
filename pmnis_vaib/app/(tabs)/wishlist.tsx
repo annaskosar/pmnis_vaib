@@ -48,6 +48,7 @@ export default function WishlistScreen() {
                                             category: item.category ?? '',
                                             subcategory: item.subcategory ?? '',
                                             gender: item.gender ?? 'WOMAN',
+                                            from: 'wishlist',
                                         },
                                     })}
                                 >

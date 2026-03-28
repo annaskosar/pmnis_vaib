@@ -175,7 +175,7 @@ function MiniProductCard({ item, onOpenCartPicker }: { item: MiniProduct; onOpen
 
 export default function ProductDetailScreen() {
     const router = useRouter();
-    const { productId, category, subcategory, gender } = useLocalSearchParams();
+    const { productId, category, subcategory, gender, from } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const { carts, addProductToCart, deleteCart } = useCart();
     const { getProductById } = useProducts();
@@ -357,8 +357,19 @@ export default function ProductDetailScreen() {
 
                     <View style={styles.topIconsRow}>
                         <TouchableOpacity onPress={() => {
+                            if (from === 'wishlist') {
+                                router.replace('/(tabs)/wishlist');
+                                return;
+                            }
                             if (categoryName && subcategoryName) {
-                                router.replace({ pathname: '/search_items', params: { category: categoryName, subcategory: subcategoryName, gender: genderValue ?? 'WOMAN' } });
+                                router.replace({
+                                    pathname: '/search_items',
+                                    params: {
+                                        category: categoryName,
+                                        subcategory: subcategoryName,
+                                        gender: genderValue ?? 'WOMAN',
+                                    },
+                                });
                                 return;
                             }
                             router.replace('/search');
