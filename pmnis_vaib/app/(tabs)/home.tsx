@@ -131,12 +131,11 @@ export default function HomeScreen() {
                             />
                         </ImageBackground>
 
-                        {/* ← ZMENENÉ: naviguje na wishlist */}
                         <TouchableOpacity
                             style={styles.iconButton}
                             onPress={() => router.push('/(tabs)/wishlist')}
                         >
-                            <Feather name="heart" size={34} color="#393939" />
+                            <Feather name="heart" size={28} color="#393939" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
