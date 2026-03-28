@@ -72,22 +72,21 @@ export default function HomeScreen() {
                 const profile = JSON.parse(profileData);
 
                 const filtered = allProducts.filter(product => {
-                const genderMatch = profile.gender
-                    ? product.gender.includes(profile.gender)
-                    : true;
+                    const genderMatch = profile.gender
+                        ? product.gender.includes(profile.gender)
+                        : true;
+                    const budgetMatch = profile.budget
+                        ? product.budget === profile.budget
+                        : true;
+                    const styleMatch = profile.styles?.length
+                        ? product.styles.some((s: string) => profile.styles.includes(s))
+                        : true;
+                    const colorMatch = profile.colors?.length
+                        ? product.colors.some((c: string) => profile.colors.includes(c))
+                        : true;
 
-                const budgetMatch = profile.budget
-                    ? product.budget === profile.budget
-                    : true;
-                const styleMatch = profile.styles?.length
-                    ? product.styles.some((s: string) => profile.styles.includes(s))
-                    : true;
-                const colorMatch = profile.colors?.length
-                    ? product.colors.some((c: string) => profile.colors.includes(c))
-                    : true;
-
-                return genderMatch && (budgetMatch || styleMatch || colorMatch);
-            });
+                    return genderMatch && (budgetMatch || styleMatch || colorMatch);
+                });
 
                 setFilteredProducts(filtered.length > 0 ? filtered : allProducts);
             }
@@ -132,7 +131,11 @@ export default function HomeScreen() {
                             />
                         </ImageBackground>
 
-                        <TouchableOpacity style={styles.iconButton}>
+                        {/* ← ZMENENÉ: naviguje na wishlist */}
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => router.push('/(tabs)/wishlist')}
+                        >
                             <Feather name="heart" size={20} color="#393939" />
                         </TouchableOpacity>
 
@@ -144,7 +147,6 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Main hero image */}
                     <Image
                         source={require('../../assets/images_app/model1.png')}
                         style={styles.heroImage}
@@ -159,7 +161,6 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    {/* New for you section */}
                     <View style={styles.newSection}>
                         <Text style={styles.newTitle}>New for you</Text>
                         <Text style={styles.newSubtitle}>
@@ -167,7 +168,6 @@ export default function HomeScreen() {
                         </Text>
                     </View>
 
-                    {/* Card pairs */}
                     {Array.from({ length: Math.ceil(cards.length / 2) }).map((_, rowIndex) => (
                         <View key={rowIndex} style={styles.cardsRow}>
                             {cards.slice(rowIndex * 2, rowIndex * 2 + 2).map((item, index) => (
@@ -188,7 +188,6 @@ export default function HomeScreen() {
                         </View>
                     ))}
 
-                    {/* CTA box */}
                     <ImageBackground
                         source={require('../../assets/images_app/search.png')}
                         style={styles.ctaWrapper}
@@ -204,7 +203,6 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </ImageBackground>
 
-                    {/* Favorite categories */}
                     <View style={styles.favoritesSection}>
                         <Text style={styles.favoritesTitle}>Your favorite categories</Text>
                         <ScrollView
@@ -231,7 +229,6 @@ export default function HomeScreen() {
                         </ScrollView>
                     </View>
 
-                    {/* Your taste — personalizované */}
                     <View style={styles.tasteSection}>
                         <Text style={styles.tasteTitle}>Your taste</Text>
                         <View style={styles.productsGrid}>
@@ -258,7 +255,6 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* Duplicate checker */}
                     <View style={styles.duplicateWrapper}>
                         <View style={styles.duplicateImagesRow}>
                             <Image
@@ -287,7 +283,6 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    {/* Brand picks */}
                     <View style={styles.brandsSection}>
                         <Text style={styles.brandsTitle}>Brand picks</Text>
                         <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
@@ -307,7 +302,6 @@ export default function HomeScreen() {
                             ))}
                         </ScrollView>
                     </View>
-
                 </ScrollView>
             </View>
         </SafeAreaView>

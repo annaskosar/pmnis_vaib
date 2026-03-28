@@ -8,17 +8,15 @@ import { WardrobeProvider } from '../../context/wardrobe_context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CartProvider } from '../../context/cart_context';
 import { ProductProvider } from '../../context/product_context';
+import { WishlistProvider } from '../../context/wishlist_context';
 
 function CustomTabBar({ state, navigation }: any) {
     const insets = useSafeAreaInsets();
     const pathname = usePathname();
-
     const isSearchActive = pathname.startsWith('/search');
-
 
     return (
         <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-
             <TouchableOpacity
                 style={[styles.navItem, state.index === 0 && styles.activeNavItem]}
                 onPress={() => navigation.navigate('home')}
@@ -53,7 +51,6 @@ function CustomTabBar({ state, navigation }: any) {
             >
                 <MaterialCommunityIcons name="hanger" size={26} color="#5f5f5f" />
             </TouchableOpacity>
-
         </View>
     );
 }
@@ -62,30 +59,31 @@ export default function TabLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ProductProvider>
-                <WardrobeProvider>
-                    <CartProvider>
-                        <Tabs
-                            tabBar={(props) => <CustomTabBar {...props} />}
-                            screenOptions={{
-                                headerShown: false,
-                            }}
-                        >
-                            <Tabs.Screen name="home" />
-                            <Tabs.Screen name="search" />
-                            <Tabs.Screen name="builder" />
-                            <Tabs.Screen name="cart" />
-                            <Tabs.Screen name="wardrobe" />
-                            <Tabs.Screen name="account" options={{ href: null }} />
-                            <Tabs.Screen name="search_items" options={{ href: null }} />
-                            <Tabs.Screen name="search_category" options={{ href: null }} />
-                            <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
-                            <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
-                            <Tabs.Screen name="create_cart" options={{ href: null }} />
-                            <Tabs.Screen name="product_detail" options={{ href: null }} />
-                            <Tabs.Screen name="reviews" options={{ href: null }} />
-                        </Tabs>
-                    </CartProvider>
-                </WardrobeProvider>
+                <WishlistProvider>
+                    <WardrobeProvider>
+                        <CartProvider>
+                            <Tabs
+                                tabBar={(props) => <CustomTabBar {...props} />}
+                                screenOptions={{ headerShown: false }}
+                            >
+                                <Tabs.Screen name="home" />
+                                <Tabs.Screen name="search" />
+                                <Tabs.Screen name="builder" />
+                                <Tabs.Screen name="cart" />
+                                <Tabs.Screen name="wardrobe" />
+                                <Tabs.Screen name="account" options={{ href: null }} />
+                                <Tabs.Screen name="search_items" options={{ href: null }} />
+                                <Tabs.Screen name="search_category" options={{ href: null }} />
+                                <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
+                                <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
+                                <Tabs.Screen name="create_cart" options={{ href: null }} />
+                                <Tabs.Screen name="product_detail" options={{ href: null }} />
+                                <Tabs.Screen name="reviews" options={{ href: null }} />
+                                <Tabs.Screen name="wishlist" options={{ href: null }} />
+                            </Tabs>
+                        </CartProvider>
+                    </WardrobeProvider>
+                </WishlistProvider>
             </ProductProvider>
         </GestureHandlerRootView>
     );
@@ -102,7 +100,6 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingHorizontal: 14,
     },
-
     navItem: {
         width: 42,
         height: 42,
@@ -110,7 +107,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 21,
     },
-
     activeNavItem: {
         backgroundColor: '#f2b55d',
     },
