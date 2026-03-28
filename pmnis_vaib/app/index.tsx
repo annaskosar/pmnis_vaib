@@ -7,7 +7,7 @@ export default function IntroScreen() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            router.replace('/(tabs)/home');
+            router.replace('/(auth)/login');  // ← jediná zmena
         }, 5000);
 
         return () => clearTimeout(timer);
