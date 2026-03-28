@@ -6,7 +6,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Image,
     Modal,
     Pressable,
     Dimensions,
@@ -15,6 +14,7 @@ import {
     Alert,
     TouchableWithoutFeedback,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Animated } from 'react-native';
@@ -250,7 +250,13 @@ function MiniProductCard({
     return (
         <View style={styles.miniProductCard}>
             <View>
-                <Image source={item.image} style={styles.miniProductImage} resizeMode="cover" />
+                <Image
+                    source={item.image}
+                    style={styles.miniProductImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={150}
+                />
 
                 <TouchableOpacity
                     style={styles.miniCartButton}
@@ -607,7 +613,9 @@ export default function ProductDetailScreen() {
                                 <Image
                                     source={image}
                                     style={styles.mainImage}
-                                    resizeMode="cover"
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                    transition={150}
                                 />
                             </TouchableOpacity>
                         ))}
@@ -974,7 +982,13 @@ export default function ProductDetailScreen() {
                         {builderLooks.map((look) => (
                             <View key={look.id} style={styles.builderOutfitCard}>
                                 <View style={styles.lookCard}>
-                                    <Image source={look.image} style={styles.lookImage} resizeMode="cover" />
+                                    <Image
+                                        source={look.image}
+                                        style={styles.lookImage}
+                                        contentFit="cover"
+                                        cachePolicy="memory-disk"
+                                        transition={150}
+                                    />
                                     <View style={styles.lookLabel}>
                                         <Text style={styles.lookLabelText}>{look.title}</Text>
                                     </View>
@@ -989,7 +1003,9 @@ export default function ProductDetailScreen() {
                                             <Image
                                                 source={itemImage}
                                                 style={styles.builderMiniImage}
-                                                resizeMode="cover"
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                                transition={150}
                                             />
                                         </TouchableOpacity>
                                     ))}
@@ -1133,7 +1149,9 @@ export default function ProductDetailScreen() {
                             <Image
                                 source={productGallery[imageIndex] ?? productGallery[0]}
                                 style={styles.saveSheetPreviewImage}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                transition={150}
                             />
 
                             <View style={styles.saveSheetPreviewText}>
@@ -1311,7 +1329,9 @@ export default function ProductDetailScreen() {
                                 <Image
                                     source={image}
                                     style={styles.fullscreenImage}
-                                    resizeMode="contain"
+                                    contentFit="contain"
+                                    cachePolicy="memory-disk"
+                                    transition={150}
                                 />
                             </View>
                         ))}
@@ -1453,7 +1473,9 @@ export default function ProductDetailScreen() {
                                             <Image
                                                 source={currentEcoAlternative.image}
                                                 style={styles.ecoAlternativeImage}
-                                                resizeMode="cover"
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                                transition={150}
                                             />
                                             <Text
                                                 style={styles.ecoAlternativeName}
@@ -1504,7 +1526,9 @@ export default function ProductDetailScreen() {
                                 <Image
                                     source={productGallery[imageIndex] ?? productGallery[0]}
                                     style={styles.duplicateCompareImage}
-                                    resizeMode="cover"
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                    transition={150}
                                 />
                                 <Text style={styles.duplicateCompareLabel} numberOfLines={1}>
                                     New item
@@ -2483,7 +2507,7 @@ const styles = StyleSheet.create({
 
     imageViewerTopRow: {
         position: 'absolute',
-        top: 14,
+        top: 30,
         left: 16,
         right: 16,
         zIndex: 10,
