@@ -7,6 +7,7 @@ import { usePathname } from 'expo-router';
 import { WardrobeProvider } from '../../context/wardrobe_context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CartProvider } from '../../context/cart_context';
+import { ProductProvider } from '../../context/product_context';
 
 function CustomTabBar({ state, navigation }: any) {
     const insets = useSafeAreaInsets();
@@ -60,28 +61,32 @@ function CustomTabBar({ state, navigation }: any) {
 export default function TabLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <WardrobeProvider>
-                <CartProvider>
-                    <Tabs
-                        tabBar={(props) => <CustomTabBar {...props} />}
-                        screenOptions={{
-                            headerShown: false,
-                        }}
-                    >
-                        <Tabs.Screen name="home" />
-                        <Tabs.Screen name="search" />
-                        <Tabs.Screen name="builder" />
-                        <Tabs.Screen name="cart" />
-                        <Tabs.Screen name="wardrobe" />
-                        <Tabs.Screen name="account" options={{ href: null }} />
-                        <Tabs.Screen name="search_items" options={{ href: null }} />
-                        <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
-                        <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
-                        <Tabs.Screen name="create_cart" options={{ href: null }} />
-                        <Tabs.Screen name="product_detail" options={{ href: null }} />
-                    </Tabs>
-                </CartProvider>
-            </WardrobeProvider>
+            <ProductProvider>
+                <WardrobeProvider>
+                    <CartProvider>
+                        <Tabs
+                            tabBar={(props) => <CustomTabBar {...props} />}
+                            screenOptions={{
+                                headerShown: false,
+                            }}
+                        >
+                            <Tabs.Screen name="home" />
+                            <Tabs.Screen name="search" />
+                            <Tabs.Screen name="builder" />
+                            <Tabs.Screen name="cart" />
+                            <Tabs.Screen name="wardrobe" />
+                            <Tabs.Screen name="account" options={{ href: null }} />
+                            <Tabs.Screen name="search_items" options={{ href: null }} />
+                            <Tabs.Screen name="search_category" options={{ href: null }} />
+                            <Tabs.Screen name="wardrobe_add" options={{ href: null }} />
+                            <Tabs.Screen name="wardrobe_item" options={{ href: null }} />
+                            <Tabs.Screen name="create_cart" options={{ href: null }} />
+                            <Tabs.Screen name="product_detail" options={{ href: null }} />
+                            <Tabs.Screen name="reviews" options={{ href: null }} />
+                        </Tabs>
+                    </CartProvider>
+                </WardrobeProvider>
+            </ProductProvider>
         </GestureHandlerRootView>
     );
 }

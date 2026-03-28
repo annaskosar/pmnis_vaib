@@ -10,95 +10,19 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { categoryMap } from '../../context/product_context';
 
 export default function SearchCategoryScreen() {
     const router = useRouter();
-    const { category } = useLocalSearchParams();
+    const { category, gender } = useLocalSearchParams();
 
     const categoryName = Array.isArray(category) ? category[0] : category;
-
-    const categoryContent: Record<string, string[]> = {
-        'SALE: HOT DEALS': [
-            'Last chance',
-            'Up to 50% off',
-            'Trending deals',
-            'Best sellers',
-            'New markdowns',
-            'Shoes sale',
-            'Accessories sale',
-        ],
-        CLOTHING: [
-            'Tops',
-            'T-Shirts',
-            'Jeans',
-            'Trousers',
-            'Shirts',
-            'Jackets',
-            'Coats',
-            'Hoodies',
-        ],
-        SHOES: [
-            'Sneakers',
-            'Boots',
-            'Heels',
-            'Sandals',
-            'Flats',
-            'Running shoes',
-            'Leather shoes',
-        ],
-        DRESSES: [
-            'Mini dresses',
-            'Maxi dresses',
-            'Party dresses',
-            'Casual dresses',
-            'Evening dresses',
-            'Floral dresses',
-        ],
-        DESIGN: [
-            'New designers',
-            'Luxury picks',
-            'Trend hits',
-            'Runway mood',
-        ],
-
-        ACCESSORIES: [
-            'Bags',
-            'Jewellery',
-            'Belts',
-            'Sunglasses',
-            'Scarves',
-            'Hats',
-            'Hair accessories',
-            'Watches',
-
-        ],
-        BRANDS: [
-            'New brands',
-            'Trending brands',
-            'Designer brands',
-            'Sports brands',
-            'Sustainable brands',
-
-        ],
-        ACTIVEWEAR: [
-            'Leggings',
-            'Sports bras',
-            'Workout tops',
-            'Joggers',
-            'Gym sets',
-            'Yoga wear',
-        ],
-        PYJAMAS: [
-            'Pyjama sets',
-            'Night dresses',
-            'Sleep tops',
-            'Sleep shorts',
-            'Slippers',
-        ],
-    };
+    const selectedGender = Array.isArray(gender) ? gender[0] : gender;
 
     const items =
-        typeof categoryName === 'string' ? categoryContent[categoryName] || [] : [];
+        typeof categoryName === 'string'
+            ? categoryMap[categoryName as keyof typeof categoryMap] || []
+            : [];
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -140,6 +64,7 @@ export default function SearchCategoryScreen() {
                                     params: {
                                         category: categoryName,
                                         subcategory: item,
+                                        gender: selectedGender,
                                     },
                                 })
                             }

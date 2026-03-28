@@ -7,32 +7,188 @@ import {
     TouchableOpacity,
     ScrollView,
     TextInput,
-    Image,
     ImageBackground,
+    Modal,
+    Pressable,
+    Alert,
+    Dimensions,
 } from 'react-native';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Dimensions } from 'react-native';
-import { Modal, Pressable, Alert } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
+import { useProducts, sizeOptions } from '../../context/product_context';
+import { productImages } from '../../context/product_images';
+import { useFocusEffect } from 'expo-router';
+import { Animated, TouchableWithoutFeedback } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useCart, CartProduct } from '../../context/cart_context';
+import { Image } from 'expo-image';
+import { ActivityIndicator } from 'react-native';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.48 - 8;
 const IMAGE_HEIGHT = 245;
 
 export default function SearchItemsScreen() {
     const router = useRouter();
-    const { category, subcategory } = useLocalSearchParams();
+    const { products } = useProducts();
+    const { category, subcategory, gender } = useLocalSearchParams();
+    const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
+
+    const handleImageLoadStart = (key: string) => {
+        setLoadingImages((prev) => ({ ...prev, [key]: true }));
+    };
+
+    const handleImageLoadEnd = (key: string) => {
+        setLoadingImages((prev) => ({ ...prev, [key]: false }));
+    };
 
     const categoryName = Array.isArray(category) ? category[0] : category;
     const subcategoryName = Array.isArray(subcategory) ? subcategory[0] : subcategory;
+    const selectedGenderParam = Array.isArray(gender) ? gender[0] : gender;
+
+    const genderValue = selectedGenderParam === 'MAN' ? 'men' : 'women';
+    const { carts, addProductToCart, deleteCart } = useCart();
 
     const [openMenu, setOpenMenu] = React.useState<'SORT' | 'FILTER' | 'SIZE' | null>(null);
     const [showColours, setShowColours] = React.useState(false);
     const [activePriceThumb, setActivePriceThumb] = React.useState<0 | 1 | null>(null);
     const [isSliding, setIsSliding] = React.useState(false);
+
+    const DRAWER_WIDTH = 220;
+
+    const [showCartPicker, setShowCartPicker] = React.useState(false);
+    const [selectedCartProduct, setSelectedCartProduct] = React.useState<CartProduct | null>(null);
+    const slideAnim = React.useRef(new Animated.Value(0)).current;
+
+
+
+
+    const openCartPicker = (item: typeof filteredProducts[number]) => {
+        const imageSource = productImages[item.images[0]];
+
+        const cartProduct: CartProduct = {
+            id: `${item.id}-default`,
+            name: item.name,
+            price: item.price,
+            quantity: 1,
+            image: imageSource,
+            note: '',
+        };
+
+        setSelectedCartProduct(cartProduct);
+        setShowCartPicker(true);
+
+        Animated.timing(slideAnim, {
+            toValue: 1,
+            duration: 260,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const closeCartPicker = () => {
+        Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 220,
+            useNativeDriver: true,
+        }).start(() => {
+            setShowCartPicker(false);
+        });
+    };
+
+    const overlayOpacity = slideAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 0.34],
+    });
+
+    const drawerTranslateX = slideAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [DRAWER_WIDTH + 30, 0],
+    });
+
+    const getCartTotal = (cart: { products: CartProduct[] }) => {
+        return cart.products.reduce(
+            (sum, product) => sum + product.price * product.quantity,
+            0
+        );
+    };
+
+    const handleAddToSpecificCart = (cartId: string) => {
+        if (!selectedCartProduct) return;
+
+        addProductToCart(cartId, selectedCartProduct);
+        closeCartPicker();
+        Alert.alert('Added to cart', 'Item was added to your selected cart.');
+    };
+
+    const handleEditCart = (cartId: string) => {
+        closeCartPicker();
+        router.push({
+            pathname: '/cart_create',
+            params: { cartId },
+        });
+    };
+
+    const handleDeleteCart = (cartId: string) => {
+        Alert.alert(
+            'Delete cart',
+            'Are you sure you want to delete this cart?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deleteCart(cartId),
+                },
+            ]
+        );
+    };
+
+    const renderDrawerRightActions = (cartId: string) => {
+        return (
+            <View style={styles.drawerSwipeActions}>
+                <TouchableOpacity
+                    style={[styles.drawerSwipeButton, styles.drawerEditSwipeButton]}
+                    onPress={() => handleEditCart(cartId)}
+                >
+                    <Feather name="edit-2" size={15} color="#111" />
+                    <Text style={styles.drawerSwipeButtonText}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.drawerSwipeButton, styles.drawerDeleteSwipeButton]}
+                    onPress={() => handleDeleteCart(cartId)}
+                >
+                    <Feather name="trash-2" size={15} color="#fff" />
+                    <Text style={styles.drawerDeleteSwipeButtonText}>Delete</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            setOpenMenu(null);
+            setShowColours(false);
+            setActivePriceThumb(null);
+            setIsSliding(false);
+
+            setSelectedSort('Recommended');
+            setSelectedSizes([]);
+            setPriceRange([5, 500]);
+
+            setSelectedFilters({
+                brand: 'All',
+                colour: 'All',
+            });
+
+            setPreviewVisible(false);
+            setSelectedPreview(null);
+        }, [])
+    );
 
     const [selectedSort, setSelectedSort] = React.useState('Recommended');
     const [selectedSizes, setSelectedSizes] = React.useState<string[]>([]);
@@ -41,7 +197,6 @@ export default function SearchItemsScreen() {
     const [selectedFilters, setSelectedFilters] = React.useState({
         brand: 'All',
         colour: 'All',
-        style: 'All',
     });
 
     const [previewVisible, setPreviewVisible] = React.useState(false);
@@ -54,7 +209,6 @@ export default function SearchItemsScreen() {
         setSelectedPreview({ image, name });
         setPreviewVisible(true);
     };
-
 
     const saveImageToPhone = async () => {
         try {
@@ -84,7 +238,6 @@ export default function SearchItemsScreen() {
             });
 
             await MediaLibrary.createAssetAsync(newPath);
-
             Alert.alert('Saved', 'Image was saved to your phone.');
         } catch (error) {
             Alert.alert('Error', 'Something went wrong while saving the image.');
@@ -92,51 +245,12 @@ export default function SearchItemsScreen() {
         }
     };
 
-    const products = [
-        {
-            images: [
-                require('../../assets/images_app/model8.png'),
-                require('../../assets/images_app/model9.png'),
-                require('../../assets/images_app/model10.png'),
-            ],
-            name: 'Basic fitted top',
-            price: '€24.99',
-        },
-        {
-            images: [
-                require('../../assets/images_app/model9.png'),
-                require('../../assets/images_app/model10.png'),
-                require('../../assets/images_app/model11.png'),
-            ],
-            name: 'Ribbed long sleeve top',
-            price: '€29.99',
-        },
-        {
-            images: [
-                require('../../assets/images_app/model10.png'),
-                require('../../assets/images_app/model8.png'),
-            ],
-            name: 'Soft cropped top',
-            price: '€21.99',
-        },
-        {
-            images: [
-                require('../../assets/images_app/model11.png'),
-                require('../../assets/images_app/model9.png'),
-            ],
-            name: 'Minimal tank top',
-            price: '€18.99',
-        },
-    ];
-
     const sortOptions = [
         'Recommended',
         "What's New",
         'Price: High to Low',
         'Price: Low to High',
     ];
-
-    const sizeOptions = ['XS', 'S', 'M', 'L', 'XL'];
 
     const brandOptions = ['All', 'Adidas', 'Zara', 'Mango', 'Gucci', 'Nike'];
 
@@ -150,30 +264,83 @@ export default function SearchItemsScreen() {
         { name: 'Green', color: '#2f9e44' },
         { name: 'Pink', color: '#ff8fab' },
         { name: 'Grey', color: '#9e9e9e' },
+        { name: 'Brown', color: '#7a5543' },
+        { name: 'Cream', color: '#f0e6d8' },
+        { name: 'Camel', color: '#b98a55' },
+        { name: 'Yellow', color: '#e8c547' },
+        { name: 'Burgundy', color: '#6d1f2f' },
     ];
 
-    const styleOptions = [
-        'All',
-        'Casual',
-        'Minimal',
-        'Elegant',
-        'Sporty',
-        'Oversized',
-        'Bodycon',
-        'Baggy',
-        'Slim',
-    ];
+    const filteredProducts = React.useMemo(() => {
+        let result = [...products];
+
+        result = result.filter((item) => item.gender === genderValue);
+
+        if (categoryName) {
+            result = result.filter((item) => {
+                if (item.mainCategory === categoryName) return true;
+                return item.tags.includes(categoryName as string);
+            });
+        }
+
+        if (subcategoryName && subcategoryName !== 'All') {
+            result = result.filter((item) => {
+                if (item.subCategory === subcategoryName) return true;
+                return item.tags.includes(subcategoryName as string);
+            });
+        }
+
+        if (selectedFilters.brand !== 'All') {
+            result = result.filter((item) => item.brand === selectedFilters.brand);
+        }
+
+        if (selectedFilters.colour !== 'All') {
+            result = result.filter((item) =>
+                item.availableColors.some((color) => color.name === selectedFilters.colour)
+            );
+        }
+
+        result = result.filter(
+            (item) => item.price >= priceRange[0] && item.price <= priceRange[1]
+        );
+
+        if (selectedSizes.length > 0) {
+            result = result.filter((item) =>
+                item.availableSizes.some((size) => selectedSizes.includes(size))
+            );
+        }
+
+        if (selectedSort === 'Price: Low to High') {
+            result.sort((a, b) => a.price - b.price);
+        } else if (selectedSort === 'Price: High to Low') {
+            result.sort((a, b) => b.price - a.price);
+        } else if (selectedSort === "What's New") {
+            result.sort((a, b) => Number(!!b.isNewMarkdown) - Number(!!a.isNewMarkdown));
+        } else {
+            result.sort((a, b) => Number(!!b.isBestSeller) - Number(!!a.isBestSeller));
+        }
+
+        return result;
+    }, [
+        products,
+        categoryName,
+        subcategoryName,
+        genderValue,
+        selectedFilters.brand,
+        selectedFilters.colour,
+        selectedSizes,
+        priceRange,
+        selectedSort,
+    ]);
 
     const toggleMenu = (menu: 'SORT' | 'FILTER' | 'SIZE') => {
-        setOpenMenu(prev => (prev === menu ? null : menu));
+        setOpenMenu((prev) => (prev === menu ? null : menu));
     };
 
-
-
     const toggleSize = (size: string) => {
-        setSelectedSizes(prev =>
+        setSelectedSizes((prev) =>
             prev.includes(size)
-                ? prev.filter(item => item !== size)
+                ? prev.filter((item) => item !== size)
                 : [...prev, size]
         );
     };
@@ -218,10 +385,7 @@ export default function SearchItemsScreen() {
                     </Text>
 
                     <View style={styles.filterTabsWrapper}>
-                        <TouchableOpacity
-                            style={styles.filterTab}
-                            onPress={() => toggleMenu('SORT')}
-                        >
+                        <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('SORT')}>
                             <View style={styles.tabInner}>
                                 <Text
                                     style={[
@@ -241,10 +405,7 @@ export default function SearchItemsScreen() {
                             {openMenu === 'SORT' && <View style={styles.activeFilterLine} />}
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.filterTab}
-                            onPress={() => toggleMenu('FILTER')}
-                        >
+                        <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('FILTER')}>
                             <View style={styles.tabInner}>
                                 <Text
                                     style={[
@@ -264,10 +425,7 @@ export default function SearchItemsScreen() {
                             {openMenu === 'FILTER' && <View style={styles.activeFilterLine} />}
                         </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={styles.filterTab}
-                            onPress={() => toggleMenu('SIZE')}
-                        >
+                        <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('SIZE')}>
                             <View style={styles.tabInner}>
                                 <Text
                                     style={[
@@ -290,7 +448,7 @@ export default function SearchItemsScreen() {
 
                     {openMenu === 'SORT' && (
                         <View style={styles.dropdownBox}>
-                            {sortOptions.map(option => (
+                            {sortOptions.map((option) => (
                                 <TouchableOpacity
                                     key={option}
                                     style={styles.dropdownRow}
@@ -305,7 +463,6 @@ export default function SearchItemsScreen() {
                                         ) : (
                                             <View style={styles.starPlaceholder} />
                                         )}
-
                                         <Text
                                             style={[
                                                 styles.dropdownText,
@@ -324,7 +481,7 @@ export default function SearchItemsScreen() {
                         <View style={styles.dropdownBox}>
                             <TouchableOpacity
                                 style={styles.colourHeader}
-                                onPress={() => setShowColours(prev => !prev)}
+                                onPress={() => setShowColours((prev) => !prev)}
                             >
                                 <View style={styles.colourHeaderLeft}>
                                     <Text style={styles.sectionTitleNoMargin}>Colour</Text>
@@ -342,12 +499,12 @@ export default function SearchItemsScreen() {
 
                             {showColours && (
                                 <View style={styles.colourList}>
-                                    {colourOptions.map(option => (
+                                    {colourOptions.map((option) => (
                                         <TouchableOpacity
                                             key={option.name}
                                             style={styles.colourRow}
                                             onPress={() =>
-                                                setSelectedFilters(prev => ({
+                                                setSelectedFilters((prev) => ({
                                                     ...prev,
                                                     colour: option.name,
                                                 }))
@@ -386,7 +543,7 @@ export default function SearchItemsScreen() {
 
                             <Text style={styles.sectionTitle}>Brand</Text>
                             <View style={styles.optionWrap}>
-                                {brandOptions.map(option => (
+                                {brandOptions.map((option) => (
                                     <TouchableOpacity
                                         key={option}
                                         style={[
@@ -394,38 +551,13 @@ export default function SearchItemsScreen() {
                                             selectedFilters.brand === option && styles.activePill,
                                         ]}
                                         onPress={() =>
-                                            setSelectedFilters(prev => ({ ...prev, brand: option }))
+                                            setSelectedFilters((prev) => ({ ...prev, brand: option }))
                                         }
                                     >
                                         <Text
                                             style={[
                                                 styles.optionPillText,
                                                 selectedFilters.brand === option && styles.activePillText,
-                                            ]}
-                                        >
-                                            {option}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <Text style={styles.sectionTitle}>Style</Text>
-                            <View style={styles.optionWrap}>
-                                {styleOptions.map(option => (
-                                    <TouchableOpacity
-                                        key={option}
-                                        style={[
-                                            styles.optionPill,
-                                            selectedFilters.style === option && styles.activePill,
-                                        ]}
-                                        onPress={() =>
-                                            setSelectedFilters(prev => ({ ...prev, style: option }))
-                                        }
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.optionPillText,
-                                                selectedFilters.style === option && styles.activePillText,
                                             ]}
                                         >
                                             {option}
@@ -528,22 +660,26 @@ export default function SearchItemsScreen() {
                         <View style={styles.dropdownBox}>
                             <Text style={styles.sectionTitle}>Select Size</Text>
                             <View style={styles.optionWrap}>
-                                {sizeOptions.map(size => (
+                                {sizeOptions.map((size) => (
                                     <TouchableOpacity
-                                        key={size}
+                                        key={size.label}
                                         style={[
                                             styles.sizePill,
-                                            selectedSizes.includes(size) && styles.activeSizePill,
+                                            selectedSizes.includes(size.label) && styles.activeSizePill,
+                                            size.disabled && { opacity: 0.45 },
                                         ]}
-                                        onPress={() => toggleSize(size)}
+                                        onPress={() => {
+                                            if (!size.disabled) toggleSize(size.label);
+                                        }}
+                                        disabled={size.disabled}
                                     >
                                         <Text
                                             style={[
                                                 styles.sizePillText,
-                                                selectedSizes.includes(size) && styles.activeSizePillText,
+                                                selectedSizes.includes(size.label) && styles.activeSizePillText,
                                             ]}
                                         >
-                                            {size}
+                                            {size.label}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
@@ -559,60 +695,82 @@ export default function SearchItemsScreen() {
                     )}
 
                     <Text style={styles.foundText}>
-                        34 items found • {selectedSort}
+                        {filteredProducts.length} items found • {selectedSort}
                     </Text>
 
                     <View style={styles.productsGrid}>
-                        {products.map((item, index) => (
-                            <View key={index} style={styles.productCard}>
+                        {filteredProducts.map((item) => (
+                            <View key={item.id} style={styles.productCard}>
                                 <View style={styles.imageSliderWrapper}>
                                     <ScrollView
                                         horizontal
                                         pagingEnabled
                                         showsHorizontalScrollIndicator={false}
-                                        nestedScrollEnabled
                                         bounces={false}
-                                        overScrollMode="never"
-                                        decelerationRate="fast"
-                                        snapToInterval={CARD_WIDTH}
-                                        snapToAlignment="start"
-                                        disableIntervalMomentum
                                     >
-                                        {item.images.map((img, imgIndex) => (
-                                            <TouchableOpacity
-                                                key={imgIndex}
-                                                activeOpacity={1}
-                                                onPress={() =>
-                                                    router.push({
-                                                        pathname: '/(tabs)/product_detail',
-                                                        params: {
-                                                            name: item.name,
-                                                            price: item.price,
-                                                            category: categoryName ?? '',
-                                                            subcategory: subcategoryName ?? '',
-                                                        },
-                                                    })
-                                                }
-                                                onLongPress={() => openPreview(img, item.name)}
-                                                delayLongPress={250}
-                                            >
-                                                <Image
-                                                    source={img}
-                                                    style={styles.productImage}
-                                                    resizeMode="cover"
-                                                />
-                                            </TouchableOpacity>
-                                        ))}
+                                        {item.images.map((imageKey, imgIndex) => {
+                                            const imageSource = productImages[imageKey];
+                                            if (!imageSource) return null;
+
+                                            return (
+                                                <View
+                                                    key={imgIndex}
+                                                    style={{ width: CARD_WIDTH, height: IMAGE_HEIGHT }}
+                                                >
+                                                    <TouchableOpacity
+                                                        activeOpacity={1}
+                                                        onPress={() =>
+                                                            router.push({
+                                                                pathname: '/product_detail',
+                                                                params: {
+                                                                    productId: item.id,
+                                                                    category: categoryName ?? '',
+                                                                    subcategory: subcategoryName ?? '',
+                                                                    gender: selectedGenderParam ?? 'WOMAN',
+                                                                },
+                                                            })
+                                                        }
+                                                        onLongPress={() => openPreview(imageSource, item.name)}
+                                                        delayLongPress={250}
+                                                    >
+                                                        <View style={styles.productImageWrapper}>
+                                                            {loadingImages[`${item.id}-${imgIndex}`] && (
+                                                                <View style={styles.loaderWrapper}>
+                                                                    <ActivityIndicator size="small" color="#999" />
+                                                                </View>
+                                                            )}
+
+                                                            <Image
+                                                                source={imageSource}
+                                                                style={[
+                                                                    styles.productImage,
+                                                                    { opacity: loadingImages[`${item.id}-${imgIndex}`] ? 0 : 1 },
+                                                                ]}
+                                                                contentFit="cover"
+                                                                cachePolicy="memory-disk"
+                                                                transition={150}
+                                                                onLoadStart={() => handleImageLoadStart(`${item.id}-${imgIndex}`)}
+                                                                onLoad={() => handleImageLoadEnd(`${item.id}-${imgIndex}`)}
+                                                                onError={() => handleImageLoadEnd(`${item.id}-${imgIndex}`)}
+                                                            />
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            );
+                                        })}
                                     </ScrollView>
                                 </View>
 
-                                <TouchableOpacity style={styles.cartButton}>
+                                <TouchableOpacity
+                                    style={styles.cartButton}
+                                    onPress={() => openCartPicker(item)}
+                                >
                                     <Feather name="shopping-cart" size={16} color="#111" />
                                 </TouchableOpacity>
 
                                 <View style={styles.productInfoRow}>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.productPrice}>{item.price}</Text>
+                                        <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
                                         <Text
                                             style={styles.productName}
                                             numberOfLines={2}
@@ -622,10 +780,7 @@ export default function SearchItemsScreen() {
                                         </Text>
                                     </View>
 
-                                    <TouchableOpacity
-                                        style={styles.heartButton}
-                                        onPress={() => {}}
-                                    >
+                                    <TouchableOpacity style={styles.heartButton}>
                                         <Feather name="heart" size={22} color="#111" />
                                     </TouchableOpacity>
                                 </View>
@@ -652,7 +807,9 @@ export default function SearchItemsScreen() {
                             <Image
                                 source={selectedPreview.image}
                                 style={styles.previewImage}
-                                resizeMode="cover"
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                transition={150}
                             />
 
                             <View style={styles.previewBottomSheet}>
@@ -679,6 +836,100 @@ export default function SearchItemsScreen() {
                     )}
                 </View>
             </Modal>
+
+            {showCartPicker && (
+                <View style={styles.drawerRoot} pointerEvents="box-none">
+                    <TouchableWithoutFeedback onPress={closeCartPicker}>
+                        <Animated.View
+                            style={[
+                                styles.drawerBackdrop,
+                                {
+                                    opacity: overlayOpacity,
+                                },
+                            ]}
+                        />
+                    </TouchableWithoutFeedback>
+
+                    <Animated.View
+                        style={[
+                            styles.cartDrawer,
+                            {
+                                transform: [{ translateX: drawerTranslateX }],
+                            },
+                        ]}
+                    >
+                        <View style={styles.cartDrawerTopSpacer} />
+                        <Text style={styles.cartDrawerTitle}>Carts</Text>
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.cartDrawerList}
+                        >
+                            {carts.map((cart) => {
+                                const currentTotal = getCartTotal(cart);
+                                const afterAddTotal = currentTotal + (selectedCartProduct?.price ?? 0);
+                                const difference = cart.budget - afterAddTotal;
+                                const isOver = difference < 0;
+
+                                return (
+                                    <Swipeable
+                                        key={cart.id}
+                                        renderRightActions={() => renderDrawerRightActions(cart.id)}
+                                        overshootRight={false}
+                                    >
+                                        <TouchableOpacity
+                                            style={styles.cartDrawerItem}
+                                            activeOpacity={0.86}
+                                            onPress={() => handleAddToSpecificCart(cart.id)}
+                                        >
+                                            <View style={styles.cartDrawerRowTop}>
+                                                <TouchableOpacity
+                                                    style={styles.cartDrawerMiniIcon}
+                                                    onPress={closeCartPicker}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Feather name="shopping-cart" size={18} color="#111" />
+                                                </TouchableOpacity>
+
+                                                <Text
+                                                    style={styles.cartDrawerName}
+                                                    numberOfLines={2}
+                                                    ellipsizeMode="tail"
+                                                >
+                                                    {cart.name}
+                                                </Text>
+                                            </View>
+
+                                            <Text
+                                                style={[
+                                                    styles.cartDrawerMeta,
+                                                    isOver ? styles.cartDrawerMetaOver : styles.cartDrawerMetaRemaining,
+                                                ]}
+                                                numberOfLines={1}
+                                            >
+                                                {isOver
+                                                    ? `Over budget: €${Math.abs(difference).toFixed(2)}`
+                                                    : `Remaining: €${difference.toFixed(2)}`}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </Swipeable>
+                                );
+                            })}
+
+                            <TouchableOpacity
+                                style={styles.cartDrawerAddButton}
+                                onPress={() => {
+                                    closeCartPicker();
+                                    router.push('/cart_create');
+                                }}
+                            >
+                                <Feather name="plus" size={18} color="#fff" />
+                                <Text style={styles.cartDrawerAddButtonText}>Add</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </Animated.View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -1129,5 +1380,182 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
         letterSpacing: 0.6,
+    },
+
+    drawerRoot: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 999,
+        elevation: 999,
+    },
+
+    drawerBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#000',
+    },
+
+    cartDrawer: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 220,
+        backgroundColor: 'rgba(243, 243, 243, 0.45)',
+        borderTopLeftRadius: 28,
+        borderBottomLeftRadius: 28,
+        borderLeftWidth: 1,
+        borderColor: '#d8d8d8',
+        paddingHorizontal: 6,
+        paddingTop: 12,
+        paddingBottom: 8,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        shadowOffset: { width: -4, height: 0 },
+        elevation: 12,
+    },
+
+    cartDrawerTopSpacer: {
+        width: 44,
+        height: 4,
+        borderRadius: 999,
+        backgroundColor: '#c8c8c8',
+        alignSelf: 'center',
+        marginBottom: 26,
+        marginTop: 4,
+    },
+
+    cartDrawerTitle: {
+        fontSize: 30,
+        fontWeight: '800',
+        color: '#111',
+        marginBottom: 1,
+        paddingHorizontal: 4,
+    },
+
+    cartDrawerList: {
+        paddingTop: 8,
+        paddingBottom: 6,
+        alignItems: 'stretch',
+        flexGrow: 1,
+    },
+
+    cartDrawerItem: {
+        width: '100%',
+        minHeight: 94,
+        borderRadius: 16,
+        backgroundColor: '#e7e7e7',
+        marginBottom: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        justifyContent: 'space-between',
+    },
+
+    cartDrawerRowTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    cartDrawerMiniIcon: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#474d54',
+        backgroundColor: '#f3f3f3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    cartDrawerName: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+        lineHeight: 19,
+    },
+
+    cartDrawerMeta: {
+        marginTop: 8,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+
+    cartDrawerMetaRemaining: {
+        color: '#006958',
+    },
+
+    cartDrawerMetaOver: {
+        color: '#df2518',
+    },
+
+    cartDrawerAddButton: {
+        width: '100%',
+        minHeight: 54,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#111',
+        backgroundColor: '#111',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 'auto',
+        marginBottom: 2,
+    },
+
+    cartDrawerAddButtonText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+
+    drawerSwipeActions: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        marginBottom: 14,
+    },
+
+    drawerSwipeButton: {
+        width: 72,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 8,
+    },
+
+    drawerEditSwipeButton: {
+        backgroundColor: '#e4e4e4',
+    },
+
+    drawerDeleteSwipeButton: {
+        backgroundColor: '#111',
+    },
+
+    drawerSwipeButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    drawerDeleteSwipeButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#fff',
+    },
+
+    productImageWrapper: {
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
+        backgroundColor: '#d9d9d9',
+        position: 'relative',
+    },
+
+    loaderWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
     },
 });

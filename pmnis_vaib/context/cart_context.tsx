@@ -25,6 +25,7 @@ type CartContextType = {
     deleteCart: (cartId: string) => void;
     createCart: (name: string, budget: number) => boolean;
     updateCart: (cartId: string, name: string, budget: number) => void;
+    addProductToCart: (cartId: string, product: CartProduct) => void;
 };
 
 const CartContext = React.createContext<CartContextType | undefined>(undefined);
@@ -176,6 +177,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         );
     };
 
+    const addProductToCart = (cartId: string, product: CartProduct) => {
+        setCarts((prev) =>
+            prev.map((cart) => {
+                if (cart.id !== cartId) {
+                    return cart;
+                }
+
+                const existingProduct = cart.products.find((p) => p.id === product.id);
+
+                if (existingProduct) {
+                    return {
+                        ...cart,
+                        products: cart.products.map((p) =>
+                            p.id === product.id
+                                ? { ...p, quantity: p.quantity + product.quantity }
+                                : p
+                        ),
+                    };
+                }
+
+                return {
+                    ...cart,
+                    products: [...cart.products, product],
+                };
+            })
+        );
+    };
+
     return (
         <CartContext.Provider
             value={{
@@ -187,6 +216,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 deleteCart,
                 createCart,
                 updateCart,
+                addProductToCart,
             }}
         >
             {children}

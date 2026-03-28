@@ -9,25 +9,16 @@ import {
     ScrollView,
     ImageBackground,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { categoryMap } from '../../context/product_context';
 
 export default function SearchScreen() {
-    const categories = [
-        'SALE: HOT DEALS',
-        'CLOTHING',
-        'SHOES',
-        'DRESSES',
-        'DESIGN',
-        'FACE N BODY',
-        'ACCESSORIES',
-        'BRANDS',
-        'ACTIVEWEAR',
-        'PYJAMAS',
-    ];
+    const router = useRouter();
 
-    const [selected, setSelected] = React.useState('WOMAN');
+    const categories = Object.keys(categoryMap);
+
+    const [selected, setSelected] = React.useState<'WOMAN' | 'MAN'>('WOMAN');
 
     const getIcon = (category: string) => {
         switch (category) {
@@ -41,36 +32,30 @@ export default function SearchScreen() {
                 return <MaterialCommunityIcons name="hanger" size={20} color="#111" />;
             case 'ACCESSORIES':
                 return <Feather name="watch" size={20} color="#111" />;
-            case 'FACE N BODY':
-                return <MaterialCommunityIcons name="face-woman" size={20} color="#111" />;
             case 'ACTIVEWEAR':
                 return <MaterialCommunityIcons name="run" size={20} color="#111" />;
             case 'PYJAMAS':
                 return <MaterialCommunityIcons name="bed" size={20} color="#111" />;
             case 'BRANDS':
                 return <Feather name="star" size={20} color="#111" />;
+            case 'DESIGN':
+                return <Feather name="award" size={20} color="#111" />;
             default:
                 return <Feather name="circle" size={20} color="#111" />;
         }
     };
 
-    const router = useRouter();
-
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-
                 <View style={styles.topBar}>
                     <View style={styles.searchWrapper}>
                         <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
-
                         <TextInput
                             placeholder="Search"
                             placeholderTextColor="#393939"
                             style={styles.searchInput}
                         />
-
                         <TouchableOpacity style={styles.cameraButton}>
                             <Feather name="camera" size={18} color="#393939" />
                         </TouchableOpacity>
@@ -82,13 +67,9 @@ export default function SearchScreen() {
                         style={styles.genderButton}
                         onPress={() => setSelected('WOMAN')}
                     >
-                        <Text style={[
-                            styles.genderText,
-                            selected === 'WOMAN' && styles.activeText
-                        ]}>
+                        <Text style={[styles.genderText, selected === 'WOMAN' && styles.activeText]}>
                             WOMAN
                         </Text>
-
                         {selected === 'WOMAN' && <View style={styles.activeLine} />}
                     </TouchableOpacity>
 
@@ -96,13 +77,9 @@ export default function SearchScreen() {
                         style={styles.genderButton}
                         onPress={() => setSelected('MAN')}
                     >
-                        <Text style={[
-                            styles.genderText,
-                            selected === 'MAN' && styles.activeText
-                        ]}>
+                        <Text style={[styles.genderText, selected === 'MAN' && styles.activeText]}>
                             MAN
                         </Text>
-
                         {selected === 'MAN' && <View style={styles.activeLine} />}
                     </TouchableOpacity>
                 </View>
@@ -117,47 +94,39 @@ export default function SearchScreen() {
                         const content = (
                             <View style={styles.categoryRow}>
                                 {getIcon(item)}
-
-                                <Text style={[
-                                    styles.categoryText,
-                                    isSale && styles.saleText
-                                ]}>
+                                <Text style={[styles.categoryText, isSale && styles.saleText]}>
                                     {item}
                                 </Text>
                             </View>
                         );
 
-                        if (isSale) {
-                            return (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={styles.saleWrapper}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: '/(tabs)/search_category',
-                                            params: { category: item },
-                                        })
-                                    }
+                        return isSale ? (
+                            <TouchableOpacity
+                                key={index}
+                                style={styles.saleWrapper}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/search_category',
+                                        params: { category: item, gender: selected },
+                                    })
+                                }
+                            >
+                                <ImageBackground
+                                    source={require('../../assets/images_app/search.png')}
+                                    style={styles.saleCard}
+                                    imageStyle={{ borderRadius: 14 }}
                                 >
-                                    <ImageBackground
-                                        source={require('../../assets/images_app/search.png')}
-                                        style={styles.saleCard}
-                                        imageStyle={{ borderRadius: 14 }}
-                                    >
-                                        {content}
-                                    </ImageBackground>
-                                </TouchableOpacity>
-                            );
-                        }
-
-                        return (
+                                    {content}
+                                </ImageBackground>
+                            </TouchableOpacity>
+                        ) : (
                             <TouchableOpacity
                                 key={index}
                                 style={styles.categoryCard}
                                 onPress={() =>
                                     router.push({
                                         pathname: '/search_category',
-                                        params: { category: item },
+                                        params: { category: item, gender: selected },
                                     })
                                 }
                             >
