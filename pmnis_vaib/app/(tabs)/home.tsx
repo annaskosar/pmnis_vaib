@@ -136,7 +136,7 @@ export default function HomeScreen() {
                             style={styles.iconButton}
                             onPress={() => router.push('/(tabs)/wishlist')}
                         >
-                            <Feather name="heart" size={20} color="#393939" />
+                            <Feather name="heart" size={34} color="#393939" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
