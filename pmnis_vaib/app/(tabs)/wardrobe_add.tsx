@@ -40,6 +40,7 @@ export default function WardrobeAddScreen() {
             image: imageUri,
             name: itemName.trim() || 'new item',
             additionalInfo: additionalInfo.trim(),
+            createdAt: Date.now(), 
         });
 
         router.replace('/(tabs)/wardrobe');
