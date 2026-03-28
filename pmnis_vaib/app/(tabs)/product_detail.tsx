@@ -383,7 +383,6 @@ export default function ProductDetailScreen() {
                     </View>
                 </View>
 
-                {/* ← ZMENENÉ: Wish button s useWishlist */}
                 <View style={styles.quickActionRow}>
                     <TouchableOpacity
                         style={styles.quickActionButton}
@@ -392,6 +391,9 @@ export default function ProductDetailScreen() {
                             name: product.name,
                             price: product.price,
                             image: productGallery[0],
+                            category: categoryName ?? '',
+                            subcategory: subcategoryName ?? '',
+                            gender: genderValue ?? 'WOMAN',
                         })}
                     >
                         <Feather

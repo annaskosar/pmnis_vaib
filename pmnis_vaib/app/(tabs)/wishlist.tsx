@@ -37,7 +37,20 @@ export default function WishlistScreen() {
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                         <View style={styles.grid}>
                             {wishlistItems.map(item => (
-                                <View key={item.id} style={styles.card}>
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.card}
+                                    activeOpacity={0.85}
+                                    onPress={() => router.push({
+                                        pathname: '/product_detail',
+                                        params: {
+                                            productId: item.id,
+                                            category: item.category ?? '',
+                                            subcategory: item.subcategory ?? '',
+                                            gender: item.gender ?? 'WOMAN',
+                                        },
+                                    })}
+                                >
                                     <Image
                                         source={typeof item.image === 'string' ? { uri: item.image } : item.image}
                                         style={styles.cardImage}
@@ -45,14 +58,16 @@ export default function WishlistScreen() {
                                     />
                                     <TouchableOpacity
                                         style={styles.heartButton}
-                                        onPress={() => removeFromWishlist(item.id)}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            removeFromWishlist(item.id);
+                                        }}
                                     >
-                                        {/* ← Vždy červené lebo všetky položky sú vo wishlist */}
                                         <Feather name="heart" size={16} color="#e74c3c" />
                                     </TouchableOpacity>
                                     <Text style={styles.cardPrice}>€{item.price.toFixed(2)}</Text>
                                     <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
-                                </View>
+                                </TouchableOpacity>
                             ))}
                         </View>
                     </ScrollView>

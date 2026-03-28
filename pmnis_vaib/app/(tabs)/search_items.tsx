@@ -505,22 +505,24 @@ export default function SearchItemsScreen() {
                                         <Text style={styles.productName} numberOfLines={2} ellipsizeMode="tail">{item.name}</Text>
                                     </View>
 
-                                    {/* ← ZMENENÉ: funkčné srdiecko */}
                                     <TouchableOpacity
-                                        style={styles.heartButton}
-                                        onPress={() => toggleWishlist({
-                                            id: item.id,
-                                            name: item.name,
-                                            price: item.price,
-                                            image: productImages[item.images[0]],
-                                        })}
-                                    >
-                                        <Feather
-                                            name="heart"
-                                            size={22}
-                                            color={isInWishlist(item.id) ? '#e74c3c' : '#111'}
-                                        />
-                                    </TouchableOpacity>
+                                            style={styles.heartButton}
+                                            onPress={() => toggleWishlist({
+                                                id: item.id,
+                                                name: item.name,
+                                                price: item.price,
+                                                image: productImages[item.images[0]],
+                                                category: categoryName ?? '',
+                                                subcategory: subcategoryName ?? '',
+                                                gender: selectedGenderParam ?? 'WOMAN',
+                                            })}
+                                        >
+                                            <Feather
+                                                name="heart"
+                                                size={22}
+                                                color={isInWishlist(item.id) ? '#e74c3c' : '#111'}
+                                            />
+                                        </TouchableOpacity>
                                 </View>
                             </View>
                         ))}

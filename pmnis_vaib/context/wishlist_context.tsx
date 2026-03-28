@@ -5,6 +5,9 @@ export type WishlistItem = {
     name: string;
     price: number;
     image: any;
+    category?: string;
+    subcategory?: string;
+    gender?: string;
 };
 
 type WishlistContextType = {
