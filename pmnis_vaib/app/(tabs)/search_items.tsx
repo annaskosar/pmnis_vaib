@@ -28,6 +28,7 @@ import { useCart, CartProduct } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
 import { Image } from 'expo-image';
 import { ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.48 - 8;
 const IMAGE_HEIGHT = 245;
@@ -35,9 +36,72 @@ const IMAGE_HEIGHT = 245;
 export default function SearchItemsScreen() {
     const router = useRouter();
     const { products } = useProducts();
-    const { category, subcategory, gender } = useLocalSearchParams();
+    const { category, subcategory, gender, query } = useLocalSearchParams();
+    const queryText = Array.isArray(query) ? query[0] : query;
     const { toggleWishlist, isInWishlist } = useWishlist();
     const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
+
+    const [searchText, setSearchText] = React.useState('');
+    const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+    const searchInputRef = React.useRef<TextInput>(null);
+
+    const closeSearchPanel = () => {
+        setIsSearchFocused(false);
+        searchInputRef.current?.blur();
+    };
+
+    const loadRecentSearches = async () => {
+        const stored = await AsyncStorage.getItem('recentSearches');
+        setRecentSearches(stored ? JSON.parse(stored) : []);
+    };
+
+    const saveSearch = async (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+
+        const stored = await AsyncStorage.getItem('recentSearches');
+        const existing: string[] = stored ? JSON.parse(stored) : [];
+
+        const updated = [
+            trimmed,
+            ...existing.filter(item => item.toLowerCase() !== trimmed.toLowerCase()),
+        ].slice(0, 10);
+
+        setRecentSearches(updated);
+        await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+    };
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadRecentSearches();
+            setSearchText('');
+            setIsSearchFocused(false);
+        }, [queryText])
+    );
+
+    const handleSearchSubmit = async () => {
+        const trimmed = searchText.trim();
+        if (!trimmed) return;
+
+        await saveSearch(trimmed);
+        closeSearchPanel();
+
+        router.replace({
+            pathname: '/search_items',
+            params: {
+                query: trimmed,
+                gender: selectedGenderParam ?? 'WOMAN',
+            },
+        });
+    };
+
+    const clearRecentSearches = async () => {
+        await AsyncStorage.removeItem('recentSearches');
+        setRecentSearches([]);
+    };
+
 
     const handleImageLoadStart = (key: string) => {
         setLoadingImages((prev) => ({ ...prev, [key]: true }));
@@ -248,6 +312,36 @@ export default function SearchItemsScreen() {
                 return item.tags.includes(subcategoryName as string);
             });
         }
+
+        if (queryText && queryText.trim() !== '') {
+            const q = queryText.trim().toLowerCase();
+
+            result = result.filter((item) => {
+                const searchableParts = [
+                    item.name,
+                    item.brand,
+                    item.mainCategory,
+                    item.subCategory,
+                    ...item.tags,
+                    ...item.availableColors.map((color) => color.name),
+                ];
+
+                const searchableText = searchableParts.join(' ').toLowerCase();
+
+                const normalizedWords = searchableParts.map((part) => part.toLowerCase());
+
+                return (
+                    searchableText.includes(q) ||
+                    normalizedWords.some((word) => word === q) ||
+                    (q === 'top' && (item.subCategory === 'Tops' || item.name.toLowerCase().includes('top'))) ||
+                    (q === 'coat' && (item.subCategory === 'Coats' || item.name.toLowerCase().includes('coat'))) ||
+                    (q === 'jean' && item.subCategory === 'Jeans') ||
+                    (q === 'shirt' && item.subCategory === 'Shirts') ||
+                    (q === 'trouser' && item.subCategory === 'Trousers')
+                );
+            });
+        }
+
         if (selectedFilters.brand !== 'All') {
             result = result.filter((item) => item.brand === selectedFilters.brand);
         }
@@ -274,7 +368,20 @@ export default function SearchItemsScreen() {
             result.sort((a, b) => Number(!!b.isBestSeller) - Number(!!a.isBestSeller));
         }
         return result;
-    }, [products, categoryName, subcategoryName, genderValue, selectedFilters.brand, selectedFilters.colour, selectedSizes, priceRange, selectedSort]);
+
+    }, [
+        products,
+        categoryName,
+        subcategoryName,
+        queryText,
+        genderValue,
+        selectedFilters.brand,
+        selectedFilters.colour,
+        selectedSizes,
+        priceRange,
+        selectedSort,
+    ]);
+
 
     const toggleMenu = (menu: 'SORT' | 'FILTER' | 'SIZE') => {
         setOpenMenu((prev) => (prev === menu ? null : menu));
@@ -298,24 +405,91 @@ export default function SearchItemsScreen() {
                     </TouchableOpacity>
 
                     <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
+                        source={require('../../assets/images_app/search.jpg')}
                         style={styles.searchWrapper}
                         imageStyle={{ borderRadius: 12 }}
                     >
                         <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
                         <TextInput
+                            ref={searchInputRef}
                             placeholder="Search"
                             placeholderTextColor="#393939"
                             style={styles.searchInput}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            onSubmitEditing={handleSearchSubmit}
+                            onFocus={() => setIsSearchFocused(true)}
+                            returnKeyType="search"
                         />
                     </ImageBackground>
                 </View>
 
+                {isSearchFocused && (
+                    <View style={styles.recentContainer}>
+                        <View style={styles.recentHeader}>
+                            <Text style={styles.recentTitle}>Recent searches</Text>
+
+                            {recentSearches.length > 0 && (
+                                <TouchableOpacity style={styles.clearButton} onPress={clearRecentSearches}>
+                                    <Text style={styles.clearText}>Clear</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {recentSearches.length === 0 ? (
+                            <View style={styles.emptyWrapper}>
+                                <Feather name="search" size={28} color="#8a8a8a" />
+                                <Text style={styles.emptyText}>You have no recent searches</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.recentScrollContent}
+                                nestedScrollEnabled
+                            >
+                                {recentSearches.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.recentItem}
+                                        onPress={async () => {
+                                            await saveSearch(item);
+                                            setSearchText(item);
+                                            closeSearchPanel();
+
+                                            router.replace({
+                                                pathname: '/search_items',
+                                                params: {
+                                                    query: item,
+                                                    gender: selectedGenderParam ?? 'WOMAN',
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        <Feather name="clock" size={16} color="#6a6a6a" />
+                                        <Text style={styles.recentItemText}>{item}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+                )}
+                {isSearchFocused && (
+                    <Pressable
+                        style={styles.searchOverlay}
+                        onPress={closeSearchPanel}
+                    />
+                )}
+
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
+                    onScrollBeginDrag={closeSearchPanel}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <Text style={styles.title}>{categoryName}: {subcategoryName}</Text>
+
+                    <Text style={styles.title}>
+                        {queryText ? `Results for "${queryText}"` : `${categoryName}: ${subcategoryName}`}
+                    </Text>
 
                     <View style={styles.filterTabsWrapper}>
                         <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('SORT')}>
@@ -598,97 +772,699 @@ export default function SearchItemsScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
-    container: { flex: 1, backgroundColor: '#f3f3f3', paddingHorizontal: 14, paddingTop: 8 },
-    topRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 30 },
-    backButton: { width: 28, height: 42, justifyContent: 'center', alignItems: 'flex-start' },
-    searchWrapper: { flex: 1, height: 42, justifyContent: 'center', position: 'relative', overflow: 'hidden' },
-    searchIcon: { position: 'absolute', left: 12, zIndex: 1 },
-    searchInput: { width: '100%', height: '100%', paddingLeft: 38, paddingRight: 14, fontSize: 15, color: '#111' },
-    scrollContent: { paddingBottom: 30 },
-    title: { fontSize: 25, fontWeight: '700', color: '#111', marginBottom: 12, textTransform: 'uppercase' },
-    filterTabsWrapper: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#e5e5e5', marginBottom: 14, backgroundColor: '#f3f3f3' },
-    filterTab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, position: 'relative' },
-    tabInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    filterTabText: { fontSize: 15, color: '#888', fontWeight: '600' },
-    activeFilterTabText: { color: '#111' },
-    activeTabBold: { fontWeight: '700' },
-    activeFilterLine: { position: 'absolute', bottom: 0, left: 0, width: '100%', height: 3, backgroundColor: '#df2518' },
-    dropdownBox: { backgroundColor: '#f3f3f3', borderRadius: 14, padding: 4, marginBottom: 18 },
-    dropdownRow: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#e7e7e7' },
-    sortLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    starPlaceholder: { width: 12 },
-    dropdownText: { fontSize: 16, color: '#111' },
-    activeSortText: { fontWeight: '700' },
-    sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 12, marginTop: 10 },
-    sectionTitleNoMargin: { fontSize: 15, fontWeight: '700', color: '#111' },
-    optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-    optionPill: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 22, backgroundColor: '#e9e9e9' },
-    activePill: { backgroundColor: '#111' },
-    optionPillText: { fontSize: 14, color: '#111', fontWeight: '500' },
-    activePillText: { color: '#fff' },
-    colourHeader: { marginTop: 6, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    colourList: { marginBottom: 10 },
-    colourRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ebebeb' },
-    colourLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    colourDot: { width: 16, height: 16, borderRadius: 8 },
-    whiteColourDot: { borderWidth: 1, borderColor: '#d0d0d0' },
-    colourText: { fontSize: 15, color: '#111' },
-    activeColourText: { fontWeight: '700' },
-    priceTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, marginTop: 4 },
-    priceValue: { fontSize: 15, fontWeight: '700', color: '#111' },
-    priceValueActive: { color: '#df6a2e' },
-    sliderWrapper: { alignItems: 'center', marginBottom: 8 },
-    priceLabelsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-    priceRangeLabel: { fontSize: 13, color: '#9a9a9a' },
-    sizePill: { width: 54, height: 44, borderRadius: 22, backgroundColor: '#e9e9e9', justifyContent: 'center', alignItems: 'center' },
-    activeSizePill: { backgroundColor: '#111' },
-    sizePillText: { fontSize: 14, color: '#111', fontWeight: '600' },
-    activeSizePillText: { color: '#fff' },
-    applyButton: { marginTop: 8, backgroundColor: '#111', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-    applyButtonText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
-    foundText: { fontSize: 14, color: '#7d7d7d', textAlign: 'center', marginBottom: 30 },
-    productsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    productCard: { width: CARD_WIDTH, marginBottom: 22, position: 'relative' },
-    productImage: { width: CARD_WIDTH, height: IMAGE_HEIGHT, backgroundColor: '#d9d9d9' },
-    cartButton: { position: 'absolute', top: 10, right: 10, backgroundColor: '#fff', borderRadius: 16, padding: 7 },
-    productPrice: { fontSize: 18, fontWeight: '700', color: '#111' },
-    productName: { marginTop: 4, fontSize: 14, color: '#5f5f5f', lineHeight: 18, height: 36, marginBottom: 10 },
-    colourHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
-    colourHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    seeAllText: { fontSize: 14, color: '#6f6f6f', fontWeight: '500' },
-    imageSliderWrapper: { width: CARD_WIDTH, height: IMAGE_HEIGHT, overflow: 'hidden', backgroundColor: '#d9d9d9' },
-    heartButton: { marginRight: 10, marginTop: 2 },
-    productInfoRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 12 },
-    previewOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'center', alignItems: 'center' },
-    previewContent: { width: '92%', alignItems: 'center' },
-    previewImage: { width: '100%', height: '72%', maxHeight: 650, borderRadius: 18, backgroundColor: '#e9e9e9' },
-    previewBottomSheet: { marginTop: 14, width: '100%', backgroundColor: '#ffffff', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    previewBrand: { fontSize: 13, color: '#8a8a8a', fontWeight: '600', letterSpacing: 1, marginBottom: 4 },
-    previewName: { fontSize: 16, color: '#111', fontWeight: '700', maxWidth: 220 },
-    saveButton: { backgroundColor: '#111', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    saveButtonText: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.6 },
-    drawerRoot: { ...StyleSheet.absoluteFillObject, zIndex: 999, elevation: 999 },
-    drawerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
-    cartDrawer: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 220, backgroundColor: 'rgba(243, 243, 243, 0.45)', borderTopLeftRadius: 28, borderBottomLeftRadius: 28, borderLeftWidth: 1, borderColor: '#d8d8d8', paddingHorizontal: 6, paddingTop: 12, paddingBottom: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: -4, height: 0 }, elevation: 12 },
-    cartDrawerTopSpacer: { width: 44, height: 4, borderRadius: 999, backgroundColor: '#c8c8c8', alignSelf: 'center', marginBottom: 26, marginTop: 4 },
-    cartDrawerTitle: { fontSize: 30, fontWeight: '800', color: '#111', marginBottom: 1, paddingHorizontal: 4 },
-    cartDrawerList: { paddingTop: 8, paddingBottom: 6, alignItems: 'stretch', flexGrow: 1 },
-    cartDrawerItem: { width: '100%', minHeight: 94, borderRadius: 16, backgroundColor: '#e7e7e7', marginBottom: 14, paddingHorizontal: 10, paddingVertical: 10, justifyContent: 'space-between' },
-    cartDrawerRowTop: { flexDirection: 'row', alignItems: 'center' },
-    cartDrawerMiniIcon: { width: 52, height: 52, borderRadius: 16, borderWidth: 1, borderColor: '#474d54', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-    cartDrawerName: { flex: 1, fontSize: 15, fontWeight: '700', color: '#111', lineHeight: 19 },
-    cartDrawerMeta: { marginTop: 8, fontSize: 14, fontWeight: '700' },
-    cartDrawerMetaRemaining: { color: '#006958' },
-    cartDrawerMetaOver: { color: '#df2518' },
-    cartDrawerAddButton: { width: '100%', minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: '#111', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 'auto', marginBottom: 2 },
-    cartDrawerAddButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-    drawerSwipeActions: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 14 },
-    drawerSwipeButton: { width: 72, borderRadius: 16, justifyContent: 'center', alignItems: 'center', gap: 6, marginLeft: 8 },
-    drawerEditSwipeButton: { backgroundColor: '#e4e4e4' },
-    drawerDeleteSwipeButton: { backgroundColor: '#111' },
-    drawerSwipeButtonText: { fontSize: 12, fontWeight: '700', color: '#111' },
-    drawerDeleteSwipeButtonText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-    productImageWrapper: { width: CARD_WIDTH, height: IMAGE_HEIGHT, backgroundColor: '#d9d9d9', position: 'relative' },
-    loaderWrapper: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f3f3f3',
+    },
+
+    container: {
+        flex: 1,
+        backgroundColor: '#f3f3f3',
+        paddingHorizontal: 14,
+        paddingTop: 8,
+    },
+
+    topRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 30,
+    },
+
+    backButton: {
+        width: 28,
+        height: 42,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+
+    searchWrapper: {
+        flex: 1,
+        height: 44,
+        borderRadius: 12,
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+
+    searchIcon: {
+        position: 'absolute',
+        left: 12,
+        zIndex: 1,
+    },
+
+    searchInput: {
+        width: '100%',
+        height: '100%',
+        paddingLeft: 38,
+        paddingRight: 14,
+        fontSize: 16,
+        color: '#222',
+    },
+
+    scrollContent: {
+        paddingBottom: 30,
+    },
+
+    title: {
+        fontSize: 25,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 12,
+        textTransform: 'uppercase',
+    },
+
+    filterTabsWrapper: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e5e5',
+        marginBottom: 14,
+        backgroundColor: '#f3f3f3',
+    },
+
+    filterTab: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        position: 'relative',
+    },
+
+    tabInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+
+    filterTabText: {
+        fontSize: 15,
+        color: '#888',
+        fontWeight: '600',
+    },
+
+    activeFilterTabText: {
+        color: '#111',
+    },
+
+    activeTabBold: {
+        fontWeight: '700',
+    },
+
+    activeFilterLine: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '100%',
+        height: 3,
+        backgroundColor: '#df2518',
+    },
+
+    dropdownBox: {
+        backgroundColor: '#f3f3f3',
+        borderRadius: 14,
+        padding: 4,
+        marginBottom: 18,
+    },
+
+    dropdownRow: {
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e7e7e7',
+    },
+
+    sortLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+
+    starPlaceholder: {
+        width: 12,
+    },
+
+    dropdownText: {
+        fontSize: 16,
+        color: '#111',
+    },
+
+    activeSortText: {
+        fontWeight: '700',
+    },
+
+    sectionTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 12,
+        marginTop: 10,
+    },
+
+    sectionTitleNoMargin: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    optionWrap: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginBottom: 10,
+    },
+
+    optionPill: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 22,
+        backgroundColor: '#e9e9e9',
+    },
+
+    activePill: {
+        backgroundColor: '#111',
+    },
+
+    optionPillText: {
+        fontSize: 14,
+        color: '#111',
+        fontWeight: '500',
+    },
+
+    activePillText: {
+        color: '#fff',
+    },
+
+    colourHeader: {
+        marginTop: 6,
+        marginBottom: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    colourList: {
+        marginBottom: 10,
+    },
+
+    colourRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ebebeb',
+    },
+
+    colourLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+
+    colourDot: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+    },
+
+    whiteColourDot: {
+        borderWidth: 1,
+        borderColor: '#d0d0d0',
+    },
+
+    colourText: {
+        fontSize: 15,
+        color: '#111',
+    },
+
+    activeColourText: {
+        fontWeight: '700',
+    },
+
+    priceTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        marginTop: 4,
+    },
+
+    priceValue: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    priceValueActive: {
+        color: '#df6a2e',
+    },
+
+    sliderWrapper: {
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+
+    priceLabelsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 18,
+    },
+
+    priceRangeLabel: {
+        fontSize: 13,
+        color: '#9a9a9a',
+    },
+
+    sizePill: {
+        width: 54,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#e9e9e9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    activeSizePill: {
+        backgroundColor: '#111',
+    },
+
+    sizePillText: {
+        fontSize: 14,
+        color: '#111',
+        fontWeight: '600',
+    },
+
+    activeSizePillText: {
+        color: '#fff',
+    },
+
+    applyButton: {
+        marginTop: 8,
+        backgroundColor: '#111',
+        borderRadius: 10,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+
+    applyButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+    },
+
+    foundText: {
+        fontSize: 14,
+        color: '#7d7d7d',
+        textAlign: 'center',
+        marginBottom: 30,
+    },
+
+    productsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+
+    productCard: {
+        width: CARD_WIDTH,
+        marginBottom: 22,
+        position: 'relative',
+    },
+
+    productImage: {
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
+        backgroundColor: '#d9d9d9',
+    },
+
+    cartButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 7,
+    },
+
+    productPrice: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    productName: {
+        marginTop: 4,
+        fontSize: 14,
+        color: '#5f5f5f',
+        lineHeight: 18,
+        height: 36,
+        marginBottom: 10,
+    },
+
+    colourHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    colourHeaderRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+
+    seeAllText: {
+        fontSize: 14,
+        color: '#6f6f6f',
+        fontWeight: '500',
+    },
+
+    imageSliderWrapper: {
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
+        overflow: 'hidden',
+        backgroundColor: '#d9d9d9',
+    },
+
+    heartButton: {
+        marginRight: 10,
+        marginTop: 2,
+    },
+
+    productInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginTop: 12,
+    },
+
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    previewContent: {
+        width: '92%',
+        alignItems: 'center',
+    },
+
+    previewImage: {
+        width: '100%',
+        height: '72%',
+        maxHeight: 650,
+        borderRadius: 18,
+        backgroundColor: '#e9e9e9',
+    },
+
+    previewBottomSheet: {
+        marginTop: 14,
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: 18,
+        paddingHorizontal: 18,
+        paddingVertical: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    previewBrand: {
+        fontSize: 13,
+        color: '#8a8a8a',
+        fontWeight: '600',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+
+    previewName: {
+        fontSize: 16,
+        color: '#111',
+        fontWeight: '700',
+        maxWidth: 220,
+    },
+
+    saveButton: {
+        backgroundColor: '#111',
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+
+    saveButtonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+    },
+
+    drawerRoot: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 999,
+        elevation: 999,
+    },
+
+    drawerBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#000',
+    },
+
+    cartDrawer: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: 220,
+        backgroundColor: 'rgba(243, 243, 243, 0.45)',
+        borderTopLeftRadius: 28,
+        borderBottomLeftRadius: 28,
+        borderLeftWidth: 1,
+        borderColor: '#d8d8d8',
+        paddingHorizontal: 6,
+        paddingTop: 12,
+        paddingBottom: 8,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        shadowOffset: { width: -4, height: 0 },
+        elevation: 12,
+    },
+
+    cartDrawerTopSpacer: {
+        width: 44,
+        height: 4,
+        borderRadius: 999,
+        backgroundColor: '#c8c8c8',
+        alignSelf: 'center',
+        marginBottom: 26,
+        marginTop: 4,
+    },
+
+    cartDrawerTitle: {
+        fontSize: 30,
+        fontWeight: '800',
+        color: '#111',
+        marginBottom: 1,
+        paddingHorizontal: 4,
+    },
+
+    cartDrawerList: {
+        paddingTop: 8,
+        paddingBottom: 6,
+        alignItems: 'stretch',
+        flexGrow: 1,
+    },
+
+    cartDrawerItem: {
+        width: '100%',
+        minHeight: 94,
+        borderRadius: 16,
+        backgroundColor: '#e7e7e7',
+        marginBottom: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 10,
+        justifyContent: 'space-between',
+    },
+
+    cartDrawerRowTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    cartDrawerMiniIcon: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#474d54',
+        backgroundColor: '#f3f3f3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    cartDrawerName: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+        lineHeight: 19,
+    },
+
+    cartDrawerMeta: {
+        marginTop: 8,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+
+    cartDrawerMetaRemaining: {
+        color: '#006958',
+    },
+
+    cartDrawerMetaOver: {
+        color: '#df2518',
+    },
+
+    cartDrawerAddButton: {
+        width: '100%',
+        minHeight: 54,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#111',
+        backgroundColor: '#111',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 'auto',
+        marginBottom: 2,
+    },
+
+    cartDrawerAddButtonText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+
+    drawerSwipeActions: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        marginBottom: 14,
+    },
+
+    drawerSwipeButton: {
+        width: 72,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 8,
+    },
+
+    drawerEditSwipeButton: {
+        backgroundColor: '#e4e4e4',
+    },
+
+    drawerDeleteSwipeButton: {
+        backgroundColor: '#111',
+    },
+
+    drawerSwipeButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    drawerDeleteSwipeButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#fff',
+    },
+
+    productImageWrapper: {
+        width: CARD_WIDTH,
+        height: IMAGE_HEIGHT,
+        backgroundColor: '#d9d9d9',
+        position: 'relative',
+    },
+
+    loaderWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
+    },
+
+    recentContainer: {
+        backgroundColor: '#f3f3f3',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 14,
+        maxHeight: 240,
+        zIndex: 20,
+    },
+
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+
+    recentTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#111',
+    },
+
+    clearButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: '#dedede',
+    },
+
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#393939',
+    },
+
+    recentScrollContent: {
+        paddingBottom: 4,
+    },
+
+    recentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 10,
+    },
+
+    recentItemText: {
+        fontSize: 15,
+        color: '#111',
+    },
+
+    emptyWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+    },
+
+    emptyText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#8a8a8a',
+        textAlign: 'center',
+    },
+
+    searchOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        top: 74,
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
 });

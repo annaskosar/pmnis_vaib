@@ -10,10 +10,17 @@ import { useCart } from '../context/cart_context';
 export default function PaymentScreen() {
     const router = useRouter();
     const { cartId } = useLocalSearchParams();
-    const { getCartById, deleteCart } = useCart();
+    const { carts, getCartById, deleteCart, isCartLoading } = useCart();
 
-    const parsedCartId = typeof cartId === 'string' ? cartId : '';
-    const cart = getCartById(parsedCartId);
+
+    const parsedCartId =
+        typeof cartId === 'string'
+            ? cartId
+            : Array.isArray(cartId)
+                ? cartId[0]
+                : '';
+    const isEditMode = !!parsedCartId;
+    const cart = isEditMode ? getCartById(parsedCartId) : undefined;
 
     const [cardNumber, setCardNumber] = useState('');
     const [cardName, setCardName] = useState('');
@@ -26,6 +33,12 @@ export default function PaymentScreen() {
     const [city, setCity] = useState('');
     const [zip, setZip] = useState('');
     const [country, setCountry] = useState('');
+
+
+    console.log('PAYMENT cartId raw:', cartId);
+    console.log('PAYMENT parsedCartId:', parsedCartId);
+    console.log('PAYMENT carts ids:', carts.map(c => c.id));
+    console.log('PAYMENT found cart:', cart);
 
     const deliveryOptions = [
         { id: 'standard', label: 'Standard delivery', subtitle: '3–5 business days', price: 3.99 },
@@ -75,6 +88,20 @@ export default function PaymentScreen() {
         );
     };
 
+
+
+    if (isCartLoading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#111' }}>
+                        Loading cart...
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     if (!cart) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -97,7 +124,7 @@ export default function PaymentScreen() {
                 <View style={styles.container}>
                     <View style={styles.headerRow}>
                         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                            <Feather name="arrow-left" size={22} color="#111" />
+                            <Feather name="arrow-left" size={24} color="#111" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Payment</Text>
                         <View style={{ width: 44 }} />
@@ -298,7 +325,6 @@ const styles = StyleSheet.create({
     },
     backButton: {
         width: 44, height: 44, borderRadius: 22,
-        borderWidth: 1.5, borderColor: '#6a6a6a',
         justifyContent: 'center', alignItems: 'center',
         backgroundColor: '#f3f3f3',
     },

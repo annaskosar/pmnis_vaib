@@ -67,6 +67,10 @@ export default function BuilderScreen() {
     const [hasShownFeedback, setHasShownFeedback] = useState(false);
     const [rewardModalVisible, setRewardModalVisible] = useState(false);
 
+    // Inline feedback card state
+    const [inlineFeedbackRating, setInlineFeedbackRating] = useState(0);
+    const [inlineFeedbackSubmitted, setInlineFeedbackSubmitted] = useState(false);
+
     React.useEffect(() => {
         const checkFeedback = async () => {
             const userData = await AsyncStorage.getItem('currentUser');
@@ -164,6 +168,8 @@ export default function BuilderScreen() {
         setLoading(true);
         setGenerated(false);
         setAddedToCart(false);
+        setInlineFeedbackRating(0);
+        setInlineFeedbackSubmitted(false);
 
         setTimeout(async () => {
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
@@ -237,31 +243,39 @@ export default function BuilderScreen() {
         }, 1800);
     };
 
+    const saveFeedbackToStorage = async () => {
+        const userData = await AsyncStorage.getItem('currentUser');
+        const email = userData ? JSON.parse(userData).email : 'unknown';
+        if (email !== 'test@test.com') {
+            await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
+        }
+        const countStr = await AsyncStorage.getItem(`feedback_count_${email}`);
+        const newCount = parseInt(countStr ?? '0') + 1;
+        await AsyncStorage.setItem(`feedback_count_${email}`, String(newCount));
+    };
+
+    // Modal feedback submit
     const handleSubmitFeedback = async () => {
-    const userData = await AsyncStorage.getItem('currentUser');
-    const email = userData ? JSON.parse(userData).email : 'unknown';
+        await saveFeedbackToStorage();
+        setHasShownFeedback(true);
+        setFeedbackSubmitted(true);
 
-    // Pre ostatných používateľov ulož že feedback bol zobrazený
-    if (email !== 'test@test.com') {
-        await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
-    }
+        setTimeout(() => {
+            setFeedbackVisible(false);
+            setFeedbackSubmitted(false);
+            setFeedbackRating(0);
+            setSelectedChips([]);
+            setRewardModalVisible(true);
+        }, 2800);
+    };
 
-    // Zvýš feedback counter
-    const countStr = await AsyncStorage.getItem(`feedback_count_${email}`);
-    const newCount = parseInt(countStr ?? '0') + 1;
-    await AsyncStorage.setItem(`feedback_count_${email}`, String(newCount));
-
-    setHasShownFeedback(true);
-    setFeedbackSubmitted(true);
-
-    setTimeout(() => {
-        setFeedbackVisible(false);
-        setFeedbackSubmitted(false);
-        setFeedbackRating(0);
-        setSelectedChips([]);
+    // Inline feedback submit
+    const handleInlineFeedbackSubmit = async () => {
+        if (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) return;
+        await saveFeedbackToStorage();
+        setInlineFeedbackSubmitted(true);
         setRewardModalVisible(true);
-    }, 2800);
-};
+    };
 
     const toggleChip = (chip: string) => {
         setSelectedChips(prev =>
@@ -287,6 +301,8 @@ export default function BuilderScreen() {
         setOutfits([]);
         setGenerated(false);
         setAddedToCart(false);
+        setInlineFeedbackRating(0);
+        setInlineFeedbackSubmitted(false);
     };
 
     const handleAddToCart = () => {
@@ -489,6 +505,41 @@ export default function BuilderScreen() {
                                 </TouchableOpacity>
                             )}
                         </View>
+
+                        {/* Inline feedback card */}
+                        <View style={styles.feedbackCard}>
+                            <Text style={styles.feedbackTitle}>How do you rate this outfit suggestion?</Text>
+                            <View style={styles.inlineStarsRow}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity
+                                        key={star}
+                                        onPress={() => {
+                                            if (!inlineFeedbackSubmitted) setInlineFeedbackRating(star);
+                                        }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Feather
+                                            name="star"
+                                            size={24}
+                                            color={star <= inlineFeedbackRating ? '#f2b55d' : '#bcbcbc'}
+                                            style={styles.starIcon}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.feedbackButton,
+                                    (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) && styles.feedbackButtonDisabled,
+                                ]}
+                                onPress={handleInlineFeedbackSubmit}
+                                disabled={inlineFeedbackRating === 0 || inlineFeedbackSubmitted}
+                            >
+                                <Text style={styles.feedbackButtonText}>
+                                    {inlineFeedbackSubmitted ? 'Submitted ✓' : 'Submit'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
 
@@ -577,36 +628,37 @@ export default function BuilderScreen() {
                 </View>
             </Modal>
 
+            {/* Reward Modal */}
             <Modal visible={rewardModalVisible} transparent animationType="fade" onRequestClose={() => setRewardModalVisible(false)}>
-    <TouchableOpacity
-        style={styles.rewardOverlay}
-        activeOpacity={1}
-        onPress={() => setRewardModalVisible(false)}
-    >
-        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.rewardCard}>
-                <Text style={styles.rewardEmoji}>🎉</Text>
-                <Text style={styles.rewardTitle}>You earned points!</Text>
-                <Text style={styles.rewardSubtitle}>
-                    Thanks to your feedback you earned
-                </Text>
-                <View style={styles.rewardBadge}>
-                    <Text style={styles.rewardBadgePoints}>+5</Text>
-                    <Text style={styles.rewardBadgeLabel}> points</Text>
-                </View>
-                <Text style={styles.rewardNote}>
-                    Reach 30 points to unlock unlimited carts!
-                </Text>
                 <TouchableOpacity
-                    style={styles.rewardButton}
+                    style={styles.rewardOverlay}
+                    activeOpacity={1}
                     onPress={() => setRewardModalVisible(false)}
                 >
-                    <Text style={styles.rewardButtonText}>AWESOME!</Text>
+                    <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+                        <View style={styles.rewardCard}>
+                            <Text style={styles.rewardEmoji}>🎉</Text>
+                            <Text style={styles.rewardTitle}>You earned points!</Text>
+                            <Text style={styles.rewardSubtitle}>
+                                Thanks to your feedback you earned
+                            </Text>
+                            <View style={styles.rewardBadge}>
+                                <Text style={styles.rewardBadgePoints}>+5</Text>
+                                <Text style={styles.rewardBadgeLabel}> points</Text>
+                            </View>
+                            <Text style={styles.rewardNote}>
+                                Reach 30 points to unlock unlimited carts!
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.rewardButton}
+                                onPress={() => setRewardModalVisible(false)}
+                            >
+                                <Text style={styles.rewardButtonText}>AWESOME!</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
                 </TouchableOpacity>
-            </View>
-        </TouchableOpacity>
-    </TouchableOpacity>
-</Modal>
+            </Modal>
 
             {/* Wardrobe / Wishlist Sheet */}
             <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
@@ -792,6 +844,25 @@ const styles = StyleSheet.create({
     addedButtonText: { color: '#111', fontSize: 14, fontWeight: '700' },
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 14 },
     emptyStateText: { fontSize: 14, color: '#aaa', textAlign: 'center' },
+    feedbackCard: {
+        marginTop: 18, backgroundColor: '#e9e9e9',
+        borderRadius: 18, paddingVertical: 16, paddingHorizontal: 14, alignItems: 'center',
+    },
+    feedbackTitle: {
+        fontSize: 14, fontWeight: '700', color: '#111',
+        marginBottom: 12, textAlign: 'center',
+    },
+    inlineStarsRow: {
+        flexDirection: 'row', alignItems: 'center',
+        justifyContent: 'center', marginBottom: 14,
+    },
+    starIcon: { marginHorizontal: 6 },
+    feedbackButton: {
+        minWidth: 120, height: 44, borderRadius: 14, backgroundColor: '#111',
+        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
+    },
+    feedbackButtonDisabled: { backgroundColor: '#bdbdbd' },
+    feedbackButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {
@@ -839,21 +910,11 @@ const styles = StyleSheet.create({
     rewardTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 8, textAlign: 'center' },
     rewardSubtitle: { fontSize: 14, color: '#6a6a6a', textAlign: 'center', marginBottom: 16 },
     rewardBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-},
-rewardBadgePoints: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#f2b55d',
-},
-rewardBadgeLabel: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111',
-},
+        flexDirection: 'row', alignItems: 'center',
+        justifyContent: 'center', marginBottom: 14,
+    },
+    rewardBadgePoints: { fontSize: 28, fontWeight: '900', color: '#f2b55d' },
+    rewardBadgeLabel: { fontSize: 28, fontWeight: '700', color: '#111' },
     rewardNote: { fontSize: 13, color: '#8a8a8a', textAlign: 'center', marginBottom: 20, lineHeight: 18 },
     rewardButton: {
         backgroundColor: '#111', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 20,

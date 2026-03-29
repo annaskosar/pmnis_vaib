@@ -31,7 +31,7 @@ export default function SearchCategoryScreen() {
                 contentContainerStyle={styles.scrollContent}
             >
                 <ImageBackground
-                    source={require('../../assets/images_app/search.png')}
+                    source={require('../../assets/images_app/search.jpg')}
                     style={styles.headerBackground}
                     imageStyle={styles.headerBackgroundImage}
                 >

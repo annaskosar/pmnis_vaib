@@ -13,6 +13,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCart } from '../../context/cart_context';
+import { usePathname } from 'expo-router';
 
 export default function CartDetailScreen() {
     const router = useRouter();
@@ -86,7 +87,10 @@ export default function CartDetailScreen() {
     const handleEditCart = () => {
         router.push({
             pathname: '/(tabs)/cart_create',
-            params: { cartId: cart.id },
+            params: {
+                cartId: cart.id,
+                returnToCartDetail: 'true',
+            },
         });
     };
 
@@ -103,10 +107,10 @@ export default function CartDetailScreen() {
             <View style={styles.container}>
                 <View style={styles.topRow}>
                     <TouchableOpacity
-                        style={styles.backButton}
+                        style={styles.backButtonPlain}
                         onPress={() => router.replace('/(tabs)/cart')}
                     >
-                        <Feather name="arrow-left" size={22} color="#111" />
+                        <Feather name="arrow-left" size={24} color="#111" />
                     </TouchableOpacity>
 
                     <View style={styles.rightActions}>
@@ -126,18 +130,26 @@ export default function CartDetailScreen() {
                 </View>
 
                 <View style={styles.headerCard}>
-                    <View style={styles.cartIconWrapper}>
-                        <Feather name="shopping-cart" size={18} color="#111" />
+                    <View style={styles.headerLeft}>
+                        <View style={styles.cartIconWrapper}>
+                            <Feather name="shopping-cart" size={30} color="#111" />
+                        </View>
+
+                        <View style={styles.headerTextBlock}>
+                            <Text style={styles.cartTitle}>{cart.name}</Text>
+                            <Text style={styles.headerSubText}>Budget: €{cart.budget.toFixed(2)}</Text>
+                            <Text style={styles.headerSubText}>In cart: €{total.toFixed(2)}</Text>
+                            <Text style={styles.headerSubText}>{itemsCount} items</Text>
+                        </View>
                     </View>
-                    <View style={styles.headerTextBlock}>
-                        <Text style={styles.cartTitle}>{cart.name}</Text>
-                        <Text style={styles.headerSubText}>Budget: €{cart.budget.toFixed(2)}</Text>
-                        <Text style={styles.headerSubText}>In cart: €{total.toFixed(2)}</Text>
-                        <Text style={styles.headerSubText}>{itemsCount} items</Text>
+
+                    <View style={styles.remainingBlock}>
                         <Text style={[styles.remainingText, isOverBudget && styles.overBudgetText]}>
-                            {isOverBudget
-                                ? `Over budget: €${Math.abs(remaining).toFixed(2)}`
-                                : `Remaining: €${remaining.toFixed(2)}`}
+                            {isOverBudget ? 'Over budget:' : 'Remaining:'}
+                        </Text>
+
+                        <Text style={[styles.remainingAmount, isOverBudget && styles.overBudgetText]}>
+                            €{Math.abs(remaining).toFixed(2)}
                         </Text>
                     </View>
                 </View>
@@ -231,10 +243,12 @@ export default function CartDetailScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.checkoutButton}
-                        onPress={() => router.push({
-                            pathname: '/payment',
-                            params: { cartId: cart.id },
-                        })}
+                        onPress={() =>
+                            router.push({
+                                pathname: '/payment',
+                                params: { cartId: cart.id },
+                            })
+                        }
                     >
     <Text style={styles.checkoutButtonText}>Proceed to payment</Text>
 </TouchableOpacity>
@@ -263,18 +277,71 @@ const styles = StyleSheet.create({
     },
     rightActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     headerCard: {
-        borderRadius: 18, padding: 14, flexDirection: 'row',
-        alignItems: 'flex-start', marginBottom: 16, overflow: 'hidden',
+        borderRadius: 18,
+        paddingVertical: 8,
+        paddingLeft: 4,
+        paddingRight: 20,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+        marginTop: -4,
+
+        backgroundColor: '#f3f3f3',
     },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+
     cartIconWrapper: {
-        width: 42, height: 42, borderRadius: 12, borderWidth: 1,
-        borderColor: '#111', backgroundColor: '#ededed',
-        justifyContent: 'center', alignItems: 'center', marginRight: 12,
+        width: 44,
+        height: 44,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        marginRight: 6,
     },
-    headerTextBlock: { flex: 1 },
-    cartTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 4 },
-    headerSubText: { fontSize: 13, color: '#5f5f5f', lineHeight: 18 },
-    remainingText: { marginTop: 8, fontSize: 16, fontWeight: '700', color: '#006958' },
+    headerTextBlock: {
+        flexShrink: 1,
+        minWidth: 0,
+    },
+
+    cartTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 6,
+    },
+    headerSubText: {
+        fontSize: 15,
+        color: '#5f5f5f',
+        lineHeight: 21,
+    },
+
+    remainingText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#006958',
+        marginBottom: 2,
+        textAlign: 'center',
+    },
+
+    remainingBlock: {
+        width: 120,
+        marginLeft: 'auto',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: 2,
+    },
+
+    remainingAmount: {
+        fontSize: 25,
+        fontWeight: '900',
+        color: '#006958',
+        lineHeight: 34,
+        marginTop: 20,
+    },
+
     overBudgetText: { color: '#df2518' },
     scrollContent: { paddingBottom: 120 },
     productCard: {
@@ -348,4 +415,11 @@ const styles = StyleSheet.create({
         alignItems: 'center', paddingHorizontal: 18,
     },
     checkoutButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+    backButtonPlain: {
+        width: 34,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
 });

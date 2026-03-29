@@ -34,6 +34,7 @@ export default function WardrobeAddScreen() {
     const [itemName, setItemName] = React.useState('');
     const [additionalInfo, setAdditionalInfo] = React.useState('');
     const [selectedCategory, setSelectedCategory] = React.useState<WardrobeCategory | null>(null);
+    const [selectedAction, setSelectedAction] = React.useState<'cancel' | 'save' | null>(null);
 
     const imageSource =
         typeof imageUri === 'string' ? { uri: imageUri } : undefined;
@@ -44,7 +45,6 @@ export default function WardrobeAddScreen() {
 
     const handleSave = () => {
         if (!imageUri || typeof imageUri !== 'string') return;
-
         addWardrobeItem({
             image: imageUri,
             name: itemName.trim() || 'new item',
@@ -52,11 +52,8 @@ export default function WardrobeAddScreen() {
             additionalInfo: additionalInfo.trim(),
             createdAt: Date.now(),
         });
-
         router.replace('/(tabs)/wardrobe');
     };
-
-    const [selectedAction, setSelectedAction] = React.useState<'cancel' | 'save' | null>(null);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -74,25 +71,25 @@ export default function WardrobeAddScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={20}
             >
+                <ImageBackground
+                    source={require('../../assets/images_app/search.png')}
+                    style={styles.headerWrapper}
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => router.replace('/(tabs)/wardrobe')}
+                    >
+                        <Feather name="arrow-left" size={24} color="#111" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerText}>Add to wardrobe</Text>
+                </ImageBackground>
+
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                     contentContainerStyle={styles.scrollViewContent}
                 >
-                    <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
-                        style={styles.headerWrapper}
-                    >
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={() => router.replace('/(tabs)/wardrobe')}
-                        >
-                            <Feather name="arrow-left" size={24} color="#111" />
-                        </TouchableOpacity>
-                        <Text style={styles.headerText}>Add to wardrobe</Text>
-                    </ImageBackground>
-
                     <View style={styles.scrollContent}>
                         <View style={styles.previewCard}>
                             {imageSource ? (
@@ -122,7 +119,7 @@ export default function WardrobeAddScreen() {
                                 <Feather
                                     name="x"
                                     size={22}
-                                    color={selectedAction === 'cancel' ? '#fff' : '#111'}
+                                    color="#fff"
                                 />
                             </TouchableOpacity>
 
@@ -139,7 +136,7 @@ export default function WardrobeAddScreen() {
                                 <Feather
                                     name="check"
                                     size={22}
-                                    color={selectedAction === 'save' ? '#fff' : '#111'}
+                                    color="#fff"
                                 />
                             </TouchableOpacity>
                         </View>
@@ -204,7 +201,7 @@ const styles = StyleSheet.create({
     scrollContent: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 30 },
     headerWrapper: {
         height: 64, flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 22, marginLeft: -18, marginRight: -18, overflow: 'hidden',
+        paddingHorizontal: 22, overflow: 'hidden',
     },
     backButton: {
         width: 34, height: 40, justifyContent: 'center',
@@ -225,9 +222,9 @@ const styles = StyleSheet.create({
     iconButton: {
         width: 54, height: 54, borderRadius: 27, borderWidth: 1.4,
         borderColor: '#111', justifyContent: 'center', alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#111',
     },
-    iconButtonActive: { backgroundColor: '#111' },
+    iconButtonActive: { backgroundColor: '#333' },
     form: { gap: 12 },
     label: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: -2 },
     categoryGrid: {
@@ -239,9 +236,7 @@ const styles = StyleSheet.create({
         borderRadius: 20, backgroundColor: '#dedede',
         borderWidth: 1.5, borderColor: 'transparent',
     },
-    categoryChipActive: {
-        backgroundColor: '#fff', borderColor: '#111',
-    },
+    categoryChipActive: { backgroundColor: '#fff', borderColor: '#111' },
     categoryIcon: { fontSize: 16 },
     categoryLabel: { fontSize: 13, fontWeight: '600', color: '#666' },
     categoryLabelActive: { color: '#111' },

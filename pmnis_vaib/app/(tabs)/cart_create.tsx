@@ -9,6 +9,7 @@ import {
     Alert,
     ImageBackground,
     Keyboard,
+    ScrollView,
     TouchableWithoutFeedback,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -17,8 +18,8 @@ import { useCart } from '../../context/cart_context';
 
 export default function CreateCartScreen() {
     const router = useRouter();
-    const { carts, createCart, getCartById, updateCart } = useCart();
-    const { cartId, returnToBuilder } = useLocalSearchParams();
+    const { carts, createCart, getCartById, updateCart, isUnlimitedUnlocked } = useCart();
+    const { cartId, returnToBuilder, returnToCartDetail } = useLocalSearchParams();
     const isEditMode = typeof cartId === 'string';
 
     const [cartName, setCartName] = React.useState('');
@@ -28,6 +29,8 @@ export default function CreateCartScreen() {
     const maxFreeCarts = 5;
     const remainingSlots = Math.max(0, maxFreeCarts - carts.length);
     const cart = isEditMode ? getCartById(cartId) : undefined;
+
+
 
     useFocusEffect(
         React.useCallback(() => {
@@ -67,12 +70,25 @@ export default function CreateCartScreen() {
 
         if (isEditMode && cart) {
             updateCart(cart.id, trimmedName, parsedBudget);
-            router.replace('/(tabs)/cart');
-        } else {
+
+            if (returnToCartDetail === 'true') {
+                router.replace({
+                    pathname: '/cart_detail',
+                    params: { cartId: cart.id },
+                });
+            } else {
+                router.replace('/(tabs)/cart');
+            }
+
+            return;
+        }else {
             const created = createCart(trimmedName, parsedBudget);
 
             if (!created) {
-                Alert.alert('Cart limit reached', 'You can create up to 5 carts before unlocking more.');
+                Alert.alert(
+                    'Cart limit reached',
+                    'You can create up to 5 carts before unlocking unlimited carts through Builder feedback.'
+                );
                 return;
             }
 
@@ -82,13 +98,24 @@ export default function CreateCartScreen() {
                     params: { returnToBuilder: 'true' },
                 });
             } else {
-                router.replace('/(tabs)/cart');
+                router.replace({
+                    pathname: '/cart_detail',
+                    params: {cartId: created.id},
+
+                });
             }
         }
     };
 
+
+
     const handleCancel = () => {
-        if (returnToBuilder === 'true') {
+        if (returnToCartDetail === 'true' && typeof cartId === 'string') {
+            router.replace({
+                pathname: '/cart_detail',
+                params: { cartId },
+            });
+        } else if (returnToBuilder === 'true') {
             router.replace({
                 pathname: '/(tabs)/builder',
                 params: { returnToBuilder: 'true' },
@@ -100,35 +127,69 @@ export default function CreateCartScreen() {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.container}>
-                    <View style={styles.topRow}>
-                        <TouchableOpacity style={styles.iconButton} onPress={handleCancel}>
-                            <Feather name="arrow-left" size={22} color="#111" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.iconButton}
-                            onPress={() => router.push('/(tabs)/account')}
-                        >
-                            <Feather name="user" size={22} color="#111" />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={styles.title}>
-                        {isEditMode ? 'Edit cart' : 'Create new cart'}
-                    </Text>
-                    <Text style={styles.subTitle}>
-                        {remainingSlots > 0
-                            ? `${remainingSlots} of ${maxFreeCarts} unlock cart slots left`
-                            : `You reached the ${maxFreeCarts}-cart limit`}
-                    </Text>
-
-                    <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
-                        style={styles.formCard}
-                        imageStyle={styles.formCardImage}
+                <SafeAreaView style={styles.safeArea}>
+                    <ScrollView
+                        style={styles.flex}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        bounces
+                        alwaysBounceVertical
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="on-drag"
                     >
-                        <View style={styles.formOverlay}>
+                    <View style={styles.container}>
+                        <View style={styles.topRow}>
+                            <TouchableOpacity style={styles.backButtonPlain} onPress={handleCancel}>
+                                <Feather name="arrow-left" size={24} color="#111" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.iconButton}
+                                onPress={() => router.push('/(tabs)/account')}
+                            >
+                                <Feather name="user" size={22} color="#111" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ImageBackground
+                            source={require('../../assets/images_app/search.jpg')}
+                            style={styles.heroCard}
+                            imageStyle={styles.heroCardImage}
+                        >
+                            <View style={styles.heroContent}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.title}>
+                                        {isEditMode ? 'Edit cart' : 'Create new cart'}
+                                    </Text>
+
+                                    <Text style={styles.subTitle}>
+                                        {isUnlimitedUnlocked ? (
+                                            <>
+                                                <Text style={styles.highlightText}>{carts.length}/∞</Text> cart slots used
+                                            </>
+                                        ) : remainingSlots > 0 ? (
+                                            <>
+                                                <Text style={styles.highlightText}>
+                                                    {carts.length}/{maxFreeCarts}
+                                                </Text>{' '}
+                                                cart slots used
+                                            </>
+                                        ) : (
+                                            <>
+                                                You reached the{' '}
+                                                <Text style={styles.highlightText}>
+                                                    {maxFreeCarts}/{maxFreeCarts}
+                                                </Text>{' '}
+                                                cart limit
+                                            </>
+                                        )}
+                                    </Text>
+                                </View>
+
+                                <Feather name="shopping-cart" size={46} color="#111" />
+                            </View>
+                        </ImageBackground>
+
+                        <View style={styles.formSection}>
                             <Text style={styles.label}>Cart name</Text>
                             <TextInput
                                 style={styles.input}
@@ -138,58 +199,66 @@ export default function CreateCartScreen() {
                                 onChangeText={setCartName}
                             />
 
-                            <View style={styles.currencyRow}>
-                                {['€', '$', '£'].map((curr) => (
-                                    <TouchableOpacity
-                                        key={curr}
-                                        style={[styles.currencyButton, currency === curr && styles.activeCurrencyButton]}
-                                        onPress={() => setCurrency(curr as any)}
-                                    >
-                                        <Text style={[styles.currencyText, currency === curr && styles.activeCurrencyText]}>
-                                            {curr}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
 
                             <Text style={styles.label}>Budget</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter budget"
+                                placeholder="Enter budget (€)"
                                 placeholderTextColor="#8a8a8a"
                                 keyboardType="numeric"
                                 value={budget}
                                 onChangeText={setBudget}
                             />
 
-                            <View style={{ marginTop: 'auto', marginBottom: 10 }}>
-                                <View style={styles.buttonRow}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                                    </TouchableOpacity>
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.createButtonSmall,
-                                            !isEditMode && carts.length >= maxFreeCarts && styles.disabledButton,
-                                        ]}
-                                        onPress={handleSubmit}
-                                    >
-                                        <Text style={styles.createButtonText}>
-                                            {isEditMode ? 'Save changes' : 'Create cart'}
-                                        </Text>
-                                    </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.createButtonSmall,
+                                        !isEditMode && !isUnlimitedUnlocked && carts.length >= maxFreeCarts && styles.disabledButton,
+                                    ]}
+                                    onPress={handleSubmit}
+                                >
+                                    <Text style={styles.createButtonText}>
+                                        {isEditMode ? 'Save changes' : 'Create cart'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.helperCard}>
+                                <View style={styles.helperIconWrap}>
+                                    <Feather name="info" size={16} color="#111" />
+                                </View>
+
+                                <View style={styles.helperTextWrap}>
+                                    <Text style={styles.helperTitle}>Quick tip</Text>
+                                    <Text style={styles.helperText}>
+                                        Instead of mixing everything, create multiple carts: one for what you need now and one for what you just love.
+                                        {'\n\n'}
+                                        Set a realistic budget so your cart stays easier to manage and compare. You can always edit the name and budget later.
+
+                                    </Text>
                                 </View>
                             </View>
                         </View>
-                    </ImageBackground>
-                </View>
+                    </View>
+                    </ScrollView>
             </SafeAreaView>
+
         </TouchableWithoutFeedback>
     );
 }
 
 const styles = StyleSheet.create({
+    flex: {
+        flex: 1,
+    },
+
+    scrollContent: {
+        flexGrow: 1,
+    },
     safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
     container: { flex: 1, paddingHorizontal: 16, paddingTop: 10 },
     topRow: {
@@ -202,16 +271,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#f3f3f3',
     },
     title: { fontSize: 26, fontWeight: '700', color: '#111', marginBottom: 6 },
-    subTitle: { fontSize: 14, color: '#6a6a6a', marginBottom: 18 },
-    formCard: {
-        flex: 1, borderRadius: 18, padding: 16,
-        borderWidth: 1, borderColor: '#d6d6d6', overflow: 'hidden',
-    },
-    formCardImage: { borderRadius: 18 },
-    formOverlay: {
-        flex: 1, padding: 16,
-        backgroundColor: 'rgba(237, 237, 237, 0.8)',
-    },
+    subTitle: { fontSize: 14,  color: '#111', marginBottom: 18 },
+
     label: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 8, marginTop: 10 },
     input: {
         height: 52, borderRadius: 14, backgroundColor: '#f7f7f7',
@@ -226,7 +287,7 @@ const styles = StyleSheet.create({
     buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 10 },
     cancelButton: {
         flex: 1, height: 52, borderRadius: 18,
-        backgroundColor: '#e5e5e5', justifyContent: 'center', alignItems: 'center',
+        backgroundColor: '#dedede', justifyContent: 'center', alignItems: 'center',
     },
     cancelButtonText: { fontSize: 14, fontWeight: '700', color: '#111' },
     createButtonSmall: {
@@ -235,4 +296,75 @@ const styles = StyleSheet.create({
     },
     createButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     disabledButton: { opacity: 0.6 },
+
+    backButtonPlain: {
+        width: 34,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+
+    heroCard: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        marginBottom: 20,
+    },
+
+    heroCardImage: {
+        borderRadius: 20,
+    },
+
+    formSection: {
+        flex: 1,
+    },
+
+    heroContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingRight: 6,
+    },
+
+    highlightText: {
+        color: '#111',
+        fontWeight: '800',
+    },
+
+    helperCard: {
+        marginTop: 18,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: '#dedede',
+        borderRadius: 16,
+        padding: 14,
+    },
+
+    helperIconWrap: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#f3f3f3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    helperTextWrap: {
+        flex: 1,
+    },
+
+    helperTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 4,
+    },
+
+    helperText: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: '#5f5f5f',
+    },
 });

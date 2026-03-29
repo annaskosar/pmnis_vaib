@@ -14,6 +14,8 @@ import { useFocusEffect } from 'expo-router';
 export default function CartScreen() {
     const router = useRouter();
     const { carts, deleteCart } = useCart();
+    const swipeableRefs = React.useRef<Record<string, Swipeable | null>>({});
+    const isSwipingRef = React.useRef(false);
 
     const [feedbackCount, setFeedbackCount] = React.useState(0);
 
@@ -23,9 +25,13 @@ export default function CartScreen() {
     const progressPercent = Math.min((totalPoints / maxPoints) * 100, 100);
     const isUnlocked = totalPoints >= maxPoints;
     const cartLimit = isUnlocked ? 999 : 5;
+    const feedbackRemaining = Math.max(maxPoints - totalPoints, 0);
 
     useFocusEffect(
         React.useCallback(() => {
+            Object.values(swipeableRefs.current).forEach((ref) => ref?.close());
+            isSwipingRef.current = false;
+
             const loadCount = async () => {
                 const userData = await AsyncStorage.getItem('currentUser');
                 if (!userData) return;
@@ -46,7 +52,21 @@ export default function CartScreen() {
     };
 
     const handleEditCart = (cartId: string) => {
-        router.push({ pathname: '/(tabs)/cart_create', params: { cartId } });
+        swipeableRefs.current[cartId]?.close();
+        setTimeout(() => {
+            router.push({ pathname: '/(tabs)/cart_create', params: { cartId } });
+        }, 120);
+    };
+
+    const handleUnlockPress = () => {
+        if (isUnlocked) {
+            Alert.alert('Unlocked!', 'Unlimited carts are now available for your account.');
+            return;
+        }
+        Alert.alert(
+            'Not yet unlocked',
+            `You need ${feedbackRemaining} more points to unlock unlimited carts.`
+        );
     };
 
     const handleDeleteCart = (cartId: string) => {
@@ -117,7 +137,10 @@ export default function CartScreen() {
                                     : 'Give feedback in Builder and earn 5 points per feedback. Reach 30 points to unlock unlimited carts!'}
                             </Text>
                         </View>
-                        <TouchableOpacity style={[styles.upgradeButton, isUnlocked && styles.upgradeButtonUnlocked]}>
+                        <TouchableOpacity
+                            style={[styles.upgradeButton, isUnlocked && styles.upgradeButtonUnlocked]}
+                            onPress={handleUnlockPress}
+                        >
                             <Feather name={isUnlocked ? 'unlock' : 'lock'} size={14} color="#fff" />
                             <Text style={styles.upgradeButtonText}>
                                 {isUnlocked ? 'Unlocked!' : 'Unlock'}
@@ -168,13 +191,21 @@ export default function CartScreen() {
                             return (
                                 <Swipeable
                                     key={cart.id}
+                                    ref={(ref) => { swipeableRefs.current[cart.id] = ref; }}
                                     renderRightActions={() => renderRightActions(cart.id)}
                                     overshootRight={false}
+                                    onSwipeableWillOpen={() => { isSwipingRef.current = true; }}
+                                    onSwipeableClose={() => {
+                                        setTimeout(() => { isSwipingRef.current = false; }, 120);
+                                    }}
                                 >
                                     <TouchableOpacity
                                         activeOpacity={0.9}
                                         style={styles.cartCard}
-                                        onPress={() => handleOpenCart(cart.id)}
+                                        onPress={() => {
+                                            if (isSwipingRef.current) return;
+                                            handleOpenCart(cart.id);
+                                        }}
                                     >
                                         <View style={styles.cartIconWrapper}>
                                             <MaterialCommunityIcons name="cart-outline" size={25} color="#111" />
