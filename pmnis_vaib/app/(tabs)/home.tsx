@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,55 +9,95 @@ import {
     SafeAreaView,
     ScrollView,
     ImageBackground,
+    Pressable,
+    Keyboard,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProducts } from '../../context/product_context';
+import { productImages } from '../../context/product_images';
+import { MaterialIcons } from '@expo/vector-icons';
 
-const allProducts = [
-    {
-        image: require('../../assets/images_app/model8.png'),
-        name: 'Oversized denim jacket',
-        price: '€79.99',
-        budget: 'mid',
-        styles: ['Casual', 'Streetwear', 'Vintage'],
-        colors: ['Modrá'],
-        gender: ['Žena'],
-    },
-    {
-        image: require('../../assets/images_app/model9.png'),
-        name: 'Summer dress',
-        price: '€49.99',
-        budget: 'mid',
-        styles: ['Casual', 'Boho'],
-        colors: ['Modrá'],
-        gender: ['Žena'],
-    },
-    {
-        image: require('../../assets/images_app/model10.png'),
-        name: 'One shoulder top',
-        price: '€39.99',
-        budget: 'low',
-        styles: ['Streetwear', 'Minimalist', 'Elegantný'],
-        colors: ['Čierna'],
-        gender: ['Žena'],
-    },
-    {
-        image: require('../../assets/images_app/model11.png'),
-        name: 'Adidas sport set',
-        price: '€89.99',
-        budget: 'high',
-        styles: ['Sporty', 'Casual', 'Streetwear'],
-        colors: ['Zelená', 'Biela'],
-        gender: ['Žena', 'Muž'],
-    },
-];
+
+
+
 
 export default function HomeScreen() {
     const [userName, setUserName] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState(allProducts);
     const router = useRouter();
+    const { products } = useProducts();
+    const [filteredProducts, setFilteredProducts] = useState<typeof products>([]);
+    const [homeSearchText, setHomeSearchText] = useState('');
+    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const [isFocused, setIsFocused] = useState(false);
+    const searchInputRef = useRef<TextInput>(null);
+
+
+    const closeSearchPanel = () => {
+        setIsFocused(false);
+        searchInputRef.current?.blur();
+        Keyboard.dismiss();
+    };
+
+    useEffect(() => {
+        loadRecentSearches();
+    }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadRecentSearches();
+        }, [])
+    );
+
+    const loadRecentSearches = async () => {
+        const stored = await AsyncStorage.getItem('recentSearches');
+        setRecentSearches(stored ? JSON.parse(stored) : []);
+    };
+
+    const clearRecentSearches = async () => {
+        await AsyncStorage.removeItem('recentSearches');
+        setRecentSearches([]);
+    };
+
+
+    const saveSearch = async (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+
+        const stored = await AsyncStorage.getItem('recentSearches');
+        const existing: string[] = stored ? JSON.parse(stored) : [];
+
+        const updated = [
+            trimmed,
+            ...existing.filter(item => item.toLowerCase() !== trimmed.toLowerCase()),
+        ].slice(0, 10);
+
+        setRecentSearches(updated);
+        await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+    };
+
+
+    const handleHomeSearch = async () => {
+        const trimmed = homeSearchText.trim();
+        if (!trimmed) return;
+
+        await saveSearch(trimmed);
+
+        router.push({
+            pathname: '/search_items',
+            params: {
+                query: trimmed,
+                gender: 'WOMAN',
+            },
+        });
+
+        setHomeSearchText('');
+        closeSearchPanel();
+    };
+
+
 
     useEffect(() => {
         const loadData = async () => {
@@ -71,254 +111,477 @@ export default function HomeScreen() {
             if (profileData) {
                 const profile = JSON.parse(profileData);
 
-                const filtered = allProducts.filter(product => {
-                const genderMatch = profile.gender
-                    ? product.gender.includes(profile.gender)
-                    : true;
+                const filtered = products.filter((product) => {
+                    const genderMatch =
+                        profile.gender === 'Muž'
+                            ? product.gender === 'men'
+                            : product.gender === 'women';
 
-                const budgetMatch = profile.budget
-                    ? product.budget === profile.budget
-                    : true;
-                const styleMatch = profile.styles?.length
-                    ? product.styles.some((s: string) => profile.styles.includes(s))
-                    : true;
-                const colorMatch = profile.colors?.length
-                    ? product.colors.some((c: string) => profile.colors.includes(c))
-                    : true;
+                    const budgetMatch = profile.budget
+                        ? profile.budget === 'low'
+                            ? product.price <= 40
+                            : profile.budget === 'mid'
+                                ? product.price > 40 && product.price <= 100
+                                : product.price > 100
+                        : true;
 
-                return genderMatch && (budgetMatch || styleMatch || colorMatch);
-            });
+                    const styleMatch = profile.styles?.length
+                        ? product.tags?.some((tag: string) => profile.styles.includes(tag))
+                        : true;
 
-                setFilteredProducts(filtered.length > 0 ? filtered : allProducts);
+                    const colorMatch = profile.colors?.length
+                        ? product.availableColors?.some((color) => profile.colors.includes(color.name))
+                        : true;
+
+                    return genderMatch && (budgetMatch || styleMatch || colorMatch);
+                });
+
+                setFilteredProducts(filtered.length > 0 ? filtered.slice(0, 6) : products.filter(p => p.gender === 'women').slice(0, 6));
+            } else {
+                setFilteredProducts(products.filter(p => p.gender === 'women').slice(0, 6));
             }
         };
 
-        loadData();
-    }, []);
+        if (products.length > 0) {
+            loadData();
+        }
+    }, [products]);
 
     const cards = [
-        { image: require('../../assets/images_app/model2.png'), label: 'denim' },
-        { image: require('../../assets/images_app/model3.png'), label: 'dress' },
-        { image: require('../../assets/images_app/model4.png'), label: 'spring' },
-        { image: require('../../assets/images_app/model5.png'), label: 'shoes' },
-        { image: require('../../assets/images_app/model6.png'), label: 'swim' },
-        { image: require('../../assets/images_app/model7.png'), label: 'favorites' },
+        {image: require('../../assets/images_app/model2.png'), label: 'denim'},
+        {image: require('../../assets/images_app/model3.png'), label: 'dress'},
+        {image: require('../../assets/images_app/model4.png'), label: 'spring'},
+        {image: require('../../assets/images_app/model5.png'), label: 'shoes'},
+        {image: require('../../assets/images_app/model6.png'), label: 'swim'},
+        {image: require('../../assets/images_app/model7.png'), label: 'favorites'},
     ];
 
+    const [likedItems, setLikedItems] = useState<string[]>([]);
+
     const brands = [
-        require('../../assets/images_app/brand1.png'),
-        require('../../assets/images_app/brand2.png'),
-        require('../../assets/images_app/brand3.png'),
-        require('../../assets/images_app/brand4.png'),
-        require('../../assets/images_app/brand5.png'),
+        {
+            image: require('../../assets/images_app/brand1.png'),
+            brand: 'Zara',
+        },
+        {
+            image: require('../../assets/images_app/brand2.png'),
+            brand: 'Mango',
+        },
+        {
+            image: require('../../assets/images_app/brand3.png'),
+            brand: 'Nike',
+        },
+        {
+            image: require('../../assets/images_app/brand4.png'),
+            brand: 'Adidas',
+        },
+        {
+            image: require('../../assets/images_app/brand5.png'),
+            brand: 'Gucci',
+        },
     ];
+
+    const handleBrandPress = (brand: string) => {
+        router.push({
+            pathname: '/search_items',
+            params: {
+                query: brand,
+                gender: 'WOMAN',
+            },
+        });
+    };
+
+    const handleHomeCategoryPress = (label: string) => {
+        switch (label.toLowerCase()) {
+            case 'denim':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        category: 'CLOTHING',
+                        subcategory: 'Jeans',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            case 'dress':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        category: 'DRESSES',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            case 'spring':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        category: 'CLOTHING',
+                        subcategory: 'Tops',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            case 'shoes':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        category: 'SHOES',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            case 'swim':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        category: 'ACTIVEWEAR',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            case 'favorites':
+                router.push({
+                    pathname: '/search_items',
+                    params: {
+                        subcategory: 'Best sellers',
+                        gender: 'WOMAN',
+                    },
+                });
+                break;
+
+            default:
+                router.push('/(tabs)/search');
+                break;
+        }
+    };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                    {/* Top bar */}
-                    <View style={styles.topBar}>
-                        <ImageBackground
-                            source={require('../../assets/images_app/search.png')}
-                            style={styles.searchWrapper}
-                            imageStyle={{ borderRadius: 12 }}
-                        >
-                            <Feather name="search" size={18} color="#393939" />
-                            <TextInput
-                                placeholder="Search"
-                                placeholderTextColor="#393939"
-                                style={styles.searchInput}
-                            />
-                        </ImageBackground>
-
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Feather name="heart" size={20} color="#393939" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.profileButton}
-                            onPress={() => router.push('/(tabs)/account')}
-                        >
-                            <Feather name="user" size={22} color="#393939" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Main hero image */}
-                    <Image
-                        source={require('../../assets/images_app/model1.png')}
-                        style={styles.heroImage}
-                        resizeMode="cover"
-                    />
-
-                    <View style={styles.headingWrapper}>
-                        <Text style={styles.headingLineBlack}>New</Text>
-                        <View style={styles.collectionRow}>
-                            <Text style={styles.headingLineBlack}>collecti</Text>
-                            <Text style={styles.headingLineWhite}>on</Text>
-                        </View>
-                    </View>
-
-                    {/* New for you section */}
-                    <View style={styles.newSection}>
-                        <Text style={styles.newTitle}>New for you</Text>
-                        <Text style={styles.newSubtitle}>
-                            News from the world of fashion designed for enthusiasts
-                        </Text>
-                    </View>
-
-                    {/* Card pairs */}
-                    {Array.from({ length: Math.ceil(cards.length / 2) }).map((_, rowIndex) => (
-                        <View key={rowIndex} style={styles.cardsRow}>
-                            {cards.slice(rowIndex * 2, rowIndex * 2 + 2).map((item, index) => (
-                                <TouchableOpacity key={index} style={styles.card}>
-                                    <ImageBackground
-                                        source={item.image}
-                                        style={styles.cardImage}
-                                        resizeMode="cover"
-                                    >
-                                        <LinearGradient
-                                            colors={['transparent', 'rgba(0,0,0,0.75)']}
-                                            style={styles.cardGradient}
-                                        />
-                                        <Text style={styles.cardLabel}>{item.label}</Text>
-                                    </ImageBackground>
+                <View style={styles.container}>
+                    {/* FIXED TOP */}
+                    <View style={styles.topArea}>
+                        <View style={styles.topBar}>
+                            <ImageBackground
+                                source={require('../../assets/images_app/search.jpg')}
+                                style={styles.searchWrapper}
+                                imageStyle={{ borderRadius: 12 }}
+                            >
+                                <TouchableOpacity onPress={handleHomeSearch}>
+                                    <Feather name="search" size={18} color="#393939" />
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                    ))}
 
-                    {/* CTA box */}
-                    <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
-                        style={styles.ctaWrapper}
-                        imageStyle={{ borderRadius: 16 }}
-                    >
-                        <Text style={styles.ctaText}>
-                            Hey {userName}, try the new assistant for creating your dream outfits
-                        </Text>
-                        <TouchableOpacity
-                            style={styles.ctaButton}
-                            onPress={() => router.push('/(tabs)/builder')}>
-                            <Text style={styles.ctaButtonText}>TRY NOW</Text>
-                        </TouchableOpacity>
-                    </ImageBackground>
+                                <TextInput
+                                    ref={searchInputRef}
+                                    placeholder="Search"
+                                    placeholderTextColor="#393939"
+                                    style={styles.searchInput}
+                                    value={homeSearchText}
+                                    onChangeText={setHomeSearchText}
+                                    onSubmitEditing={handleHomeSearch}
+                                    onFocus={() => setIsFocused(true)}
+                                    returnKeyType="search"
+                                />
+                            </ImageBackground>
 
-                    {/* Favorite categories */}
-                    <View style={styles.favoritesSection}>
-                        <Text style={styles.favoritesTitle}>Your favorite categories</Text>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.favoritesScroll}
-                        >
-                            {cards.map((item, index) => (
-                                <TouchableOpacity key={index} style={styles.favoriteCard}>
-                                    <ImageBackground
-                                        source={item.image}
-                                        style={styles.favoriteCardImage}
-                                        imageStyle={{ borderRadius: 14 }}
-                                        resizeMode="cover"
-                                    >
-                                        <LinearGradient
-                                            colors={['transparent', 'rgba(0,0,0,0.65)']}
-                                            style={styles.favoriteCardGradient}
-                                        />
-                                        <Text style={styles.favoriteCardLabel}>{item.label}</Text>
-                                    </ImageBackground>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
+                            <TouchableOpacity style={styles.iconButton}>
+                                <Feather name="heart" size={20} color="#393939" />
+                            </TouchableOpacity>
 
-                    {/* Your taste — personalizované */}
-                    <View style={styles.tasteSection}>
-                        <Text style={styles.tasteTitle}>Your taste</Text>
-                        <View style={styles.productsGrid}>
-                            {filteredProducts.map((item, index) => (
-                                <View key={index} style={styles.productCard}>
-                                    <Image
-                                        source={item.image}
-                                        style={styles.productImage}
-                                        resizeMode="cover"
-                                    />
-                                    <Text style={styles.productName}>{item.name}</Text>
-                                    <Text style={styles.productPrice}>{item.price}</Text>
-                                    <TouchableOpacity style={styles.cartButton}>
-                                        <Feather name="shopping-cart" size={16} color="#111" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
-                        <TouchableOpacity
-                            style={styles.showAllButton}
-                            onPress={() => router.push('/(tabs)/search')}
-                        >
-                            <Text style={styles.showAllText}>SHOW ALL</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Duplicate checker */}
-                    <View style={styles.duplicateWrapper}>
-                        <View style={styles.duplicateImagesRow}>
-                            <Image
-                                source={require('../../assets/images_app/model2.png')}
-                                style={styles.duplicateImage}
-                            />
-                            <Feather name="arrow-right" size={25} color="#393939" style={styles.middleArrow} />
-                            <Image
-                                source={require('../../assets/images_app/model2_pixel.png')}
-                                style={styles.duplicateImage}
-                            />
-                        </View>
-                        <View style={styles.duplicateBottomRow}>
-                            <View style={styles.duplicateTextBlock}>
-                                <Text style={styles.duplicateTitle}>Duplicate?</Text>
-                                <Text style={styles.duplicateText}>
-                                    Add your items in your wardrobe and check for duplicates.
-                                </Text>
-                            </View>
                             <TouchableOpacity
-                                style={styles.duplicateButton}
-                                onPress={() => router.push('/(tabs)/wardrobe')}>
-                                <Text style={styles.duplicateButtonText}>TRY NOW</Text>
-                                <Feather name="arrow-right" size={14} color="#fff" />
+                                style={styles.profileButton}
+                                onPress={() => router.push('/(tabs)/account')}
+                            >
+                                <Feather name="user" size={22} color="#393939" />
                             </TouchableOpacity>
                         </View>
-                    </View>
 
-                    {/* Brand picks */}
-                    <View style={styles.brandsSection}>
-                        <Text style={styles.brandsTitle}>Brand picks</Text>
-                        <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.brandsScroll}
+                        {isFocused && (
+                            <View style={styles.recentContainer}>
+                                <View style={styles.recentHeader}>
+                                    <Text style={styles.recentTitle}>Recent searches</Text>
+
+                                    {recentSearches.length > 0 && (
+                                        <TouchableOpacity
+                                            style={styles.clearButton}
+                                            onPress={clearRecentSearches}
+                                        >
+                                            <Text style={styles.clearText}>Clear</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+
+                                {recentSearches.length === 0 ? (
+                                    <View style={styles.emptyWrapper}>
+                                        <Feather name="search" size={28} color="#8a8a8a" />
+                                        <Text style={styles.emptyText}>
+                                            You have no recent searches
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <ScrollView
+                                        showsVerticalScrollIndicator={false}
+                                        contentContainerStyle={styles.recentScrollContent}
+                                        nestedScrollEnabled
+                                    >
+                                        {recentSearches.map((item, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={styles.recentItem}
+                                                onPress={async () => {
+                                                    await saveSearch(item);
+                                                    setHomeSearchText(item);
+                                                    closeSearchPanel();
+
+                                                    router.push({
+                                                        pathname: '/search_items',
+                                                        params: {
+                                                            query: item,
+                                                            gender: 'WOMAN',
+                                                        },
+                                                    });
+                                                }}
+                                            >
+                                                <Feather name="clock" size={16} color="#6a6a6a" />
+                                                <Text style={styles.recentItemText}>{item}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                    {isFocused && (
+                        <Pressable
+                            style={styles.searchOverlay}
+                            onPress={closeSearchPanel}
+                        />
+                    )}
+
+                    {/* SCROLLING PAGE */}
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollContent}
+                        keyboardShouldPersistTaps="handled"
+                        onScrollBeginDrag={closeSearchPanel}
+                    >
+                        <Image
+                            source={require('../../assets/images_app/model1.png')}
+                            style={styles.heroImage}
+                            resizeMode="cover"
+                        />
+
+                        <View style={styles.headingWrapper}>
+                            <Text style={styles.headingLineBlack}>New</Text>
+                            <View style={styles.collectionRow}>
+                                <Text style={styles.headingLineBlack}>collecti</Text>
+                                <Text style={styles.headingLineWhite}>on</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.newSection}>
+                            <Text style={styles.newTitle}>New for you</Text>
+                            <Text style={styles.newSubtitle}>
+                                News from the world of fashion designed for enthusiasts
+                            </Text>
+                        </View>
+
+                        {Array.from({ length: Math.ceil(cards.length / 2) }).map((_, rowIndex) => (
+                            <View key={rowIndex} style={styles.cardsRow}>
+                                {cards.slice(rowIndex * 2, rowIndex * 2 + 2).map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.card}
+                                        onPress={() => handleHomeCategoryPress(item.label)}
+                                    >
+                                        <ImageBackground
+                                            source={item.image}
+                                            style={styles.cardImage}
+                                            resizeMode="cover"
+                                        >
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(0,0,0,0.75)']}
+                                                style={styles.cardGradient}
+                                            />
+                                            <Text style={styles.cardLabel}>{item.label}</Text>
+                                        </ImageBackground>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ))}
+
+                        <ImageBackground
+                            source={require('../../assets/images_app/search.jpg')}
+                            style={styles.ctaWrapper}
+                            imageStyle={{ borderRadius: 16 }}
                         >
-                            {brands.map((brand, index) => (
-                                <TouchableOpacity key={index} style={styles.brandCard}>
-                                    <Image
-                                        source={brand}
-                                        style={styles.brandImage}
-                                        resizeMode="cover"
-                                    />
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
+                            <Text style={styles.ctaText}>
+                                Hey {userName}, try the new assistant for creating your dream outfits
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.ctaButton}
+                                onPress={() => router.push('/(tabs)/builder')}
+                            >
+                                <Text style={styles.ctaButtonText}>TRY NOW</Text>
+                            </TouchableOpacity>
+                        </ImageBackground>
 
-                </ScrollView>
-            </View>
+                        <View style={styles.favoritesSection}>
+                            <Text style={styles.favoritesTitle}>Your favorite categories</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.favoritesScroll}
+                            >
+                                {cards.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.favoriteCard}
+                                        onPress={() => handleHomeCategoryPress(item.label)}
+                                    >
+                                        <ImageBackground
+                                            source={item.image}
+                                            style={styles.favoriteCardImage}
+                                            imageStyle={{ borderRadius: 14 }}
+                                            resizeMode="cover"
+                                        >
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(0,0,0,0.65)']}
+                                                style={styles.favoriteCardGradient}
+                                            />
+                                            <Text style={styles.favoriteCardLabel}>{item.label}</Text>
+                                        </ImageBackground>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        <View style={styles.tasteSection}>
+                            <Text style={styles.tasteTitle}>Your taste</Text>
+
+                            <View style={styles.productsGrid}>
+                                {filteredProducts.map((item) => {
+                                    const imageKey = item.images?.[0];
+                                    const imageSource = imageKey ? productImages[imageKey] : null;
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.id}
+                                            style={styles.productCard}
+                                            activeOpacity={0.9}
+                                            onPress={() =>
+                                                router.push({
+                                                    pathname: '/product_detail',
+                                                    params: {
+                                                        productId: item.id,
+                                                        category: item.mainCategory,
+                                                        subcategory: item.subCategory,
+                                                        gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                    },
+                                                })
+                                            }
+                                        >
+                                            {imageSource && (
+                                                <Image
+                                                    source={imageSource}
+                                                    style={styles.productImage}
+                                                    resizeMode="cover"
+                                                />
+                                            )}
+
+                                            <Text
+                                                style={styles.productName}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                {item.name}
+                                            </Text>
+                                            <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
+
+                                            <TouchableOpacity
+                                                style={styles.cartButton}
+                                                onPress={() => {
+                                                    setLikedItems((prev) =>
+                                                        prev.includes(item.id)
+                                                            ? prev.filter((id) => id !== item.id)
+                                                            : [...prev, item.id]
+                                                    );
+                                                }}
+                                            >
+                                                <MaterialIcons
+                                                    name={likedItems.includes(item.id) ? "favorite" : "favorite-border"}
+                                                    size={18}
+                                                    color={likedItems.includes(item.id) ? "#df2518" : "#111"}
+                                                />
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.showAllButton}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/search_items',
+                                        params: {
+                                            category: 'CLOTHING',
+                                            subcategory: 'All',
+                                            gender: 'WOMAN',
+                                        },
+                                    })
+                                }
+                            >
+                                <Text style={styles.showAllText}>SHOW ALL</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.brandsSection}>
+                            <Text style={styles.brandsTitle}>Brand picks</Text>
+                            <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.brandsScroll}
+                            >
+                                {brands.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.brandCard}
+                                        onPress={() => handleBrandPress(item.brand)}
+                                    >
+                                        <Image
+                                            source={item.image}
+                                            style={styles.brandImage}
+                                            resizeMode="cover"
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    </ScrollView>
+                </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
-    container: { flex: 1, backgroundColor: '#f3f3f3', paddingHorizontal: 14, paddingTop: 8 },
-    scrollContent: { paddingBottom: 20 },
-    topBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 10 },
+    container: { flex: 1, backgroundColor: '#f3f3f3' },
+    scrollContent: { paddingBottom: 20 , paddingHorizontal: 14},
+    topArea: {
+        paddingHorizontal: 14,
+        paddingTop: 8,
+        backgroundColor: '#f3f3f3',
+        zIndex: 20,
+    },
+    topBar: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 6 },
     searchWrapper: {
         flex: 1, height: 44, borderRadius: 12, flexDirection: 'row',
         alignItems: 'center', paddingHorizontal: 12, overflow: 'hidden',
@@ -379,4 +642,76 @@ const styles = StyleSheet.create({
     brandsScroll: { paddingRight: 14 },
     brandCard: { width: 110, height: 70, marginRight: 10, borderRadius: 12, overflow: 'hidden', backgroundColor: '#eee' },
     brandImage: { width: '100%', height: '100%' },
+
+    recentContainer: {
+        backgroundColor: '#f3f3f3',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 10,
+        marginTop: -4,
+        alignSelf: 'stretch',
+    },
+
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+        maxHeight: 240,
+    },
+
+    recentTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#111',
+    },
+
+    clearButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: '#dedede',
+    },
+
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#393939',
+    },
+
+    recentScrollContent: {
+        paddingBottom: 4,
+    },
+
+    recentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 10,
+    },
+
+    recentItemText: {
+        fontSize: 15,
+        color: '#111',
+    },
+
+    emptyWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+    },
+
+    emptyText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#8a8a8a',
+        textAlign: 'center',
+    },
+
+    searchOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        top: 74,
+        backgroundColor: 'transparent',
+        zIndex: 10,
+    },
 });

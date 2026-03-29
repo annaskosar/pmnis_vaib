@@ -63,25 +63,25 @@ export default function WardrobeAddScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={20}
             >
+                <ImageBackground
+                    source={require('../../assets/images_app/search.jpg')}
+                    style={styles.headerWrapper}
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => router.replace('/(tabs)/wardrobe')}
+                    >
+                        <Feather name="arrow-left" size={24} color="#111" />
+                    </TouchableOpacity>
+
+                    <Text style={styles.headerText}>Add to wardrobe</Text>
+                </ImageBackground>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                     contentContainerStyle={styles.scrollViewContent}
                 >
-                    <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
-                        style={styles.headerWrapper}
-                    >
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={() => router.replace('/(tabs)/wardrobe')}
-                        >
-                            <Feather name="arrow-left" size={24} color="#111" />
-                        </TouchableOpacity>
-
-                        <Text style={styles.headerText}>Add to wardrobe</Text>
-                    </ImageBackground>
 
                     <View style={styles.scrollContent}>
                         <View style={styles.previewCard}>
@@ -112,7 +112,7 @@ export default function WardrobeAddScreen() {
                                 <Feather
                                     name="x"
                                     size={22}
-                                    color={selectedAction === 'cancel' ? '#fff' : '#111'}
+                                    color={selectedAction === 'cancel' ? '#111' : '#fff'}
                                 />
                             </TouchableOpacity>
 
@@ -129,7 +129,7 @@ export default function WardrobeAddScreen() {
                                 <Feather
                                     name="check"
                                     size={22}
-                                    color={selectedAction === 'save' ? '#fff' : '#111'}
+                                    color={selectedAction === 'save' ? '#111' : '#fff'}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
         borderColor: '#111',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#111',
     },
 
     form: {

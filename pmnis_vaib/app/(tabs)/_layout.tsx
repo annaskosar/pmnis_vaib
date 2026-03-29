@@ -14,6 +14,8 @@ function CustomTabBar({ state, navigation }: any) {
     const pathname = usePathname();
 
     const isSearchActive = pathname.startsWith('/search');
+    const isCartActive = pathname.startsWith('/cart');
+    const isWardrobeActive = pathname.startsWith('/wardrobe');
 
 
     return (
@@ -41,14 +43,14 @@ function CustomTabBar({ state, navigation }: any) {
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.navItem, state.index === 3 && styles.activeNavItem]}
+                style={[styles.navItem, isCartActive && styles.activeNavItem]}
                 onPress={() => navigation.navigate('cart')}
             >
                 <Feather name="shopping-cart" size={25} color="#5f5f5f" />
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.navItem, state.index === 4 && styles.activeNavItem]}
+                style={[styles.navItem, isWardrobeActive && styles.activeNavItem]}
                 onPress={() => navigation.navigate('wardrobe')}
             >
                 <MaterialCommunityIcons name="hanger" size={26} color="#5f5f5f" />
@@ -83,6 +85,7 @@ export default function TabLayout() {
                             <Tabs.Screen name="create_cart" options={{ href: null }} />
                             <Tabs.Screen name="product_detail" options={{ href: null }} />
                             <Tabs.Screen name="reviews" options={{ href: null }} />
+                            <Tabs.Screen name="explore" options={{ href: null }} />
                         </Tabs>
                     </CartProvider>
                 </WardrobeProvider>

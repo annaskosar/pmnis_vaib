@@ -1,4 +1,17 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
+  ImageBackground,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,7 +24,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      Alert.alert('Chyba', 'Vyplň všetky polia');
+      Alert.alert('Error', 'Fill in all fields');
       return;
     }
 
@@ -19,76 +32,92 @@ export default function RegisterScreen() {
     const users = existing ? JSON.parse(existing) : [];
 
     if (users.find((u: any) => u.email === email)) {
-      Alert.alert('Chyba', 'Tento email už existuje');
+      Alert.alert('Error', 'This email already exists');
       return;
     }
 
     users.push({ name, email, password });
     await AsyncStorage.setItem('users', JSON.stringify(users));
-    await AsyncStorage.setItem('currentUser', JSON.stringify({ name, email })); // ← PRIDAJ TOTO
+    await AsyncStorage.setItem('currentUser', JSON.stringify({ name, email }));
 
-    Alert.alert('Hotovo!', 'Účet vytvorený!', [
-      { text: 'OK', onPress: () => router.replace('/(dotaznik)/step1') }
+    Alert.alert('Done!', 'Account created!', [
+      { text: 'OK', onPress: () => router.replace('/(dotaznik)/step1') },
     ]);
-
-};
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ImageBackground
+          source={require('../../assets/icons/bg1.jpg')}
+          style={styles.background}
+          resizeMode="cover"
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
+          >
+            <ScrollView
+                contentContainerStyle={styles.container}
+                keyboardShouldPersistTaps="handled"
+            >
+              <Image
+                  source={require('../../assets/images/icon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+              />
 
-          <Image
-            source={require('../../assets/images/icon.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+              <Text style={styles.title}>Create new account</Text>
+              <Text style={styles.subtitle}>Register and start exploring</Text>
 
-          <Text style={styles.title}>Vytvor účet</Text>
-          <Text style={styles.subtitle}>Registruj sa a začni objavovať</Text>
+              <TextInput
+                  style={styles.input}
+                  placeholder="Name"
+                  placeholderTextColor="#999"
+                  value={name}
+                  onChangeText={setName}
+              />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Meno"
-            placeholderTextColor="#999"
-            value={name}
-            onChangeText={setName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Heslo"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+              <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+              />
 
-          <TouchableOpacity style={styles.button} onPress={handleRegister}>
-            <Text style={styles.buttonText}>REGISTROVAŤ SA</Text>
-          </TouchableOpacity>
+              <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+              />
 
-          <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-            <Text style={styles.link}>Máš účet? <Text style={styles.linkBold}>Prihlás sa</Text></Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={handleRegister}>
+                <Text style={styles.buttonText}>SIGN IN</Text>
+              </TouchableOpacity>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+                <Text style={styles.link}>
+                  Do you have the account? <Text style={styles.linkBold}>Log in</Text>
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
   container: {
     flexGrow: 1,
@@ -97,8 +126,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   logo: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     alignSelf: 'center',
     marginBottom: 24,
   },
@@ -111,6 +140,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#393939',
     marginBottom: 36,
   },
@@ -137,6 +167,7 @@ const styles = StyleSheet.create({
   },
   link: {
     textAlign: 'center',
+    fontWeight: '600',
     color: '#393939',
     fontSize: 14,
   },

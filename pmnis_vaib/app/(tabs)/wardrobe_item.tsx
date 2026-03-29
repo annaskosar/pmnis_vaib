@@ -12,6 +12,8 @@ import {
     Platform,
     Alert,
     ActivityIndicator,
+    Modal,
+    Dimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,6 +21,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useWardrobe } from '../../context/wardrobe_context';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
+import { useProducts, Product } from '../../context/product_context';
+import { productImages } from '../../context/product_images';
 
 
 export default function WardrobeItemScreen() {
@@ -28,6 +32,12 @@ export default function WardrobeItemScreen() {
 
     const item = typeof itemId === 'string' ? getWardrobeItemById(itemId) : undefined;
     const [imageLoading, setImageLoading] = React.useState(true);
+    const { products } = useProducts();
+    const [showImagePreview, setShowImagePreview] = React.useState(false);
+
+    const screenWidth = Dimensions.get('window').width;
+    const suggestionCardWidth = screenWidth * 0.42;
+
 
 
 
@@ -50,6 +60,145 @@ export default function WardrobeItemScreen() {
     }, [itemId, item]);
 
     const displayImage = isEditing ? editedImage : item?.image;
+
+    const itemNameLower = item?.name?.toLowerCase() ?? '';
+    const itemInfoLower = item?.additionalInfo?.toLowerCase() ?? '';
+    const itemText = `${itemNameLower} ${itemInfoLower}`;
+
+    const currentType =
+        itemText.includes('coat') || itemText.includes('jacket')
+            ? 'outerwear'
+            : itemText.includes('dress')
+                ? 'dress'
+                : itemText.includes('jean') || itemText.includes('trouser') || itemText.includes('pants')
+                    ? 'bottom'
+                    : itemText.includes('bag') || itemText.includes('kabelka')
+                        ? 'bag'
+                        : itemText.includes('shoe') || itemText.includes('boot') || itemText.includes('heel') || itemText.includes('sneaker')
+                            ? 'shoes'
+                            : 'other';
+
+    const usefulSuggestions = React.useMemo(() => {
+        const womenProducts = products.filter((product) => product.gender === 'women');
+
+        const normalize = (value?: string) => value?.toLowerCase().trim() ?? '';
+
+        const itemSubcategory = (() => {
+            if (
+                itemText.includes('bag') ||
+                itemText.includes('kabelka')
+            ) return 'Bags';
+
+            if (
+                itemText.includes('coat')
+            ) return 'Coats';
+
+            if (
+                itemText.includes('jacket')
+            ) return 'Jackets';
+
+            if (
+                itemText.includes('jean')
+            ) return 'Jeans';
+
+            if (
+                itemText.includes('trouser') ||
+                itemText.includes('pants')
+            ) return 'Trousers';
+
+            if (
+                itemText.includes('dress')
+            ) return 'Dress';
+
+            if (
+                itemText.includes('shoe') ||
+                itemText.includes('sneaker')
+            ) return 'Sneakers';
+
+            if (
+                itemText.includes('boot')
+            ) return 'Boots';
+
+            if (
+                itemText.includes('heel')
+            ) return 'Heels';
+
+            if (
+                itemText.includes('shirt')
+            ) return 'Shirts';
+
+            if (
+                itemText.includes('top')
+            ) return 'Tops';
+
+            return 'Other';
+        })();
+
+        const relatedSubcategoriesMap: Record<string, string[]> = {
+            Bags: ['Heels', 'Boots', 'Sneakers', 'Jackets', 'Coats', 'Mini dresses', 'Casual dresses', 'Party dresses', 'Tops', 'Shirts'],
+            Coats: ['Jeans', 'Trousers', 'Boots', 'Sneakers', 'Bags', 'Scarves', 'Shirts', 'Tops'],
+            Jackets: ['Jeans', 'Trousers', 'Boots', 'Sneakers', 'Bags', 'Tops', 'Shirts'],
+            Jeans: ['Tops', 'Shirts', 'Jackets', 'Coats', 'Sneakers', 'Boots', 'Heels', 'Bags'],
+            Trousers: ['Tops', 'Shirts', 'Jackets', 'Coats', 'Heels', 'Sneakers', 'Bags'],
+            Dress: ['Heels', 'Boots', 'Bags', 'Jewellery', 'Jackets', 'Coats'],
+            Sneakers: ['Jeans', 'Trousers', 'Tops', 'Shirts', 'Jackets', 'Bags'],
+            Boots: ['Coats', 'Jackets', 'Jeans', 'Dresses', 'Bags'],
+            Heels: ['Dresses', 'Bags', 'Trousers', 'Shirts', 'Jackets'],
+            Shirts: ['Jeans', 'Trousers', 'Jackets', 'Coats', 'Heels', 'Sneakers', 'Bags'],
+            Tops: ['Jeans', 'Trousers', 'Jackets', 'Coats', 'Heels', 'Sneakers', 'Bags'],
+            Other: ['Bags', 'Tops', 'Shirts', 'Jeans', 'Trousers', 'Jackets', 'Coats', 'Sneakers', 'Boots', 'Heels'],
+        };
+
+        const relatedSubcategories = relatedSubcategoriesMap[itemSubcategory] ?? relatedSubcategoriesMap.Other;
+
+        const matchedBySubcategory = womenProducts.filter((product) => {
+            const sub = normalize(product.subCategory);
+            const main = normalize(product.mainCategory);
+
+            const matchesRelatedSub = relatedSubcategories.some((related) => normalize(related) === sub);
+
+            const dressMainMatch =
+                itemSubcategory === 'Dress' &&
+                main === 'dresses';
+
+            const shoeMainMatch =
+                ['Sneakers', 'Boots', 'Heels'].includes(itemSubcategory) &&
+                main === 'shoes';
+
+            const accessoryMainMatch =
+                itemSubcategory === 'Bags' &&
+                main === 'accessories';
+
+            return matchesRelatedSub || dressMainMatch || shoeMainMatch || accessoryMainMatch;
+        });
+
+        const withoutSameKind = matchedBySubcategory.filter((product) => {
+            if (itemSubcategory === 'Bags' && product.subCategory === 'Bags') return false;
+            if (itemSubcategory === 'Coats' && product.subCategory === 'Coats') return false;
+            if (itemSubcategory === 'Jackets' && product.subCategory === 'Jackets') return false;
+            if (itemSubcategory === 'Jeans' && product.subCategory === 'Jeans') return false;
+            if (itemSubcategory === 'Trousers' && product.subCategory === 'Trousers') return false;
+            if (itemSubcategory === 'Shirts' && product.subCategory === 'Shirts') return false;
+            if (itemSubcategory === 'Tops' && product.subCategory === 'Tops') return false;
+            if (itemSubcategory === 'Sneakers' && product.subCategory === 'Sneakers') return false;
+            if (itemSubcategory === 'Boots' && product.subCategory === 'Boots') return false;
+            if (itemSubcategory === 'Heels' && product.subCategory === 'Heels') return false;
+
+            return true;
+        });
+
+        const uniqueById = withoutSameKind.filter(
+            (product, index, array) => array.findIndex((p) => p.id === product.id) === index
+        );
+
+        if (uniqueById.length > 0) {
+            return uniqueById.slice(0, 4);
+        }
+
+        return womenProducts
+            .filter((product) => product.id !== item?.id)
+            .slice(0, 6);
+    }, [products, itemText, item?.id]);
 
 
     if (!item) {
@@ -184,28 +333,36 @@ export default function WardrobeItemScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={20}
             >
+                <ImageBackground
+                    source={require('../../assets/images_app/search.jpg')}
+                    style={styles.headerWrapper}
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBackPress}
+                    >
+                        <Feather name="arrow-left" size={24} color="#111" />
+                    </TouchableOpacity>
+
+                    <Text style={styles.headerText}> ★ Details</Text>
+                </ImageBackground>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                     contentContainerStyle={styles.scrollViewContent}
                 >
-                    <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
-                        style={styles.headerWrapper}
-                    >
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={handleBackPress}
-                        >
-                            <Feather name="arrow-left" size={24} color="#111" />
-                        </TouchableOpacity>
-
-                        <Text style={styles.headerText}> ★ Details</Text>
-                    </ImageBackground>
 
                     <View style={styles.content}>
-                        <View style={styles.previewCard}>
+                        <TouchableOpacity
+                            activeOpacity={0.95}
+                            style={styles.previewCard}
+                            onPress={() => {
+                                if (displayImage) {
+                                    setShowImagePreview(true);
+                                }
+                            }}
+                        >
                             {imageLoading && (
                                 <View style={styles.loaderWrapper}>
                                     <ActivityIndicator size="large" color="#8a8a8a" />
@@ -219,7 +376,7 @@ export default function WardrobeItemScreen() {
                                         styles.previewImage,
                                         { opacity: imageLoading ? 0 : 1 },
                                     ]}
-                                    contentFit="contain"
+                                    contentFit="cover"
                                     cachePolicy="memory-disk"
                                     transition={0}
                                     onLoadStart={() => setImageLoading(true)}
@@ -227,7 +384,7 @@ export default function WardrobeItemScreen() {
                                     onError={() => setImageLoading(false)}
                                 />
                             )}
-                        </View>
+                        </TouchableOpacity>
                         <View style={styles.metaContainer}>
                             <Text style={styles.metaText}>
                                 {item.updatedAt
@@ -285,6 +442,7 @@ export default function WardrobeItemScreen() {
                                             <Text style={styles.cancelEditButtonText}>Cancel</Text>
                                         </TouchableOpacity>
                                     </View>
+
                                 </View>
                             </>
                         ) : (
@@ -313,6 +471,70 @@ export default function WardrobeItemScreen() {
                                         <Text style={styles.secondaryButtonText}>Delete</Text>
                                     </TouchableOpacity>
                                 </View>
+
+                                {usefulSuggestions.length > 0 && (
+                                    <View style={styles.usefulSection}>
+                                        <Text style={styles.usefulTitle}>
+                                            Could be useful with this
+                                        </Text>
+
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.usefulScrollContent}
+                                    >
+                                        {usefulSuggestions.map((product) => {
+                                            const imageKey = product.images?.[0];
+                                            const imageSource = imageKey ? productImages[imageKey] : null;
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={product.id}
+                                                    activeOpacity={0.9}
+                                                    style={[styles.usefulCard, { width: suggestionCardWidth }]}
+                                                    onPress={() =>
+                                                        router.push({
+                                                            pathname: '/product_detail',
+                                                            params: {
+                                                                productId: product.id,
+                                                                category: product.mainCategory,
+                                                                subcategory: product.subCategory,
+                                                                gender: product.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                            },
+                                                        })
+                                                    }
+                                                >
+                                                    <View style={styles.usefulImageWrap}>
+                                                        {imageSource && (
+                                                            <Image
+                                                                source={imageSource}
+                                                                style={styles.usefulImage}
+                                                                contentFit="cover"
+                                                                cachePolicy="memory-disk"
+                                                                transition={150}
+                                                            />
+                                                        )}
+                                                    </View>
+
+                                                    <View style={styles.usefulInfo}>
+                                                        <Text style={styles.usefulBrand} numberOfLines={1}>
+                                                            {product.brand}
+                                                        </Text>
+
+                                                        <Text style={styles.usefulName} numberOfLines={2} ellipsizeMode="tail">
+                                                            {product.name}
+                                                        </Text>
+
+                                                        <Text style={styles.usefulPrice}>
+                                                            €{product.price.toFixed(2)}
+                                                        </Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </ScrollView>
+                                </View>
+                                )}
                             </>
                         )}
                     </View>
@@ -347,6 +569,30 @@ export default function WardrobeItemScreen() {
                     </View>
                 </View>
             )}
+            <Modal
+                visible={showImagePreview}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowImagePreview(false)}
+            >
+                <View style={styles.imagePreviewOverlay}>
+                    <TouchableOpacity
+                        style={styles.imagePreviewClose}
+                        onPress={() => setShowImagePreview(false)}
+                    >
+                        <Feather name="x" size={28} color="#111" />
+                    </TouchableOpacity>
+
+                    {displayImage && (
+                        <Image
+                            source={displayImage}
+                            style={styles.imagePreviewFull}
+                            contentFit="contain"
+                            cachePolicy="memory-disk"
+                        />
+                    )}
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -398,12 +644,10 @@ const styles = StyleSheet.create({
 
     previewCard: {
         width: '100%',
-        aspectRatio: 0.95,
+        aspectRatio: 0.78,
         borderRadius: 28,
         overflow: 'hidden',
         backgroundColor: '#f3f3f3',
-        justifyContent: 'center',
-        alignItems: 'center',
     },
 
     previewImage: {
@@ -522,12 +766,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#dedede',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#111',
     },
 
     secondaryButtonText: {
-        color: '#d11a2a',
+        color: '#111',
         fontSize: 15,
         fontWeight: '700',
     },
@@ -606,8 +848,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#dedede',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#111',
     },
 
     cancelEditButtonText: {
@@ -631,5 +871,95 @@ const styles = StyleSheet.create({
     metaText: {
         fontSize: 12,
         color: '#9a9a9a',
+    },
+
+    imagePreviewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.96)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    imagePreviewClose: {
+        position: 'absolute',
+        top: 60,
+        right: 22,
+        zIndex: 20,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    imagePreviewFull: {
+        width: '92%',
+        height: '82%',
+    },
+
+    usefulSection: {
+        backgroundColor: '#dedede',
+        paddingVertical: 16,
+        paddingTop: 20,
+        marginTop: 16,
+
+    },
+
+    usefulTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 12,
+        paddingLeft: 8,
+    },
+
+    usefulScrollContent: {
+        paddingLeft: 8,
+        paddingRight: 8,
+    },
+
+    usefulCard: {
+        backgroundColor: '#f3f3f3',
+        borderRadius: 18,
+        overflow: 'hidden',
+        marginRight: 12,
+    },
+
+    usefulImageWrap: {
+        width: '100%',
+        height: 190,
+        backgroundColor: '#e7e7e7',
+    },
+
+    usefulImage: {
+        width: '100%',
+        height: '100%',
+    },
+
+    usefulInfo: {
+        padding: 12,
+    },
+
+    usefulBrand: {
+        fontSize: 11,
+        color: '#7a7a7a',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+
+    usefulName: {
+        fontSize: 14,
+        color: '#111',
+        fontWeight: '700',
+        lineHeight: 18,
+        marginBottom: 8,
+    },
+
+    usefulPrice: {
+        fontSize: 14,
+        color: '#111',
+        fontWeight: '700',
     },
 });

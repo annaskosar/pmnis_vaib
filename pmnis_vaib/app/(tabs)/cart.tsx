@@ -14,12 +14,21 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { useCart } from '../../context/cart_context';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 export default function CartScreen() {
     const router = useRouter();
     const { carts, deleteCart } = useCart();
+    const swipeableRefs = React.useRef<Record<string, Swipeable | null>>({});
+    const isSwipingRef = React.useRef(false);
 
+    useFocusEffect(
+        React.useCallback(() => {
+            Object.values(swipeableRefs.current).forEach((ref) => ref?.close());
+            isSwipingRef.current = false;
+        }, [])
+    );
 
     const feedbackCount = 0;
     const maxFeedback = 30;
@@ -37,11 +46,23 @@ export default function CartScreen() {
     };
 
     const handleEditCart = (cartId: string) => {
-        router.push({
-            pathname: '/(tabs)/cart_create',
-            params: { cartId },
-        });
+        swipeableRefs.current[cartId]?.close();
+
+        setTimeout(() => {
+            router.push({
+                pathname: '/(tabs)/cart_create',
+                params: { cartId },
+            });
+        }, 120);
     };
+
+    const handleUnlockPress = () => {
+        Alert.alert(
+            'Not yet unlocked',
+            'You do not have unlimited carts unlocked yet. Reach 30 Builder feedbacks first.'
+        );
+    };
+
     const handleDeleteCart = (cartId: string) => {
         Alert.alert(
             'Delete cart',
@@ -110,7 +131,7 @@ export default function CartScreen() {
                 </Text>
 
                 <ImageBackground
-                    source={require('../../assets/images_app/search.png')}
+                    source={require('../../assets/images_app/search.jpg')}
                     style={styles.upgradeBanner}
                     imageStyle={styles.upgradeBannerImage}
                 >
@@ -122,7 +143,10 @@ export default function CartScreen() {
                             </Text>
                         </View>
 
-                        <TouchableOpacity style={styles.upgradeButton}>
+                        <TouchableOpacity
+                            style={styles.upgradeButton}
+                            onPress={handleUnlockPress}
+                        >
                             <Feather name="lock" size={14} color="#fff" />
                             <Text style={styles.upgradeButtonText}>Unlock</Text>
                         </TouchableOpacity>
@@ -201,18 +225,32 @@ export default function CartScreen() {
                             return (
                                 <Swipeable
                                     key={cart.id}
+                                    ref={(ref) => {
+                                        swipeableRefs.current[cart.id] = ref;
+                                    }}
                                     renderRightActions={() => renderRightActions(cart.id)}
                                     overshootRight={false}
+                                    onSwipeableWillOpen={() => {
+                                        isSwipingRef.current = true;
+                                    }}
+                                    onSwipeableClose={() => {
+                                        setTimeout(() => {
+                                            isSwipingRef.current = false;
+                                        }, 120);
+                                    }}
                                 >
                                     <TouchableOpacity
                                         activeOpacity={0.9}
                                         style={styles.cartCard}
-                                        onPress={() => handleOpenCart(cart.id)}
+                                        onPress={() => {
+                                            if (isSwipingRef.current) return;
+                                            handleOpenCart(cart.id);
+                                        }}
                                     >
                                         <View style={styles.cartIconWrapper}>
-                                            <MaterialCommunityIcons
-                                                name="cart-outline"
-                                                size={25}
+                                            <Feather
+                                                name="shopping-cart"
+                                                size={50}
                                                 color="#111"
                                             />
                                         </View>
@@ -379,15 +417,15 @@ const styles = StyleSheet.create({
     },
 
     cartIconWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#e4e4e4',
-        borderWidth: 1,
-        borderColor: '#111',
+        width: 54,
+        height: 54,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 14,
+    },
+
+    cartIcon: {
+        opacity: 0.85,
     },
 
     cartInfo: {
@@ -409,8 +447,8 @@ const styles = StyleSheet.create({
 
     remainingText: {
         marginTop: 10,
-        fontSize: 13,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '800',
         color: '#006958',
     },
 

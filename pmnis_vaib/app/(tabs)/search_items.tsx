@@ -27,6 +27,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useCart, CartProduct } from '../../context/cart_context';
 import { Image } from 'expo-image';
 import { ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.48 - 8;
 const IMAGE_HEIGHT = 245;
@@ -34,8 +35,71 @@ const IMAGE_HEIGHT = 245;
 export default function SearchItemsScreen() {
     const router = useRouter();
     const { products } = useProducts();
-    const { category, subcategory, gender } = useLocalSearchParams();
+    const { category, subcategory, gender, query } = useLocalSearchParams();
+    const queryText = Array.isArray(query) ? query[0] : query;
     const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
+
+    const [searchText, setSearchText] = React.useState('');
+    const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+    const searchInputRef = React.useRef<TextInput>(null);
+
+    const closeSearchPanel = () => {
+        setIsSearchFocused(false);
+        searchInputRef.current?.blur();
+    };
+
+    const loadRecentSearches = async () => {
+        const stored = await AsyncStorage.getItem('recentSearches');
+        setRecentSearches(stored ? JSON.parse(stored) : []);
+    };
+
+    const saveSearch = async (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+
+        const stored = await AsyncStorage.getItem('recentSearches');
+        const existing: string[] = stored ? JSON.parse(stored) : [];
+
+        const updated = [
+            trimmed,
+            ...existing.filter(item => item.toLowerCase() !== trimmed.toLowerCase()),
+        ].slice(0, 10);
+
+        setRecentSearches(updated);
+        await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+    };
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadRecentSearches();
+            setSearchText('');
+            setIsSearchFocused(false);
+        }, [queryText])
+    );
+
+    const handleSearchSubmit = async () => {
+        const trimmed = searchText.trim();
+        if (!trimmed) return;
+
+        await saveSearch(trimmed);
+        closeSearchPanel();
+
+        router.replace({
+            pathname: '/search_items',
+            params: {
+                query: trimmed,
+                gender: selectedGenderParam ?? 'WOMAN',
+            },
+        });
+    };
+
+    const clearRecentSearches = async () => {
+        await AsyncStorage.removeItem('recentSearches');
+        setRecentSearches([]);
+    };
+
 
     const handleImageLoadStart = (key: string) => {
         setLoadingImages((prev) => ({ ...prev, [key]: true }));
@@ -290,6 +354,35 @@ export default function SearchItemsScreen() {
             });
         }
 
+        if (queryText && queryText.trim() !== '') {
+            const q = queryText.trim().toLowerCase();
+
+            result = result.filter((item) => {
+                const searchableParts = [
+                    item.name,
+                    item.brand,
+                    item.mainCategory,
+                    item.subCategory,
+                    ...item.tags,
+                    ...item.availableColors.map((color) => color.name),
+                ];
+
+                const searchableText = searchableParts.join(' ').toLowerCase();
+
+                const normalizedWords = searchableParts.map((part) => part.toLowerCase());
+
+                return (
+                    searchableText.includes(q) ||
+                    normalizedWords.some((word) => word === q) ||
+                    (q === 'top' && (item.subCategory === 'Tops' || item.name.toLowerCase().includes('top'))) ||
+                    (q === 'coat' && (item.subCategory === 'Coats' || item.name.toLowerCase().includes('coat'))) ||
+                    (q === 'jean' && item.subCategory === 'Jeans') ||
+                    (q === 'shirt' && item.subCategory === 'Shirts') ||
+                    (q === 'trouser' && item.subCategory === 'Trousers')
+                );
+            });
+        }
+
         if (selectedFilters.brand !== 'All') {
             result = result.filter((item) => item.brand === selectedFilters.brand);
         }
@@ -325,6 +418,7 @@ export default function SearchItemsScreen() {
         products,
         categoryName,
         subcategoryName,
+        queryText,
         genderValue,
         selectedFilters.brand,
         selectedFilters.colour,
@@ -332,6 +426,8 @@ export default function SearchItemsScreen() {
         priceRange,
         selectedSort,
     ]);
+
+
 
     const toggleMenu = (menu: 'SORT' | 'FILTER' | 'SIZE') => {
         setOpenMenu((prev) => (prev === menu ? null : menu));
@@ -357,7 +453,7 @@ export default function SearchItemsScreen() {
                     </TouchableOpacity>
 
                     <ImageBackground
-                        source={require('../../assets/images_app/search.png')}
+                        source={require('../../assets/images_app/search.jpg')}
                         style={styles.searchWrapper}
                         imageStyle={{ borderRadius: 12 }}
                     >
@@ -369,19 +465,83 @@ export default function SearchItemsScreen() {
                         />
 
                         <TextInput
+                            ref={searchInputRef}
                             placeholder="Search"
                             placeholderTextColor="#393939"
                             style={styles.searchInput}
+                            value={searchText}
+                            onChangeText={setSearchText}
+                            onSubmitEditing={handleSearchSubmit}
+                            onFocus={() => setIsSearchFocused(true)}
+                            returnKeyType="search"
                         />
                     </ImageBackground>
                 </View>
 
+                {isSearchFocused && (
+                    <View style={styles.recentContainer}>
+                        <View style={styles.recentHeader}>
+                            <Text style={styles.recentTitle}>Recent searches</Text>
+
+                            {recentSearches.length > 0 && (
+                                <TouchableOpacity style={styles.clearButton} onPress={clearRecentSearches}>
+                                    <Text style={styles.clearText}>Clear</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {recentSearches.length === 0 ? (
+                            <View style={styles.emptyWrapper}>
+                                <Feather name="search" size={28} color="#8a8a8a" />
+                                <Text style={styles.emptyText}>You have no recent searches</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.recentScrollContent}
+                                nestedScrollEnabled
+                            >
+                                {recentSearches.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.recentItem}
+                                        onPress={async () => {
+                                            await saveSearch(item);
+                                            setSearchText(item);
+                                            closeSearchPanel();
+
+                                            router.replace({
+                                                pathname: '/search_items',
+                                                params: {
+                                                    query: item,
+                                                    gender: selectedGenderParam ?? 'WOMAN',
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        <Feather name="clock" size={16} color="#6a6a6a" />
+                                        <Text style={styles.recentItemText}>{item}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+                )}
+                {isSearchFocused && (
+                    <Pressable
+                        style={styles.searchOverlay}
+                        onPress={closeSearchPanel}
+                    />
+                )}
+
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
+                    onScrollBeginDrag={closeSearchPanel}
+                    keyboardShouldPersistTaps="handled"
                 >
                     <Text style={styles.title}>
-                        {categoryName}: {subcategoryName}
+                        {queryText ? `Results for "${queryText}"` : `${categoryName}: ${subcategoryName}`}
                     </Text>
 
                     <View style={styles.filterTabsWrapper}>
@@ -963,7 +1123,8 @@ const styles = StyleSheet.create({
 
     searchWrapper: {
         flex: 1,
-        height: 42,
+        height: 44,
+        borderRadius: 12,
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
@@ -980,8 +1141,8 @@ const styles = StyleSheet.create({
         height: '100%',
         paddingLeft: 38,
         paddingRight: 14,
-        fontSize: 15,
-        color: '#111',
+        fontSize: 16,
+        color: '#222',
     },
 
     scrollContent: {
@@ -1557,5 +1718,76 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1,
+    },
+
+    recentContainer: {
+        backgroundColor: '#f3f3f3',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 14,
+        maxHeight: 240,
+        zIndex: 20,
+    },
+
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+
+    recentTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#111',
+    },
+
+    clearButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: '#dedede',
+    },
+
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#393939',
+    },
+
+    recentScrollContent: {
+        paddingBottom: 4,
+    },
+
+    recentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 10,
+    },
+
+    recentItemText: {
+        fontSize: 15,
+        color: '#111',
+    },
+
+    emptyWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+    },
+
+    emptyText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#8a8a8a',
+        textAlign: 'center',
+    },
+
+    searchOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        top: 74,
+        backgroundColor: 'transparent',
+        zIndex: 10,
     },
 });

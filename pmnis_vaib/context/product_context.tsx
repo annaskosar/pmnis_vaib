@@ -29,10 +29,9 @@ export type SubCategory =
     | 'Shoes sale'
     | 'Accessories sale'
     | 'Tops'
-    | 'T-Shirts'
+    | 'Shirts'
     | 'Jeans'
     | 'Trousers'
-    | 'Shirts'
     | 'Jackets'
     | 'Coats'
     | 'Hoodies'
@@ -144,7 +143,7 @@ export const categoryMap: Record<MainCategory, string[]> = {
     CLOTHING: [
         'All',
         'Tops',
-        'T-Shirts',
+        'Shirts',
         'Jeans',
         'Trousers',
         'Shirts',
@@ -520,6 +519,449 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         images: ['coat14_0'],
     },
 
+    {
+        id: 'jeans1',
+        name: 'Relaxed Light Wash Jeans',
+        brand: 'Adidas',
+        gender: 'women',
+        price: 59.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 32', 'EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#B8D2E7', imageKeys: ['jeans1_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['Best sellers', 'Trending brands'],
+        images: ['jeans1_0'],
+    },
+    {
+        id: 'jeans2',
+        name: 'Baggy Blue Jeans',
+        brand: 'Zara',
+        gender: 'women',
+        price: 54.99,
+        oldPrice: 69.99,
+        isOnSale: true,
+        discountPercent: 21,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#9FC2DF', imageKeys: ['jeans2_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['Up to 50% off', 'Trending deals'],
+        images: ['jeans2_0'],
+    },
+    {
+        id: 'jeans3',
+        name: 'Wide Leg Indigo Jeans',
+        brand: 'Mango',
+        gender: 'women',
+        price: 64.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38'],
+        availableColors: [
+            { name: 'Blue', code: '#374057', imageKeys: ['jeans3_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['Trend hits'],
+        images: ['jeans3_0'],
+    },
+    {
+        id: 'jeans4',
+        name: 'Straight Fit Dark Jeans',
+        brand: 'Mango',
+        gender: 'women',
+        price: 49.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#27304D', imageKeys: ['jeans4_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['Best sellers'],
+        images: ['jeans4_0'],
+    },
+    {
+        id: 'jeans5',
+        name: 'Classic Black Wide Jeans',
+        brand: 'Zara',
+        gender: 'women',
+        price: 57.99,
+        oldPrice: 72.99,
+        isOnSale: true,
+        discountPercent: 21,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Black', code: '#222222', imageKeys: ['jeans5_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['New markdowns', 'Best sellers'],
+        images: ['jeans5_0'],
+    },
+    {
+        id: 'jeans6',
+        name: 'Slim Light Blue Jeans',
+        brand: 'Nike',
+        gender: 'women',
+        price: 52.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#9AB8D8', imageKeys: ['jeans6_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Jeans',
+        tags: ['Trending brands'],
+        images: ['jeans6_0'],
+    },
+
+    {
+        id: 'top1',
+        name: 'Mesh Floral High Neck Top',
+        brand: 'Zara',
+        gender: 'women',
+        price: 35.99,
+        oldPrice: 44.99,
+        isOnSale: true,
+        discountPercent: 20,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Red', code: '#7A1F28', imageKeys: ['top1_0', 'top1_1', 'top1_2', 'top1_3', 'top1_4'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Party dresses', 'Trend hits', 'Best sellers'],
+        isBestSeller: true,
+        images: ['top1_0', 'top1_1', 'top1_2', 'top1_3', 'top1_4'],
+    },
+    {
+        id: 'top2',
+        name: 'Soft Long Sleeve Fitted Top',
+        brand: 'Mango',
+        gender: 'women',
+        price: 27.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Pink', code: '#D8B0CC', imageKeys: ['top2_0', 'top2_1', 'top2_2', 'top2_3'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Best sellers', 'Casual dresses'],
+        images: ['top2_0', 'top2_1', 'top2_2', 'top2_3'],
+    },
+    {
+        id: 'top3',
+        name: 'Ribbed Tank Top',
+        brand: 'Mango',
+        gender: 'women',
+        price: 18.99,
+        oldPrice: 24.99,
+        isOnSale: true,
+        discountPercent: 24,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Green', code: '#17664C', imageKeys: ['top3_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Up to 50% off', 'Best sellers'],
+        images: ['top3_0'],
+    },
+    {
+        id: 'top4',
+        name: 'Striped Everyday Tee',
+        brand: 'Zara',
+        gender: 'women',
+        price: 21.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Green', code: '#A7D7CD', imageKeys: ['top4_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['Best sellers'],
+        images: ['top4_0'],
+    },
+    {
+        id: 'top5',
+        name: 'Lace Trim Evening Top',
+        brand: 'Nike',
+        gender: 'women',
+        price: 29.99,
+        oldPrice: 39.99,
+        isOnSale: true,
+        discountPercent: 25,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Black', code: '#111111', imageKeys: ['top5_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['New markdowns', 'Evening dresses'],
+        images: ['top5_0'],
+    },
+    {
+        id: 'top6',
+        name: 'Asymmetric Burgundy Top',
+        brand: 'Zara',
+        gender: 'women',
+        price: 31.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Red', code: '#6F1E27', imageKeys: ['top6_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Trend hits', 'Runway mood'],
+        images: ['top6_0'],
+    },
+    {
+        id: 'top7',
+        name: 'White Essential Tank',
+        brand: 'Mango',
+        gender: 'women',
+        price: 15.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'White', code: '#F6F6F4', imageKeys: ['top7_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Best sellers'],
+        images: ['top7_0'],
+    },
+    {
+        id: 'top8',
+        name: 'Gradient Knit Top',
+        brand: 'Mango',
+        gender: 'women',
+        price: 36.99,
+        oldPrice: 45.99,
+        isOnSale: true,
+        discountPercent: 20,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#9DC5E8', imageKeys: ['top8_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Tops',
+        tags: ['Trend hits', 'New markdowns'],
+        images: ['top8_0'],
+    },
+
+    {
+        id: 'trousers1',
+        name: 'Polka Dot Wide Trousers',
+        brand: 'Zara',
+        gender: 'women',
+        price: 49.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'White', code: '#F4F4F1', imageKeys: ['trousers1_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Trousers',
+        tags: ['Trend hits', 'Runway mood'],
+        images: ['trousers1_0'],
+    },
+    {
+        id: 'trousers2',
+        name: 'Tailored Brown Trousers',
+        brand: 'Mango',
+        gender: 'women',
+        price: 54.99,
+        oldPrice: 68.99,
+        isOnSale: true,
+        discountPercent: 20,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Beige', code: '#A58B73', imageKeys: ['trousers2_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Trousers',
+        tags: ['Best sellers', 'New markdowns'],
+        images: ['trousers2_0'],
+    },
+    {
+        id: 'trousers3',
+        name: 'Relaxed Grey Trousers',
+        brand: 'Zara',
+        gender: 'women',
+        price: 45.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Grey', code: '#C1C2C8', imageKeys: ['trousers3_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Trousers',
+        tags: ['Best sellers'],
+        images: ['trousers3_0'],
+    },
+    {
+        id: 'trousers4',
+        name: 'Structured Sleeveless Set Trousers',
+        brand: 'Nike',
+        gender: 'women',
+        price: 59.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Grey', code: '#79797D', imageKeys: ['trousers4_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Trousers',
+        tags: ['Runway mood', 'New brands'],
+        images: ['trousers4_0'],
+    },
+    {
+        id: 'trousers5',
+        name: 'Flowy Red Palazzo Trousers',
+        brand: 'Gucci',
+        gender: 'women',
+        price: 299.99,
+        oldPrice: 349.99,
+        isOnSale: true,
+        discountPercent: 14,
+        availableSizes: ['EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Red', code: '#D33A33', imageKeys: ['trousers5_0'] },
+        ],
+        mainCategory: 'DESIGN',
+        subCategory: 'Luxury picks',
+        tags: ['Luxury picks', 'Designer brands', 'Runway mood'],
+        isDesignerPick: true,
+        images: ['trousers5_0'],
+    },
+
+    {
+        id: 'shirt1',
+        name: 'Green Satin Stripe Shirt',
+        brand: 'Zara',
+        gender: 'women',
+        price: 39.99,
+        oldPrice: 49.99,
+        isOnSale: true,
+        discountPercent: 20,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Green', code: '#2F5A4C', imageKeys: ['shirt1_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['Trending deals', 'Best sellers'],
+        images: ['shirt1_0'],
+    },
+    {
+        id: 'shirt2',
+        name: 'Blue Oversized Stripe Shirt',
+        brand: 'Mango',
+        gender: 'women',
+        price: 34.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#6D86B4', imageKeys: ['shirt2_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['Best sellers'],
+        images: ['shirt2_0'],
+    },
+    {
+        id: 'shirt3',
+        name: 'Fitted Short Sleeve Shirt',
+        brand: 'Zara',
+        gender: 'women',
+        price: 28.99,
+        oldPrice: 35.99,
+        isOnSale: true,
+        discountPercent: 19,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Blue', code: '#5D6579', imageKeys: ['shirt3_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['New markdowns'],
+        images: ['shirt3_0'],
+    },
+    {
+        id: 'shirt4',
+        name: 'Ruffle Sleeve Blouse',
+        brand: 'Mango',
+        gender: 'women',
+        price: 31.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Yellow', code: '#EAD98D', imageKeys: ['shirt4_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['Trend hits'],
+        images: ['shirt4_0'],
+    },
+    {
+        id: 'shirt5',
+        name: 'Textured Pink Blouse',
+        brand: 'Nike',
+        gender: 'women',
+        price: 37.99,
+        oldPrice: 46.99,
+        isOnSale: true,
+        discountPercent: 19,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Pink', code: '#CE8C96', imageKeys: ['shirt5_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['Trending deals', 'New markdowns'],
+        images: ['shirt5_0'],
+    },
+    {
+        id: 'shirt6',
+        name: 'Relaxed Brown Shirt',
+        brand: 'Adidas',
+        gender: 'women',
+        price: 33.99,
+        isOnSale: false,
+        discountPercent: 0,
+        availableSizes: ['EU 34', 'EU 36', 'EU 38', 'EU 40'],
+        availableColors: [
+            { name: 'Brown', code: '#5B3931', imageKeys: ['shirt6_0'] },
+        ],
+        mainCategory: 'CLOTHING',
+        subCategory: 'Shirts',
+        tags: ['New brands', 'Trending brands'],
+        images: ['shirt6_0'],
+    },
+
+
 
 ];
 
@@ -853,6 +1295,585 @@ export const productMeta: Record<string, ProductMeta> = {
         },
     },
 
+    jeans1: {
+        description: 'Relaxed light wash jeans with an easy casual fit and soft denim feel.',
+        fit: 'Baggy',
+        rating: 4.5,
+        reviewCount: 137,
+        reviews: [
+            { id: 'jeans1_r1', name: 'Nela', rating: 5, text: 'Super flattering relaxed fit and really easy to wear.', date: '2 days ago' },
+            { id: 'jeans1_r2', name: 'Katy', rating: 4, text: 'Great jeans, just a little long on me.', date: '1 week ago' },
+        ],
+        awards: ['Best seller', 'Customer favorite'],
+        eco: {
+            ecoScore: 76,
+            ecoDescription: 'A strong score for a durable basic with high repeat wear and a simpler denim construction.',
+            material: '98% cotton, 2% elastane',
+            sustainability: 'Durable denim, high-use staple, good longevity',
+            ecoAlternativeIds: [
+                { productId: 'jeans3', ecoScore: 74 },
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'trousers3', ecoScore: 71 },
+            ],
+        },
+    },
+
+    jeans2: {
+        description: 'Baggy blue jeans with a roomy silhouette and laid-back everyday styling.',
+        fit: 'Baggy',
+        rating: 4.3,
+        reviewCount: 92,
+        reviews: [
+            { id: 'jeans2_r1', name: 'Mara', rating: 4, text: 'Very nice baggy fit and the wash is pretty.', date: '3 days ago' },
+            { id: 'jeans2_r2', name: 'Janka', rating: 4, text: 'Comfortable and trendy, great with fitted tops.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending', 'New markdown'],
+        eco: {
+            ecoScore: 68,
+            ecoDescription: 'Good durability but slightly lower score due to wash process and trend-oriented loose styling.',
+            material: '99% cotton, 1% elastane',
+            sustainability: 'Durable denim, medium wash impact, frequent casual wear',
+            ecoAlternativeIds: [
+                { productId: 'jeans1', ecoScore: 76 },
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'jeans3', ecoScore: 74 },
+            ],
+        },
+    },
+
+    jeans3: {
+        description: 'Wide leg indigo jeans with a darker premium wash and long-leg silhouette.',
+        fit: 'Baggy',
+        rating: 4.4,
+        reviewCount: 88,
+        reviews: [
+            { id: 'jeans3_r1', name: 'Ivka', rating: 5, text: 'The indigo shade looks so premium.', date: '4 days ago' },
+            { id: 'jeans3_r2', name: 'Lenka', rating: 4, text: 'Great fit, slightly stiff before first wash.', date: '10 days ago' },
+        ],
+        awards: ['Editor pick'],
+        eco: {
+            ecoScore: 74,
+            ecoDescription: 'Strong score due to durability and long-term wardrobe value.',
+            material: '100% cotton',
+            sustainability: 'Long-lasting denim, strong repeat wear, low trend turnover',
+            ecoAlternativeIds: [
+                { productId: 'jeans1', ecoScore: 76 },
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'trousers3', ecoScore: 71 },
+            ],
+        },
+    },
+
+    jeans4: {
+        description: 'Straight fit dark jeans with classic lines and a clean everyday silhouette.',
+        fit: 'Regular',
+        rating: 4.6,
+        reviewCount: 141,
+        reviews: [
+            { id: 'jeans4_r1', name: 'Dana', rating: 5, text: 'Perfect classic jeans. Very easy to dress up.', date: '1 day ago' },
+            { id: 'jeans4_r2', name: 'Michaela', rating: 4, text: 'Great dark wash and flattering straight leg.', date: '8 days ago' },
+        ],
+        awards: ['Best seller', 'Eco choice'],
+        eco: {
+            ecoScore: 75,
+            ecoDescription: 'Very good eco result for a timeless staple with long wear potential.',
+            material: '99% cotton, 1% elastane',
+            sustainability: 'Timeless design, durable denim, high repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'jeans1', ecoScore: 76 },
+                { productId: 'jeans3', ecoScore: 74 },
+                { productId: 'trousers3', ecoScore: 71 },
+            ],
+        },
+    },
+
+    jeans5: {
+        description: 'Classic black wide jeans with a structured drape and versatile styling.',
+        fit: 'Baggy',
+        rating: 4.5,
+        reviewCount: 119,
+        reviews: [
+            { id: 'jeans5_r1', name: 'Barbora', rating: 5, text: 'The black is really rich and not washed out.', date: '2 days ago' },
+            { id: 'jeans5_r2', name: 'Nika', rating: 4, text: 'Great jeans, very flattering with heels too.', date: '1 week ago' },
+        ],
+        awards: ['Best seller', 'New markdown'],
+        eco: {
+            ecoScore: 73,
+            ecoDescription: 'Strong score thanks to wardrobe versatility and durable denim construction.',
+            material: '98% cotton, 2% elastane',
+            sustainability: 'Versatile black denim, durable structure, frequent rewear',
+            ecoAlternativeIds: [
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'jeans1', ecoScore: 76 },
+                { productId: 'trousers3', ecoScore: 71 },
+            ],
+        },
+    },
+
+    jeans6: {
+        description: 'Slim light blue jeans with a cleaner close-to-body fit and casual wash.',
+        fit: 'Slim',
+        rating: 4.0,
+        reviewCount: 64,
+        reviews: [
+            { id: 'jeans6_r1', name: 'Eli', rating: 4, text: 'Nice basic slim jeans, very wearable.', date: '5 days ago' },
+            { id: 'jeans6_r2', name: 'Zina', rating: 4, text: 'Comfortable and soft, though I prefer a higher rise.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending'],
+        eco: {
+            ecoScore: 67,
+            ecoDescription: 'Moderate eco profile with decent repeat use and a standard stretch denim blend.',
+            material: '92% cotton, 6% polyester, 2% elastane',
+            sustainability: 'Moderate denim impact, everyday wear value, standard stretch blend',
+            ecoAlternativeIds: [
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'jeans1', ecoScore: 76 },
+                { productId: 'jeans3', ecoScore: 74 },
+            ],
+        },
+    },
+
+    top1: {
+        description: 'Mesh high neck floral top with a fitted body shape and going-out mood.',
+        fit: 'Fitted',
+        rating: 3.3,
+        reviewCount: 45,
+        reviews: [
+            { id: 'top1_r1', name: 'Emma', rating: 4, text: 'Really flattering fit and soft material. I would size up if you want a looser feel.', date: '2 days ago' },
+            { id: 'top1_r2', name: 'Lara', rating: 3, text: 'Cute top, but the sleeves are slightly tighter than I expected. Still keeping it.', date: '1 week ago' },
+            { id: 'top1_r3', name: 'Nina', rating: 3, text: 'Looks nice styled with wide jeans. Material is okay, not amazing, but good for the price.', date: '2 weeks ago' },
+        ],
+        awards: ['Best seller', 'Trending'],
+        eco: {
+            ecoScore: 42,
+            ecoDescription: 'This piece has a moderate-to-lower eco impact due to its blended mesh fabric and standard production process.',
+            material: '65% polyester, 30% cotton, 5% elastane',
+            sustainability: 'Standard production, mixed fibers, medium durability',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    top2: {
+        description: 'Soft long sleeve fitted top with a clean minimal line and versatile everyday styling.',
+        fit: 'Fitted',
+        rating: 4.4,
+        reviewCount: 86,
+        reviews: [
+            { id: 'top2_r1', name: 'Nela', rating: 4, text: 'Really comfortable and flattering under jackets.', date: '2 days ago' },
+            { id: 'top2_r2', name: 'Katka', rating: 5, text: 'Beautiful soft pink and nice stretch.', date: '9 days ago' },
+        ],
+        awards: ['Best seller'],
+        eco: {
+            ecoScore: 68,
+            ecoDescription: 'Good repeat-wear potential and simple construction help this top perform reasonably well.',
+            material: '58% cotton, 36% polyester, 6% elastane',
+            sustainability: 'Simple staple, medium-impact blend, good repeat use',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    top3: {
+        description: 'Ribbed tank top with a clean fitted shape for layering and warm-weather outfits.',
+        fit: 'Fitted',
+        rating: 4.7,
+        reviewCount: 153,
+        reviews: [
+            { id: 'top3_r1', name: 'Aňa', rating: 5, text: 'Perfect basic tank. I wear it constantly.', date: '1 day ago' },
+            { id: 'top3_r2', name: 'Maja', rating: 5, text: 'Lovely green color and great fit.', date: '1 week ago' },
+            { id: 'top3_r3', name: 'Luci', rating: 4, text: 'A tiny bit snug but still really nice.', date: '2 weeks ago' },
+        ],
+        awards: ['Best seller', 'Eco choice', 'Customer favorite'],
+        eco: {
+            ecoScore: 78,
+            ecoDescription: 'Strong eco result thanks to simple construction, lower material complexity and very high rewear value.',
+            material: '92% cotton, 8% elastane',
+            sustainability: 'Simple staple, low complexity, high repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'top2', ecoScore: 68 },
+            ],
+        },
+    },
+
+    top4: {
+        description: 'Striped everyday tee with a fresh casual look and easy relaxed styling.',
+        fit: 'Regular',
+        rating: 4.2,
+        reviewCount: 73,
+        reviews: [
+            { id: 'top4_r1', name: 'Juli', rating: 4, text: 'Very cute casual tee and the stripes feel fresh.', date: '5 days ago' },
+            { id: 'top4_r2', name: 'Lia', rating: 4, text: 'Easy top for everyday wear, slightly thin fabric.', date: '2 weeks ago' },
+        ],
+        awards: ['Best seller'],
+        eco: {
+            ecoScore: 71,
+            ecoDescription: 'Good eco result for a straightforward basic with high wear frequency.',
+            material: '95% cotton, 5% elastane',
+            sustainability: 'Simple staple, strong repeat wear, moderate production impact',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    top5: {
+        description: 'Lace trim evening top designed for dressier looks and a sleek fitted silhouette.',
+        fit: 'Fitted',
+        rating: 4.1,
+        reviewCount: 61,
+        reviews: [
+            { id: 'top5_r1', name: 'Lora', rating: 4, text: 'Very pretty lace detail and nice black color.', date: '4 days ago' },
+            { id: 'top5_r2', name: 'Bibi', rating: 4, text: 'Looks expensive when styled well.', date: '2 weeks ago' },
+        ],
+        awards: ['New markdown'],
+        eco: {
+            ecoScore: 47,
+            ecoDescription: 'Lower eco score due to decorative trim and synthetic-heavy eveningwear composition.',
+            material: '64% polyester, 31% viscose, 5% elastane',
+            sustainability: 'Mixed fibers, medium durability, more occasion-based usage',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    top6: {
+        description: 'Asymmetric burgundy top with a sharper fashion-forward shape and evening styling appeal.',
+        fit: 'Slim',
+        rating: 4.3,
+        reviewCount: 58,
+        reviews: [
+            { id: 'top6_r1', name: 'Nori', rating: 4, text: 'Love the asymmetry and rich burgundy tone.', date: '6 days ago' },
+            { id: 'top6_r2', name: 'Bianka', rating: 5, text: 'Looks so good with dark jeans or black trousers.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending', 'Editor pick'],
+        eco: {
+            ecoScore: 52,
+            ecoDescription: 'Moderate eco score with decent use potential, though the fashion-led cut lowers rewear utility.',
+            material: '61% polyester, 33% viscose, 6% elastane',
+            sustainability: 'Medium repeat wear, mixed fibers, trend-driven silhouette',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    top7: {
+        description: 'Clean white essential tank for layering, everyday wear and minimal wardrobe building.',
+        fit: 'Fitted',
+        rating: 4.7,
+        reviewCount: 172,
+        reviews: [
+            { id: 'top7_r1', name: 'Anna', rating: 5, text: 'Perfect basic. Soft, simple and super easy to style.', date: '1 day ago' },
+            { id: 'top7_r2', name: 'Kika', rating: 5, text: 'Great quality for the price. I bought two.', date: '5 days ago' },
+            { id: 'top7_r3', name: 'Maja', rating: 4, text: 'Nice fitted cut, just slightly see-through in very bright light.', date: '2 weeks ago' },
+            { id: 'top7_r4', name: 'Lili', rating: 5, text: 'This is one of those staples you end up wearing constantly.', date: '3 weeks ago' },
+        ],
+        awards: ['Best seller', 'Eco choice', 'Customer favorite'],
+        eco: {
+            ecoScore: 83,
+            ecoDescription: 'A strong eco score thanks to simpler construction, lighter material use and strong repeat-wear potential.',
+            material: '92% cotton, 8% elastane',
+            sustainability: 'Lower production complexity, versatile staple, high repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'top2', ecoScore: 68 },
+            ],
+        },
+    },
+
+    top8: {
+        description: 'Gradient knit top with a soft standout finish and slightly elevated casual styling.',
+        fit: 'Regular',
+        rating: 4.2,
+        reviewCount: 54,
+        reviews: [
+            { id: 'top8_r1', name: 'Tami', rating: 4, text: 'The color blend is even prettier in real life.', date: '4 days ago' },
+            { id: 'top8_r2', name: 'Lena', rating: 4, text: 'Really nice knit top, though slightly warmer than expected.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending', 'New markdown'],
+        eco: {
+            ecoScore: 57,
+            ecoDescription: 'Knit blend and fashion-led finish lower the score somewhat, though rewear potential remains decent.',
+            material: '54% acrylic, 30% cotton, 16% polyester',
+            sustainability: 'Mixed knit blend, medium longevity, moderate repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    trousers1: {
+        description: 'Polka dot wide trousers with statement movement and a bold modern silhouette.',
+        fit: 'Baggy',
+        rating: 4.2,
+        reviewCount: 48,
+        reviews: [
+            { id: 'trousers1_r1', name: 'Nela', rating: 4, text: 'Such fun trousers and they move beautifully.', date: '6 days ago' },
+            { id: 'trousers1_r2', name: 'Lina', rating: 4, text: 'Very stylish, just a little long for flats.', date: '2 weeks ago' },
+        ],
+        awards: ['Editor pick'],
+        eco: {
+            ecoScore: 60,
+            ecoDescription: 'Moderate eco score with decent wardrobe value, though print-heavy synthetic blend reduces the result.',
+            material: '56% viscose, 39% polyester, 5% elastane',
+            sustainability: 'Medium-impact blend, statement styling, moderate repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'trousers3', ecoScore: 71 },
+                { productId: 'trousers2', ecoScore: 69 },
+                { productId: 'trousers4', ecoScore: 66 },
+            ],
+        },
+    },
+
+    trousers2: {
+        description: 'Tailored brown trousers with clean lines and polished everyday versatility.',
+        fit: 'Regular',
+        rating: 4.5,
+        reviewCount: 103,
+        reviews: [
+            { id: 'trousers2_r1', name: 'Mia', rating: 5, text: 'Beautiful tailored fit and lovely warm brown tone.', date: '2 days ago' },
+            { id: 'trousers2_r2', name: 'Lara', rating: 4, text: 'Very smart-looking trousers for work and dinner.', date: '1 week ago' },
+        ],
+        awards: ['Best seller', 'New markdown'],
+        eco: {
+            ecoScore: 69,
+            ecoDescription: 'Good score for a highly wearable tailored piece with broad styling use.',
+            material: '68% polyester, 28% viscose, 4% elastane',
+            sustainability: 'Versatile smartwear piece, medium-impact blend, frequent rewear',
+            ecoAlternativeIds: [
+                { productId: 'trousers3', ecoScore: 71 },
+                { productId: 'trousers4', ecoScore: 66 },
+                { productId: 'jeans4', ecoScore: 75 },
+            ],
+        },
+    },
+
+    trousers3: {
+        description: 'Relaxed grey trousers with a clean minimal shape and easy wardrobe versatility.',
+        fit: 'Regular',
+        rating: 4.6,
+        reviewCount: 116,
+        reviews: [
+            { id: 'trousers3_r1', name: 'Nina', rating: 5, text: 'So versatile and comfortable, really polished too.', date: '3 days ago' },
+            { id: 'trousers3_r2', name: 'Ivana', rating: 4, text: 'Great neutral pair for work or weekends.', date: '9 days ago' },
+        ],
+        awards: ['Best seller', 'Eco choice'],
+        eco: {
+            ecoScore: 71,
+            ecoDescription: 'Strong eco profile for a multi-use wardrobe staple with timeless styling.',
+            material: '64% polyester, 30% viscose, 6% elastane',
+            sustainability: 'High repeat wear, versatile tailoring, medium-impact blend',
+            ecoAlternativeIds: [
+                { productId: 'trousers2', ecoScore: 69 },
+                { productId: 'jeans4', ecoScore: 75 },
+                { productId: 'shirt2', ecoScore: 73 },
+            ],
+        },
+    },
+
+    trousers4: {
+        description: 'Structured sleeveless-set trousers with a modern fluid drape and sleek set styling.',
+        fit: 'Regular',
+        rating: 4.1,
+        reviewCount: 42,
+        reviews: [
+            { id: 'trousers4_r1', name: 'Bianca', rating: 4, text: 'Very modern set trousers and nice fluid shape.', date: '5 days ago' },
+            { id: 'trousers4_r2', name: 'Zina', rating: 4, text: 'Looks best styled with the matching top vibe.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending'],
+        eco: {
+            ecoScore: 66,
+            ecoDescription: 'Moderate eco score with decent use potential and streamlined styling value.',
+            material: '62% polyester, 34% viscose, 4% elastane',
+            sustainability: 'Medium-impact tailored blend, moderate repeat wear, modern wardrobe utility',
+            ecoAlternativeIds: [
+                { productId: 'trousers3', ecoScore: 71 },
+                { productId: 'trousers2', ecoScore: 69 },
+                { productId: 'jeans4', ecoScore: 75 },
+            ],
+        },
+    },
+
+    trousers5: {
+        description: 'Flowy red palazzo trousers with statement designer movement and dramatic volume.',
+        fit: 'Baggy',
+        rating: 4.8,
+        reviewCount: 39,
+        reviews: [
+            { id: 'trousers5_r1', name: 'Alex', rating: 5, text: 'Absolutely stunning and so dramatic in motion.', date: '4 days ago' },
+            { id: 'trousers5_r2', name: 'Sia', rating: 5, text: 'Designer feel all the way. Gorgeous red.', date: '11 days ago' },
+        ],
+        awards: ['Designer pick', 'Editor pick'],
+        eco: {
+            ecoScore: 64,
+            ecoDescription: 'Luxury positioning and statement use reduce frequency of wear, though quality and durability support its score.',
+            material: '70% viscose, 25% silk, 5% elastane',
+            sustainability: 'Premium construction, lower wear frequency, strong longevity',
+            ecoAlternativeIds: [
+                { productId: 'trousers3', ecoScore: 71 },
+                { productId: 'trousers2', ecoScore: 69 },
+                { productId: 'coat14', ecoScore: 81 },
+            ],
+        },
+    },
+
+    shirt1: {
+        description: 'Green satin stripe shirt with a fluid finish and elevated polished feel.',
+        fit: 'Regular',
+        rating: 4.4,
+        reviewCount: 92,
+        reviews: [
+            { id: 'shirt1_r1', name: 'Janka', rating: 4, text: 'Really pretty satin effect and nice green tone.', date: '2 days ago' },
+            { id: 'shirt1_r2', name: 'Nela', rating: 5, text: 'Looks very chic tucked into trousers.', date: '1 week ago' },
+        ],
+        awards: ['Trending', 'Best seller'],
+        eco: {
+            ecoScore: 63,
+            ecoDescription: 'Moderate eco profile with good rewear potential, though satin-treated fabric impacts the overall score.',
+            material: '58% polyester, 42% viscose',
+            sustainability: 'Medium-impact blend, elevated styling, decent repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'shirt6', ecoScore: 71 },
+                { productId: 'top7', ecoScore: 83 },
+            ],
+        },
+    },
+
+    shirt2: {
+        description: 'Blue oversized stripe shirt with timeless relaxed tailoring and strong layering value.',
+        fit: 'Oversized',
+        rating: 4.7,
+        reviewCount: 148,
+        reviews: [
+            { id: 'shirt2_r1', name: 'Luci', rating: 5, text: 'Amazing oversized shirt. Looks effortless and expensive.', date: '1 day ago' },
+            { id: 'shirt2_r2', name: 'Mina', rating: 5, text: 'One of my favorite purchases this season.', date: '6 days ago' },
+            { id: 'shirt2_r3', name: 'Nina', rating: 4, text: 'Slightly oversized, but exactly what I wanted.', date: '2 weeks ago' },
+        ],
+        awards: ['Best seller', 'Eco choice', 'Customer favorite'],
+        eco: {
+            ecoScore: 73,
+            ecoDescription: 'Very good eco result due to classic styling, repeat wear and low trend turnover.',
+            material: '100% cotton',
+            sustainability: 'Timeless staple, durable fabric, high repeat wear',
+            ecoAlternativeIds: [
+                { productId: 'shirt6', ecoScore: 71 },
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+            ],
+        },
+    },
+
+    shirt3: {
+        description: 'Fitted short sleeve shirt with a clean shape and versatile smart-casual styling.',
+        fit: 'Slim',
+        rating: 4.1,
+        reviewCount: 57,
+        reviews: [
+            { id: 'shirt3_r1', name: 'Tea', rating: 4, text: 'Nice fitted shirt, looks neat and polished.', date: '4 days ago' },
+            { id: 'shirt3_r2', name: 'Klaudia', rating: 4, text: 'Good simple piece, a bit close-fitting at the bust.', date: '2 weeks ago' },
+        ],
+        awards: ['New markdown'],
+        eco: {
+            ecoScore: 67,
+            ecoDescription: 'Balanced score from frequent wear potential and relatively simple construction.',
+            material: '72% cotton, 24% polyester, 4% elastane',
+            sustainability: 'Moderate blend impact, practical repeat wear, versatile styling',
+            ecoAlternativeIds: [
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'shirt6', ecoScore: 71 },
+                { productId: 'top7', ecoScore: 83 },
+            ],
+        },
+    },
+
+    shirt4: {
+        description: 'Ruffle sleeve blouse with a feminine soft shape and a light romantic finish.',
+        fit: 'Regular',
+        rating: 4.0,
+        reviewCount: 46,
+        reviews: [
+            { id: 'shirt4_r1', name: 'Monika', rating: 4, text: 'Very pretty blouse and the yellow is soft and lovely.', date: '6 days ago' },
+            { id: 'shirt4_r2', name: 'Lea', rating: 4, text: 'Cute detail on the sleeves, just a little delicate.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending'],
+        eco: {
+            ecoScore: 62,
+            ecoDescription: 'Moderate eco score with fair repeat wear, though decorative details slightly reduce versatility.',
+            material: '65% cotton, 35% polyester',
+            sustainability: 'Moderate-impact blend, feminine design, decent wear frequency',
+            ecoAlternativeIds: [
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'shirt6', ecoScore: 71 },
+                { productId: 'top7', ecoScore: 83 },
+            ],
+        },
+    },
+
+    shirt5: {
+        description: 'Textured pink blouse with a soft fitted shape and a slightly dressed-up feel.',
+        fit: 'Fitted',
+        rating: 4.2,
+        reviewCount: 53,
+        reviews: [
+            { id: 'shirt5_r1', name: 'Simi', rating: 4, text: 'Lovely textured fabric and flattering pink tone.', date: '5 days ago' },
+            { id: 'shirt5_r2', name: 'Dora', rating: 4, text: 'Cute blouse, works really well with denim.', date: '2 weeks ago' },
+        ],
+        awards: ['Trending', 'New markdown'],
+        eco: {
+            ecoScore: 59,
+            ecoDescription: 'Textured synthetic blend lowers the eco score, though styling versatility helps.',
+            material: '60% polyester, 35% cotton, 5% elastane',
+            sustainability: 'Mixed fibers, medium durability, moderate repeat use',
+            ecoAlternativeIds: [
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'shirt6', ecoScore: 71 },
+                { productId: 'top7', ecoScore: 83 },
+            ],
+        },
+    },
+
+    shirt6: {
+        description: 'Relaxed brown shirt with easy drape and a soft everyday natural-toned feel.',
+        fit: 'Oversized',
+        rating: 4.5,
+        reviewCount: 84,
+        reviews: [
+            { id: 'shirt6_r1', name: 'Mila', rating: 5, text: 'Very easy oversized shirt and such a nice brown tone.', date: '3 days ago' },
+            { id: 'shirt6_r2', name: 'Alena', rating: 4, text: 'Comfortable and stylish, especially half tucked.', date: '9 days ago' },
+        ],
+        awards: ['Trending', 'Editor pick'],
+        eco: {
+            ecoScore: 71,
+            ecoDescription: 'Strong eco result from repeat wear, timeless styling and simpler shirt construction.',
+            material: '82% cotton, 18% polyester',
+            sustainability: 'High repeat wear, versatile shirt staple, moderate blend impact',
+            ecoAlternativeIds: [
+                { productId: 'shirt2', ecoScore: 73 },
+                { productId: 'top7', ecoScore: 83 },
+                { productId: 'top3', ecoScore: 78 },
+            ],
+        },
+    },
 
 
 };
@@ -870,6 +1891,7 @@ type ProductContextType = {
     getProductsByBrand: (brand: Brand) => Product[];
     getSaleProducts: () => Product[];
     getBestSellers: () => Product[];
+    searchProducts: (query: string, gender?: 'WOMAN' | 'MAN') => Product[];
 };
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -885,6 +1907,34 @@ export function ProductProvider({ children }: { children: ReactNode }) {
             (product) =>
                 product.subCategory === subCategory || product.tags.includes(subCategory)
         );
+
+    const searchProducts = (query: string, gender?: 'WOMAN' | 'MAN') => {
+        const trimmed = query.trim().toLowerCase();
+
+        if (!trimmed) return [];
+
+        return products.filter((product) => {
+            const matchesGender =
+                gender === 'WOMAN'
+                    ? product.gender === 'women'
+                    : gender === 'MAN'
+                        ? product.gender === 'men'
+                        : true;
+
+            const searchableText = [
+                product.name,
+                product.brand,
+                product.mainCategory,
+                product.subCategory,
+                ...product.tags,
+                ...product.availableColors.map(color => color.name),
+            ]
+                .join(' ')
+                .toLowerCase();
+
+            return matchesGender && searchableText.includes(trimmed);
+        });
+    };
 
     const getProductsByBrand = (brand: Brand) =>
         products.filter((product) => product.brand === brand);
@@ -903,6 +1953,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
                 getProductsByBrand,
                 getSaleProducts,
                 getBestSellers,
+                searchProducts,
             }}
         >
             {children}

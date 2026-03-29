@@ -8,17 +8,53 @@ import {
     TouchableOpacity,
     ScrollView,
     ImageBackground,
+    Alert,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { categoryMap } from '../../context/product_context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { categoryMap, useProducts } from '../../context/product_context';
+import { useFocusEffect } from 'expo-router';
 
 export default function SearchScreen() {
     const router = useRouter();
+    const { searchProducts } = useProducts();
 
     const categories = Object.keys(categoryMap);
 
     const [selected, setSelected] = React.useState<'WOMAN' | 'MAN'>('WOMAN');
+    const [searchText, setSearchText] = React.useState('');
+    const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+    const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+
+    const handleSearchSubmit = async () => {
+        const trimmed = searchText.trim();
+        if (!trimmed) return;
+
+        await saveSearch(trimmed);
+
+        const results = searchProducts(trimmed, selected);
+
+        router.push({
+            pathname: '/search_items',
+            params: {
+                query: trimmed,
+                gender: selected,
+                results: JSON.stringify(results),
+                noResults: results.length === 0 ? 'true' : 'false',
+            },
+        });
+
+        setIsSearchFocused(false);
+    };
+
+    const handleCameraPress = () => {
+        Alert.alert(
+            'Camera unavailable',
+            'Camera search is not available right now. Please try again later.'
+        );
+    };
 
     const getIcon = (category: string) => {
         switch (category) {
@@ -45,98 +81,204 @@ export default function SearchScreen() {
         }
     };
 
+
+    useFocusEffect(
+        React.useCallback(() => {
+            setSearchText('');
+            setIsSearchFocused(false);
+            loadRecentSearches();
+        }, [])
+    );
+
+    const loadRecentSearches = async () => {
+        const stored = await AsyncStorage.getItem('recentSearches');
+        setRecentSearches(stored ? JSON.parse(stored) : []);
+    };
+
+    const saveSearch = async (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return;
+
+        const stored = await AsyncStorage.getItem('recentSearches');
+        const existing: string[] = stored ? JSON.parse(stored) : [];
+
+        const updated = [
+            trimmed,
+            ...existing.filter(item => item.toLowerCase() !== trimmed.toLowerCase()),
+        ].slice(0, 10);
+
+        setRecentSearches(updated);
+        await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+    };
+
+    const clearRecentSearches = async () => {
+        setRecentSearches([]);
+        await AsyncStorage.removeItem('recentSearches');
+    };
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <View style={styles.topBar}>
-                    <View style={styles.searchWrapper}>
-                        <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
-                        <TextInput
-                            placeholder="Search"
-                            placeholderTextColor="#393939"
-                            style={styles.searchInput}
-                        />
-                        <TouchableOpacity style={styles.cameraButton}>
-                            <Feather name="camera" size={18} color="#393939" />
-                        </TouchableOpacity>
+        <TouchableWithoutFeedback
+            onPress={() => {
+                setIsSearchFocused(false);
+                Keyboard.dismiss();
+            }}
+        >
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.container}>
+                    <View style={styles.topBar}>
+                        <View style={styles.searchWrapper}>
+                            <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
+                            <TextInput
+                                placeholder="Search"
+                                placeholderTextColor="#393939"
+                                style={styles.searchInput}
+                                value={searchText}
+                                onChangeText={setSearchText}
+                                onSubmitEditing={handleSearchSubmit}
+                                onFocus={() => setIsSearchFocused(true)}
+                            />
+                            <TouchableOpacity
+                                style={styles.cameraButton}
+                                onPress={handleCameraPress}
+                            >
+                                <Feather name="camera" size={18} color="#393939" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
 
-                <View style={styles.genderWrapper}>
-                    <TouchableOpacity
-                        style={styles.genderButton}
-                        onPress={() => setSelected('WOMAN')}
-                    >
-                        <Text style={[styles.genderText, selected === 'WOMAN' && styles.activeText]}>
-                            WOMAN
-                        </Text>
-                        {selected === 'WOMAN' && <View style={styles.activeLine} />}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.genderButton}
-                        onPress={() => setSelected('MAN')}
-                    >
-                        <Text style={[styles.genderText, selected === 'MAN' && styles.activeText]}>
-                            MAN
-                        </Text>
-                        {selected === 'MAN' && <View style={styles.activeLine} />}
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    {categories.map((item, index) => {
-                        const isSale = item === 'SALE: HOT DEALS';
-
-                        const content = (
-                            <View style={styles.categoryRow}>
-                                {getIcon(item)}
-                                <Text style={[styles.categoryText, isSale && styles.saleText]}>
-                                    {item}
-                                </Text>
+                    {isSearchFocused && (
+                        <View style={styles.dropdown}>
+                            <View style={styles.recentHeader}>
+                                <Text style={styles.recentTitle}>Recent searches</Text>
+                                {recentSearches.length > 0 && (
+                                    <TouchableOpacity style={styles.clearButton} onPress={clearRecentSearches}>
+                                        <Text style={styles.clearText}>Clear</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
-                        );
 
-                        return isSale ? (
-                            <TouchableOpacity
-                                key={index}
-                                style={styles.saleWrapper}
-                                onPress={() =>
-                                    router.push({
-                                        pathname: '/search_category',
-                                        params: { category: item, gender: selected },
-                                    })
-                                }
-                            >
-                                <ImageBackground
-                                    source={require('../../assets/images_app/search.png')}
-                                    style={styles.saleCard}
-                                    imageStyle={{ borderRadius: 14 }}
+                            {recentSearches.length === 0 ? (
+                                <View style={styles.emptyWrapper}>
+                                    <Feather name="search" size={34} color="#8a8a8a" />
+                                    <Text style={styles.emptyText}>You have no recent searches</Text>
+                                </View>
+                            ) : (
+                                <ScrollView
+                                    showsVerticalScrollIndicator={false}
+                                    contentContainerStyle={styles.recentScrollContent}
                                 >
-                                    {content}
-                                </ImageBackground>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                key={index}
-                                style={styles.categoryCard}
-                                onPress={() =>
-                                    router.push({
-                                        pathname: '/search_category',
-                                        params: { category: item, gender: selected },
-                                    })
-                                }
+                                    {recentSearches.map((item, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={styles.recentItem}
+                                            onPress={async () => {
+                                                await saveSearch(item);
+                                                setSearchText(item);
+
+                                                const results = searchProducts(item, selected);
+
+                                                router.push({
+                                                    pathname: '/search_items',
+                                                    params: {
+                                                        query: item,
+                                                        gender: selected,
+                                                        results: JSON.stringify(results),
+                                                        noResults: results.length === 0 ? 'true' : 'false',
+                                                    },
+                                                });
+
+                                                setIsSearchFocused(false);
+                                            }}
+                                        >
+                                            <Feather name="clock" size={16} color="#6a6a6a" />
+                                            <Text style={styles.recentItemText}>{item}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            )}
+                        </View>
+                    )}
+
+                    {!isSearchFocused && (
+                        <>
+                            <View style={styles.genderWrapper}>
+                                <TouchableOpacity
+                                    style={styles.genderButton}
+                                    onPress={() => setSelected('WOMAN')}
+                                >
+                                    <Text style={[styles.genderText, selected === 'WOMAN' && styles.activeText]}>
+                                        WOMAN
+                                    </Text>
+                                    {selected === 'WOMAN' && <View style={styles.activeLine} />}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.genderButton}
+                                    onPress={() => setSelected('MAN')}
+                                >
+                                    <Text style={[styles.genderText, selected === 'MAN' && styles.activeText]}>
+                                        MAN
+                                    </Text>
+                                    {selected === 'MAN' && <View style={styles.activeLine} />}
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.scrollContent}
                             >
-                                {content}
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            </View>
-        </SafeAreaView>
+                                {categories.map((item, index) => {
+                                    const isSale = item === 'SALE: HOT DEALS';
+
+                                    const content = (
+                                        <View style={styles.categoryRow}>
+                                            {getIcon(item)}
+                                            <Text style={[styles.categoryText, isSale && styles.saleText]}>
+                                                {item}
+                                            </Text>
+                                        </View>
+                                    );
+
+                                    return isSale ? (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={styles.saleWrapper}
+                                            onPress={() =>
+                                                router.push({
+                                                    pathname: '/search_category',
+                                                    params: { category: item, gender: selected },
+                                                })
+                                            }
+                                        >
+                                            <ImageBackground
+                                                source={require('../../assets/images_app/search.jpg')}
+                                                style={styles.saleCard}
+                                                imageStyle={{ borderRadius: 14 }}
+                                            >
+                                                {content}
+                                            </ImageBackground>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={styles.categoryCard}
+                                            onPress={() =>
+                                                router.push({
+                                                    pathname: '/search_category',
+                                                    params: { category: item, gender: selected },
+                                                })
+                                            }
+                                        >
+                                            {content}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        </>
+                    )}
+                </View>
+            </SafeAreaView>
+        </TouchableWithoutFeedback>
     );
 }
 
@@ -268,4 +410,85 @@ const styles = StyleSheet.create({
     salePlus: {
         color: '#111',
     },
+
+    dropdown: {
+        position: 'absolute',
+        top: 62,
+        left: 14,
+        right: 14,
+        maxHeight: 320,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 16,
+        paddingTop: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+        zIndex: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+    },
+
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+
+    recentScrollContent: {
+        paddingBottom: 8,
+    },
+
+    recentItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 12,
+    },
+
+    emptyWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 36,
+    },
+
+    clearButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        backgroundColor: '#dedede',
+    },
+
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#393939',
+    },
+
+    recentTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#111',
+    },
+
+
+    emptyText: {
+        marginTop: 10,
+        fontSize: 15,
+        color: '#6a6a6a',
+        textAlign: 'center',
+    },
+
+    recentList: {
+        gap: 2,
+    },
+
+
+    recentItemText: {
+        fontSize: 15,
+        color: '#111',
+    },
+
 });
