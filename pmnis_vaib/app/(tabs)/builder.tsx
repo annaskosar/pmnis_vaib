@@ -37,6 +37,25 @@ const FEEDBACK_CHIPS = [
     'Too similar', 'Not my taste', 'Not seasonal',
 ];
 
+const ONBOARDING_STEPS = [
+    {
+        title: 'Sources 👗',
+        description: 'Choose where to get outfit items from — your Wardrobe, Wishlist, or the Shop.',
+    },
+    {
+        title: 'Describe your style ✨',
+        description: 'Pick a preset vibe or type your own — "casual summer", "office look", anything you like!',
+    },
+    {
+        title: 'Generate your outfit 🎯',
+        description: "Hit this button and we'll build a full outfit for you. You can regenerate as many times as you want!",
+    },
+    {
+        title: 'Rate your outfit ⭐',
+        description: 'After generating, rate the outfit to help us improve future suggestions for you.',
+    },
+];
+
 type Source = 'wardrobe' | 'wishlist' | 'shop';
 type OutfitItem = { id: string; image: any; name: string; category?: string; tags: string[]; fromWardrobe?: boolean };
 type ScoredItem = OutfitItem & { score: number };
@@ -71,6 +90,20 @@ export default function BuilderScreen() {
     const [inlineFeedbackRating, setInlineFeedbackRating] = useState(0);
     const [inlineFeedbackSubmitted, setInlineFeedbackSubmitted] = useState(false);
 
+    // Onboarding
+    const [onboardingStep, setOnboardingStep] = useState(-1);
+
+    // Refs pre meranie pozícií
+    const sourcesRef = React.useRef<View>(null);
+    const promptRef = React.useRef<View>(null);
+    const generateRef = React.useRef<View>(null);
+    const feedbackRef = React.useRef<View>(null);
+    const scrollViewRef = React.useRef<ScrollView>(null);
+
+    const onboardingRefs = [sourcesRef, promptRef, generateRef, feedbackRef];
+
+    const [tooltipPos, setTooltipPos] = useState({ y: 0, height: 0 });
+
     const isPromptEmpty = prompt.trim().length === 0;
 
     React.useEffect(() => {
@@ -89,8 +122,39 @@ export default function BuilderScreen() {
             if (returnToBuilder === 'true') {
                 setCartModalVisible(true);
             }
+            checkOnboarding();
         }, [returnToBuilder])
     );
+
+    const checkOnboarding = async () => {
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (!userData) return;
+        const email = JSON.parse(userData).email;
+        const seen = await AsyncStorage.getItem(`builder_onboarding_shown_${email}`);
+        if (!seen) {
+            setTimeout(() => showOnboardingStep(0), 600);
+        }
+    };
+
+    const showOnboardingStep = (step: number) => {
+        if (step >= ONBOARDING_STEPS.length) {
+            finishOnboarding();
+            return;
+        }
+        const ref = onboardingRefs[step];
+        ref.current?.measureInWindow((x, y, width, height) => {
+            setTooltipPos({ y, height });
+            setOnboardingStep(step);
+        });
+    };
+
+    const finishOnboarding = async () => {
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (!userData) return;
+        const email = JSON.parse(userData).email;
+        await AsyncStorage.setItem(`builder_onboarding_shown_${email}`, 'true');
+        setOnboardingStep(-1);
+    };
 
     const wardrobeAsOutfits: OutfitItem[] = wardrobeItems.map(item => ({
         id: item.id,
@@ -393,20 +457,11 @@ export default function BuilderScreen() {
 
     const handleItemPress = (item: OutfitItem) => {
         if (item.fromWardrobe) {
-            router.push({
-                pathname: '/(tabs)/wardrobe_item',
-                params: { itemId: item.id },
-            });
+            router.push({ pathname: '/(tabs)/wardrobe_item', params: { itemId: item.id } });
         } else {
             router.push({
                 pathname: '/(tabs)/product_detail',
-                params: {
-                    productId: item.id,
-                    category: 'CLOTHING',
-                    subcategory: item.category ?? '',
-                    gender: 'WOMAN',
-                    from: 'builder',
-                },
+                params: { productId: item.id, category: 'CLOTHING', subcategory: item.category ?? '', gender: 'WOMAN', from: 'builder' },
             });
         }
     };
@@ -422,9 +477,13 @@ export default function BuilderScreen() {
         return 'GENERATE OUTFIT';
     };
 
+    // Tooltip pozícia — zobraz nad alebo pod elementom
+    const tooltipBottom = tooltipPos.y > 400;
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView
+                ref={scrollViewRef}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -435,7 +494,7 @@ export default function BuilderScreen() {
                 </View>
 
                 <Text style={styles.sectionLabel}>Sources</Text>
-                <View style={styles.sourceRow}>
+                <View ref={sourcesRef} style={styles.sourceRow}>
                     {(['wardrobe', 'wishlist', 'shop'] as Source[]).map((s) => {
                         const isActive =
                             (s === 'shop' && isShopActive) ||
@@ -486,56 +545,59 @@ export default function BuilderScreen() {
 
                 <Text style={styles.sectionLabel}>Describe your outfit</Text>
 
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={{ marginBottom: 12 }}
-                    contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-                >
-                    {PRESET_PROMPTS.map(preset => (
-                        <TouchableOpacity
-                            key={preset.value}
-                            style={[styles.presetChip, prompt === preset.value && styles.presetChipActive]}
-                            onPress={() => setPrompt(prompt === preset.value ? '' : preset.value)}
-                        >
-                            <Text style={[styles.presetChipText, prompt === preset.value && styles.presetChipTextActive]}>
-                                {preset.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                <View ref={promptRef}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginBottom: 12 }}
+                        contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+                    >
+                        {PRESET_PROMPTS.map(preset => (
+                            <TouchableOpacity
+                                key={preset.value}
+                                style={[styles.presetChip, prompt === preset.value && styles.presetChipActive]}
+                                onPress={() => setPrompt(prompt === preset.value ? '' : preset.value)}
+                            >
+                                <Text style={[styles.presetChipText, prompt === preset.value && styles.presetChipTextActive]}>
+                                    {preset.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
 
-                <View style={styles.inputWrapper}>
-                    <Feather name="edit-2" size={16} color="#999" />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. casual summer outfit, elegant evening..."
-                        placeholderTextColor="#999"
-                        value={prompt}
-                        onChangeText={setPrompt}
-                        multiline
-                    />
-                    {prompt.length > 0 && (
-                        <TouchableOpacity onPress={() => setPrompt('')}>
-                            <Feather name="x" size={16} color="#999" />
-                        </TouchableOpacity>
-                    )}
+                    <View style={styles.inputWrapper}>
+                        <Feather name="edit-2" size={16} color="#999" />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. casual summer outfit, elegant evening..."
+                            placeholderTextColor="#999"
+                            value={prompt}
+                            onChangeText={setPrompt}
+                            multiline
+                        />
+                        {prompt.length > 0 && (
+                            <TouchableOpacity onPress={() => setPrompt('')}>
+                                <Feather name="x" size={16} color="#999" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
-
-                <TouchableOpacity
-                    style={[
-                        styles.generateButton,
-                        loading && styles.generateButtonLoading,
-                        isPromptEmpty && styles.generateButtonDisabled,
-                        generated && !loading && styles.generateButtonRegenerate,
-                    ]}
-                    onPress={handleGenerate}
-                    disabled={loading || isPromptEmpty}
-                >
-                    <Feather name={generated && !loading ? 'refresh-cw' : 'zap'} size={16} color="#fff" />
-                    <Text style={styles.generateButtonText}>{getButtonLabel()}</Text>
-                </TouchableOpacity>
+                <View ref={generateRef}>
+                    <TouchableOpacity
+                        style={[
+                            styles.generateButton,
+                            loading && styles.generateButtonLoading,
+                            isPromptEmpty && styles.generateButtonDisabled,
+                            generated && !loading && styles.generateButtonRegenerate,
+                        ]}
+                        onPress={handleGenerate}
+                        disabled={loading || isPromptEmpty}
+                    >
+                        <Feather name={generated && !loading ? 'refresh-cw' : 'zap'} size={16} color="#fff" />
+                        <Text style={styles.generateButtonText}>{getButtonLabel()}</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {generated && outfits.length > 0 && (
                     <View style={styles.resultsSection}>
@@ -557,19 +619,15 @@ export default function BuilderScreen() {
                                     />
                                     <TouchableOpacity
                                         style={styles.regenerateItemButton}
-                                        onPress={(e) => {
-                                            e.stopPropagation();
-                                            regenerateItem(index);
-                                        }}
+                                        onPress={(e) => { e.stopPropagation(); regenerateItem(index); }}
                                     >
                                         <Feather name="refresh-cw" size={13} color="#111" />
                                     </TouchableOpacity>
-                                    {item.fromWardrobe && (
+                                    {item.fromWardrobe ? (
                                         <View style={styles.wardrobeBadge}>
                                             <Text style={styles.wardrobeBadgeText}>My item</Text>
                                         </View>
-                                    )}
-                                    {!item.fromWardrobe && (
+                                    ) : (
                                         <View style={styles.shopBadge}>
                                             <Text style={styles.shopBadgeText}>Shop</Text>
                                         </View>
@@ -609,7 +667,38 @@ export default function BuilderScreen() {
                             )}
                         </View>
 
-                       
+                        {/* Inline feedback card */}
+                        <View ref={feedbackRef} style={styles.feedbackCard}>
+                            <Text style={styles.feedbackTitle}>How do you rate this outfit suggestion?</Text>
+                            <View style={styles.inlineStarsRow}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity
+                                        key={star}
+                                        onPress={() => { if (!inlineFeedbackSubmitted) setInlineFeedbackRating(star); }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Feather
+                                            name="star"
+                                            size={24}
+                                            color={star <= inlineFeedbackRating ? '#f2b55d' : '#bcbcbc'}
+                                            style={styles.starIcon}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <TouchableOpacity
+                                style={[
+                                    styles.feedbackButton,
+                                    (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) && styles.feedbackButtonDisabled,
+                                ]}
+                                onPress={handleInlineFeedbackSubmit}
+                                disabled={inlineFeedbackRating === 0 || inlineFeedbackSubmitted}
+                            >
+                                <Text style={styles.feedbackButtonText}>
+                                    {inlineFeedbackSubmitted ? 'Submitted ✓' : 'Submit'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
 
@@ -620,6 +709,65 @@ export default function BuilderScreen() {
                     </View>
                 )}
             </ScrollView>
+
+            {/* Onboarding Tooltip Modal */}
+            {onboardingStep >= 0 && (
+                <Modal visible transparent animationType="fade">
+                    <View style={styles.onboardingOverlay}>
+                        {/* Highlight box */}
+                        <View style={[styles.onboardingHighlight, {
+                            top: tooltipPos.y - 6,
+                            height: tooltipPos.height + 12,
+                        }]} />
+
+                        {/* Tooltip karta */}
+                        <View style={[
+                            styles.onboardingCard,
+                            tooltipBottom
+                                ? { bottom: 100 }
+                                : { top: tooltipPos.y + tooltipPos.height + 16 },
+                        ]}>
+                            <View style={styles.onboardingHeader}>
+                                <Text style={styles.onboardingStepLabel}>
+                                    {onboardingStep + 1} / {ONBOARDING_STEPS.length}
+                                </Text>
+                                <TouchableOpacity onPress={finishOnboarding}>
+                                    <Text style={styles.onboardingSkip}>Skip</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={styles.onboardingTitle}>
+                                {ONBOARDING_STEPS[onboardingStep].title}
+                            </Text>
+                            <Text style={styles.onboardingDescription}>
+                                {ONBOARDING_STEPS[onboardingStep].description}
+                            </Text>
+
+                            {/* Dots */}
+                            <View style={styles.onboardingDots}>
+                                {ONBOARDING_STEPS.map((_, i) => (
+                                    <View
+                                        key={i}
+                                        style={[
+                                            styles.onboardingDot,
+                                            i === onboardingStep && styles.onboardingDotActive,
+                                        ]}
+                                    />
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.onboardingButton}
+                                onPress={() => showOnboardingStep(onboardingStep + 1)}
+                            >
+                                <Text style={styles.onboardingButtonText}>
+                                    {onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Got it! 🎉' : 'Next →'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            )}
 
             {/* Feedback Modal */}
             <Modal visible={feedbackVisible} transparent animationType="slide" onRequestClose={() => setFeedbackVisible(false)}>
@@ -700,11 +848,7 @@ export default function BuilderScreen() {
 
             {/* Reward Modal */}
             <Modal visible={rewardModalVisible} transparent animationType="fade" onRequestClose={() => setRewardModalVisible(false)}>
-                <TouchableOpacity
-                    style={styles.rewardOverlay}
-                    activeOpacity={1}
-                    onPress={() => setRewardModalVisible(false)}
-                >
+                <TouchableOpacity style={styles.rewardOverlay} activeOpacity={1} onPress={() => setRewardModalVisible(false)}>
                     <TouchableOpacity activeOpacity={1} onPress={() => {}}>
                         <View style={styles.rewardCard}>
                             <Text style={styles.rewardEmoji}>🎉</Text>
@@ -929,6 +1073,37 @@ const styles = StyleSheet.create({
     },
     feedbackButtonDisabled: { backgroundColor: '#bdbdbd' },
     feedbackButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+    // Onboarding
+    onboardingOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    },
+    onboardingHighlight: {
+        position: 'absolute', left: 12, right: 12,
+        borderRadius: 16, borderWidth: 2, borderColor: '#f2b55d',
+        backgroundColor: 'rgba(242,181,93,0.1)',
+    },
+    onboardingCard: {
+        position: 'absolute', left: 16, right: 16,
+        backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    },
+    onboardingHeader: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', marginBottom: 10,
+    },
+    onboardingStepLabel: { fontSize: 12, color: '#8a8a8a', fontWeight: '600' },
+    onboardingSkip: { fontSize: 13, color: '#8a8a8a', fontWeight: '600' },
+    onboardingTitle: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 8 },
+    onboardingDescription: { fontSize: 14, color: '#555', lineHeight: 20, marginBottom: 16 },
+    onboardingDots: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+    onboardingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#dedede' },
+    onboardingDotActive: { backgroundColor: '#111', width: 20, borderRadius: 4 },
+    onboardingButton: {
+        backgroundColor: '#111', paddingVertical: 14,
+        borderRadius: 14, alignItems: 'center',
+    },
+    onboardingButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {
