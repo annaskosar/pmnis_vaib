@@ -67,9 +67,10 @@ export default function BuilderScreen() {
     const [hasShownFeedback, setHasShownFeedback] = useState(false);
     const [rewardModalVisible, setRewardModalVisible] = useState(false);
 
-    // Inline feedback card state
     const [inlineFeedbackRating, setInlineFeedbackRating] = useState(0);
     const [inlineFeedbackSubmitted, setInlineFeedbackSubmitted] = useState(false);
+
+    const isPromptEmpty = prompt.trim().length === 0;
 
     React.useEffect(() => {
         const checkFeedback = async () => {
@@ -165,6 +166,8 @@ export default function BuilderScreen() {
     };
 
     const handleGenerate = () => {
+        if (isPromptEmpty) return;
+
         setLoading(true);
         setGenerated(false);
         setAddedToCart(false);
@@ -254,7 +257,6 @@ export default function BuilderScreen() {
         await AsyncStorage.setItem(`feedback_count_${email}`, String(newCount));
     };
 
-    // Modal feedback submit
     const handleSubmitFeedback = async () => {
         await saveFeedbackToStorage();
         setHasShownFeedback(true);
@@ -269,7 +271,6 @@ export default function BuilderScreen() {
         }, 2800);
     };
 
-    // Inline feedback submit
     const handleInlineFeedbackSubmit = async () => {
         if (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) return;
         await saveFeedbackToStorage();
@@ -437,10 +438,16 @@ export default function BuilderScreen() {
                     )}
                 </View>
 
+                
+
                 <TouchableOpacity
-                    style={[styles.generateButton, loading && styles.generateButtonLoading]}
+                    style={[
+                        styles.generateButton,
+                        loading && styles.generateButtonLoading,
+                        isPromptEmpty && styles.generateButtonDisabled,
+                    ]}
                     onPress={handleGenerate}
-                    disabled={loading}
+                    disabled={loading || isPromptEmpty}
                 >
                     <Feather name="zap" size={16} color="#fff" />
                     <Text style={styles.generateButtonText}>
@@ -800,14 +807,19 @@ const styles = StyleSheet.create({
     presetChipTextActive: { color: '#111', fontWeight: '700' },
     inputWrapper: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: '#e9e9e9',
-        borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14, gap: 10,
+        borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, gap: 10,
     },
     input: { flex: 1, fontSize: 15, color: '#111', maxHeight: 80 },
+    promptHint: {
+        fontSize: 12, color: '#8a8a8a', textAlign: 'center',
+        marginBottom: 12, marginTop: 2,
+    },
     generateButton: {
         backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
         alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24,
     },
     generateButtonLoading: { backgroundColor: '#555' },
+    generateButtonDisabled: { backgroundColor: '#bdbdbd' },
     generateButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
     resultsSection: { marginTop: 8 },
     resultsTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 16 },
@@ -848,14 +860,8 @@ const styles = StyleSheet.create({
         marginTop: 18, backgroundColor: '#e9e9e9',
         borderRadius: 18, paddingVertical: 16, paddingHorizontal: 14, alignItems: 'center',
     },
-    feedbackTitle: {
-        fontSize: 14, fontWeight: '700', color: '#111',
-        marginBottom: 12, textAlign: 'center',
-    },
-    inlineStarsRow: {
-        flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'center', marginBottom: 14,
-    },
+    feedbackTitle: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 12, textAlign: 'center' },
+    inlineStarsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
     starIcon: { marginHorizontal: 6 },
     feedbackButton: {
         minWidth: 120, height: 44, borderRadius: 14, backgroundColor: '#111',
@@ -873,9 +879,7 @@ const styles = StyleSheet.create({
         width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc',
         alignSelf: 'center', marginTop: 12, marginBottom: 16,
     },
-    sheetHeader: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
-    },
+    sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sheetTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
     sheetSubtitle: { fontSize: 13, color: '#8a8a8a', marginTop: 4, marginBottom: 20 },
     starsRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24 },
@@ -888,9 +892,7 @@ const styles = StyleSheet.create({
     feedbackChipActive: { backgroundColor: '#fff', borderColor: '#111' },
     feedbackChipText: { fontSize: 13, color: '#666', fontWeight: '500' },
     feedbackChipTextActive: { color: '#111', fontWeight: '700' },
-    submitButton: {
-        backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center',
-    },
+    submitButton: { backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center' },
     submitButtonDisabled: { backgroundColor: '#ccc' },
     submitButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     skipButton: { alignItems: 'center', paddingVertical: 14 },
@@ -903,22 +905,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24,
     },
     rewardCard: {
-        backgroundColor: '#f3f3f3', borderRadius: 24, padding: 24,
-        alignItems: 'center', width: '100%',
+        backgroundColor: '#f3f3f3', borderRadius: 24, padding: 24, alignItems: 'center', width: '100%',
     },
     rewardEmoji: { fontSize: 48, marginBottom: 12 },
     rewardTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 8, textAlign: 'center' },
     rewardSubtitle: { fontSize: 14, color: '#6a6a6a', textAlign: 'center', marginBottom: 16 },
-    rewardBadge: {
-        flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'center', marginBottom: 14,
-    },
+    rewardBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
     rewardBadgePoints: { fontSize: 28, fontWeight: '900', color: '#f2b55d' },
     rewardBadgeLabel: { fontSize: 28, fontWeight: '700', color: '#111' },
     rewardNote: { fontSize: 13, color: '#8a8a8a', textAlign: 'center', marginBottom: 20, lineHeight: 18 },
-    rewardButton: {
-        backgroundColor: '#111', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 20,
-    },
+    rewardButton: { backgroundColor: '#111', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 20 },
     rewardButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     emptySheet: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
     emptySheetText: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingHorizontal: 20 },
