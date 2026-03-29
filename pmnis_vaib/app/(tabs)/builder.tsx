@@ -39,6 +39,7 @@ const FEEDBACK_CHIPS = [
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
 type OutfitItem = { id: string; image: any; name: string; category?: string; tags: string[]; fromWardrobe?: boolean };
+type ScoredItem = OutfitItem & { score: number };
 
 export default function BuilderScreen() {
     const router = useRouter();
@@ -177,22 +178,41 @@ export default function BuilderScreen() {
         setTimeout(async () => {
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
 
-            const scoreItem = (item: OutfitItem) => {
-                return keywords.reduce((acc, keyword) => {
-                    const nameMatch = item.name.toLowerCase().includes(keyword) ? 2 : 0;
-                    const tagMatch = item.tags.some(tag =>
-                        tag.includes(keyword) || keyword.includes(tag)
-                    ) ? 1 : 0;
-                    return acc + nameMatch + tagMatch;
-                }, 0);
+            const scoreItem = (item: OutfitItem): number => {
+                let score = 0;
+                keywords.forEach(keyword => {
+                    if (item.name.toLowerCase() === keyword) score += 5;
+                    else if (item.name.toLowerCase().includes(keyword)) score += 3;
+                    if (item.tags.includes(keyword)) score += 4;
+                    else if (item.tags.some(tag => tag.includes(keyword) || keyword.includes(tag))) score += 2;
+                });
+                return score;
             };
 
             const sourceItems = getSourceItems();
 
-            const byCategory = (cat: string) =>
-                sourceItems
-                    .filter(i => (i as any).category === cat)
-                    .sort((a, b) => scoreItem(b) - scoreItem(a));
+            const scoredItems: ScoredItem[] = sourceItems
+                .map(item => ({ ...item, score: scoreItem(item) }))
+                .sort((a, b) => b.score - a.score);
+
+            const wantsDress = keywords.some(k =>
+                ['dress', 'elegant', 'formal', 'party', 'evening', 'night', 'gala'].includes(k)
+            );
+            const wantsSport = keywords.some(k =>
+                ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k)
+            );
+            const wantsCasual = keywords.some(k =>
+                ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k)
+            );
+            const wantsOffice = keywords.some(k =>
+                ['office', 'work', 'business', 'professional', 'blazer'].includes(k)
+            );
+            const wantsParty = keywords.some(k =>
+                ['party', 'club', 'going'].includes(k)
+            );
+
+            const byCategory = (cat: string): ScoredItem[] =>
+                scoredItems.filter(i => i.category === cat);
 
             const shoes = byCategory('shoes');
             const pants = byCategory('pants');
@@ -201,32 +221,72 @@ export default function BuilderScreen() {
             const dresses = byCategory('dress');
             const sets = byCategory('set');
 
-            let result: OutfitItem[] = [];
+            let result: (OutfitItem | undefined)[] = [];
 
-            const wantsDress = keywords.some(k =>
-                ['dress', 'elegant', 'formal', 'party', 'evening', 'night'].includes(k)
-            );
-            const wantsSport = keywords.some(k =>
-                ['sport', 'sporty', 'gym', 'workout', 'running'].includes(k)
-            );
-
-            if (wantsSport && sets.length > 0) {
-                result = [sets[0], shoes[0] ?? tops[0], jackets[0] ?? tops[1] ?? pants[0], shoes[1] ?? pants[0] ?? tops[0]];
-            } else if (wantsDress && dresses.length > 0) {
-                result = [dresses[0], shoes[0] ?? shoes[1], jackets[0] ?? tops[0], shoes[1] ?? jackets[1] ?? tops[1]];
+            if (wantsSport) {
+                if (sets.length > 0) {
+                    result = [
+                        sets[0],
+                        shoes.find(i => i.tags.includes('sport') || i.tags.includes('casual')) ?? shoes[0],
+                        tops[0],
+                        pants[0],
+                    ];
+                } else {
+                    result = [
+                        tops.find(i => i.tags.includes('sport') || i.tags.includes('casual')) ?? tops[0],
+                        pants.find(i => i.tags.includes('sport') || i.tags.includes('casual')) ?? pants[0],
+                        shoes.find(i => i.tags.includes('sport') || i.tags.includes('casual')) ?? shoes[0],
+                        jackets.find(i => i.tags.includes('casual')) ?? jackets[0],
+                    ];
+                }
+            } else if (wantsDress || wantsParty) {
+                result = [
+                    dresses.find(i => i.tags.includes('elegant') || i.tags.includes('formal')) ?? dresses[0] ?? tops.find(i => i.tags.includes('elegant')),
+                    shoes.find(i => i.tags.includes('elegant') || i.tags.includes('boots')) ?? shoes[0],
+                    jackets.find(i => i.tags.includes('elegant') || i.tags.includes('blazer')) ?? jackets[0],
+                    tops.find(i => i.tags.includes('elegant') || i.tags.includes('minimalist')) ?? tops[0],
+                ];
+            } else if (wantsOffice) {
+                result = [
+                    jackets.find(i => i.tags.includes('blazer') || i.tags.includes('elegant')) ?? jackets[0],
+                    pants.find(i => !i.tags.includes('skirt') && !i.tags.includes('floral')) ?? pants[0],
+                    tops.find(i => i.tags.includes('elegant') || i.tags.includes('minimalist')) ?? tops[0],
+                    shoes.find(i => i.tags.includes('elegant') || i.tags.includes('boots')) ?? shoes[0],
+                ];
+            } else if (wantsCasual) {
+                result = [
+                    pants.find(i => i.tags.includes('jeans') || i.tags.includes('casual')) ?? pants[0],
+                    tops.find(i => i.tags.includes('casual') || i.tags.includes('streetwear')) ?? tops[0],
+                    shoes.find(i => i.tags.includes('casual') || i.tags.includes('sport')) ?? shoes[0],
+                    jackets.find(i => i.tags.includes('casual') || i.tags.includes('denim')) ?? jackets[0],
+                ];
             } else {
-                result = [shoes[0] ?? sourceItems[0], pants[0] ?? sourceItems[1], tops[0] ?? sourceItems[2], jackets[0] ?? sourceItems[3]];
+                const usedCategories = new Set<string>();
+                const defaultResult: OutfitItem[] = [];
+                for (const item of scoredItems) {
+                    if (defaultResult.length >= 4) break;
+                    const cat = item.category ?? 'other';
+                    if (!usedCategories.has(cat)) {
+                        defaultResult.push(item);
+                        usedCategories.add(cat);
+                    }
+                }
+                result = defaultResult;
             }
 
             const seen = new Set<string>();
-            const filtered = result.filter(Boolean).filter(item => {
-                if (seen.has(item.id)) return false;
-                seen.add(item.id);
-                return true;
-            });
+            const filtered: OutfitItem[] = result
+                .filter((item): item is OutfitItem => !!item)
+                .filter(item => {
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                });
 
-            const fallback = sourceItems.filter(i => !seen.has(i.id));
-            while (filtered.length < 4 && fallback.length > 0) filtered.push(fallback.shift()!);
+            const fallback = scoredItems.filter(i => !seen.has(i.id));
+            while (filtered.length < 4 && fallback.length > 0) {
+                filtered.push(fallback.shift()!);
+            }
 
             setOutfits(filtered.slice(0, 4));
             setGenerated(true);
@@ -261,7 +321,6 @@ export default function BuilderScreen() {
         await saveFeedbackToStorage();
         setHasShownFeedback(true);
         setFeedbackSubmitted(true);
-
         setTimeout(() => {
             setFeedbackVisible(false);
             setFeedbackSubmitted(false);
@@ -326,17 +385,42 @@ export default function BuilderScreen() {
         });
         setCartModalVisible(false);
         setAddedToCart(true);
-
         setTimeout(() => {
             handleClear();
             router.replace({ pathname: '/cart_detail', params: { cartId } });
         }, 1500);
     };
 
+    const handleItemPress = (item: OutfitItem) => {
+        if (item.fromWardrobe) {
+            router.push({
+                pathname: '/(tabs)/wardrobe_item',
+                params: { itemId: item.id },
+            });
+        } else {
+            router.push({
+                pathname: '/(tabs)/product_detail',
+                params: {
+                    productId: item.id,
+                    category: 'CLOTHING',
+                    subcategory: item.category ?? '',
+                    gender: 'WOMAN',
+                    from: 'builder',
+                },
+            });
+        }
+    };
+
     const shopItemsCount = outfits.filter(i => !i.fromWardrobe).length;
     const isShopActive = sources.includes('shop');
     const isWardrobeActive = selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id));
     const isWishlistActive = selectedItems.some(i => wishlistAsOutfits.find(w => w.id === i.id));
+
+    const getButtonLabel = () => {
+        if (loading) return 'Generating things for you...';
+        if (generated) return 'REGENERATE';
+        return 'GENERATE OUTFIT';
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -347,7 +431,7 @@ export default function BuilderScreen() {
             >
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Outfit Builder</Text>
-                    <Text style={styles.headerSubtitle}>Describe your dream outfit and let AI do the rest</Text>
+                    <Text style={styles.headerSubtitle}>Pick a vibe and we'll build the perfect outfit for you ✨</Text>
                 </View>
 
                 <Text style={styles.sectionLabel}>Sources</Text>
@@ -438,21 +522,19 @@ export default function BuilderScreen() {
                     )}
                 </View>
 
-                
 
                 <TouchableOpacity
                     style={[
                         styles.generateButton,
                         loading && styles.generateButtonLoading,
                         isPromptEmpty && styles.generateButtonDisabled,
+                        generated && !loading && styles.generateButtonRegenerate,
                     ]}
                     onPress={handleGenerate}
                     disabled={loading || isPromptEmpty}
                 >
-                    <Feather name="zap" size={16} color="#fff" />
-                    <Text style={styles.generateButtonText}>
-                        {loading ? 'AI is thinking...' : 'GENERATE OUTFIT'}
-                    </Text>
+                    <Feather name={generated && !loading ? 'refresh-cw' : 'zap'} size={16} color="#fff" />
+                    <Text style={styles.generateButtonText}>{getButtonLabel()}</Text>
                 </TouchableOpacity>
 
                 {generated && outfits.length > 0 && (
@@ -462,7 +544,12 @@ export default function BuilderScreen() {
                         </Text>
                         <View style={styles.outfitsGrid}>
                             {outfits.map((item, index) => (
-                                <View key={item.id} style={styles.outfitCard}>
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.outfitCard}
+                                    activeOpacity={0.85}
+                                    onPress={() => handleItemPress(item)}
+                                >
                                     <Image
                                         source={typeof item.image === 'string' ? { uri: item.image } : item.image}
                                         style={styles.outfitImage}
@@ -470,7 +557,10 @@ export default function BuilderScreen() {
                                     />
                                     <TouchableOpacity
                                         style={styles.regenerateItemButton}
-                                        onPress={() => regenerateItem(index)}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            regenerateItem(index);
+                                        }}
                                     >
                                         <Feather name="refresh-cw" size={13} color="#111" />
                                     </TouchableOpacity>
@@ -479,8 +569,14 @@ export default function BuilderScreen() {
                                             <Text style={styles.wardrobeBadgeText}>My item</Text>
                                         </View>
                                     )}
+                                    {!item.fromWardrobe && (
+                                        <View style={styles.shopBadge}>
+                                            <Text style={styles.shopBadgeText}>Shop</Text>
+                                        </View>
+                                    )}
                                     <Text style={styles.outfitName} numberOfLines={2}>{item.name}</Text>
-                                </View>
+                                    <Text style={styles.outfitTapHint}>Tap to view details</Text>
+                                </TouchableOpacity>
                             ))}
                         </View>
 
@@ -513,40 +609,7 @@ export default function BuilderScreen() {
                             )}
                         </View>
 
-                        {/* Inline feedback card */}
-                        <View style={styles.feedbackCard}>
-                            <Text style={styles.feedbackTitle}>How do you rate this outfit suggestion?</Text>
-                            <View style={styles.inlineStarsRow}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <TouchableOpacity
-                                        key={star}
-                                        onPress={() => {
-                                            if (!inlineFeedbackSubmitted) setInlineFeedbackRating(star);
-                                        }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Feather
-                                            name="star"
-                                            size={24}
-                                            color={star <= inlineFeedbackRating ? '#f2b55d' : '#bcbcbc'}
-                                            style={styles.starIcon}
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                            <TouchableOpacity
-                                style={[
-                                    styles.feedbackButton,
-                                    (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) && styles.feedbackButtonDisabled,
-                                ]}
-                                onPress={handleInlineFeedbackSubmit}
-                                disabled={inlineFeedbackRating === 0 || inlineFeedbackSubmitted}
-                            >
-                                <Text style={styles.feedbackButtonText}>
-                                    {inlineFeedbackSubmitted ? 'Submitted ✓' : 'Submit'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                       
                     </View>
                 )}
 
@@ -646,20 +709,13 @@ export default function BuilderScreen() {
                         <View style={styles.rewardCard}>
                             <Text style={styles.rewardEmoji}>🎉</Text>
                             <Text style={styles.rewardTitle}>You earned points!</Text>
-                            <Text style={styles.rewardSubtitle}>
-                                Thanks to your feedback you earned
-                            </Text>
+                            <Text style={styles.rewardSubtitle}>Thanks to your feedback you earned</Text>
                             <View style={styles.rewardBadge}>
                                 <Text style={styles.rewardBadgePoints}>+5</Text>
                                 <Text style={styles.rewardBadgeLabel}> points</Text>
                             </View>
-                            <Text style={styles.rewardNote}>
-                                Reach 30 points to unlock unlimited carts!
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.rewardButton}
-                                onPress={() => setRewardModalVisible(false)}
-                            >
+                            <Text style={styles.rewardNote}>Reach 30 points to unlock unlimited carts!</Text>
+                            <TouchableOpacity style={styles.rewardButton} onPress={() => setRewardModalVisible(false)}>
                                 <Text style={styles.rewardButtonText}>AWESOME!</Text>
                             </TouchableOpacity>
                         </View>
@@ -810,16 +866,14 @@ const styles = StyleSheet.create({
         borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, gap: 10,
     },
     input: { flex: 1, fontSize: 15, color: '#111', maxHeight: 80 },
-    promptHint: {
-        fontSize: 12, color: '#8a8a8a', textAlign: 'center',
-        marginBottom: 12, marginTop: 2,
-    },
+    promptHint: { fontSize: 12, color: '#8a8a8a', textAlign: 'center', marginBottom: 12, marginTop: 2 },
     generateButton: {
         backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
         alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24,
     },
     generateButtonLoading: { backgroundColor: '#555' },
     generateButtonDisabled: { backgroundColor: '#bdbdbd' },
+    generateButtonRegenerate: { backgroundColor: '#333' },
     generateButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
     resultsSection: { marginTop: 8 },
     resultsTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 16 },
@@ -836,7 +890,13 @@ const styles = StyleSheet.create({
         borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
     },
     wardrobeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+    shopBadge: {
+        position: 'absolute', top: 8, left: 8, backgroundColor: '#f2b55d',
+        borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
+    },
+    shopBadgeText: { color: '#111', fontSize: 10, fontWeight: '700' },
     outfitName: { marginTop: 8, fontSize: 13, color: '#111', fontWeight: '500' },
+    outfitTapHint: { fontSize: 11, color: '#aaa', marginTop: 2 },
     actionRow: { flexDirection: 'row', gap: 12, marginTop: 24, alignItems: 'center' },
     actionButtonOutline: {
         flex: 1, height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: '#111',
