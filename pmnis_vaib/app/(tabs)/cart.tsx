@@ -19,9 +19,10 @@ import { useFocusEffect } from '@react-navigation/native';
 
 export default function CartScreen() {
     const router = useRouter();
-    const { carts, deleteCart } = useCart();
+    const { carts, deleteCart, builderFeedbackCount, isUnlimitedUnlocked } = useCart();
     const swipeableRefs = React.useRef<Record<string, Swipeable | null>>({});
     const isSwipingRef = React.useRef(false);
+
 
     useFocusEffect(
         React.useCallback(() => {
@@ -30,9 +31,10 @@ export default function CartScreen() {
         }, [])
     );
 
-    const feedbackCount = 0;
+    const feedbackCount = builderFeedbackCount;
     const maxFeedback = 30;
     const progressPercent = Math.min((feedbackCount / maxFeedback) * 100, 100);
+    const feedbackRemaining = Math.max(maxFeedback - feedbackCount, 0);
 
     const handleOpenCart = (cartId: string) => {
         router.push({
@@ -57,9 +59,17 @@ export default function CartScreen() {
     };
 
     const handleUnlockPress = () => {
+        if (isUnlimitedUnlocked) {
+            Alert.alert(
+                'Unlocked!',
+                'Unlimited carts are now available for your account.'
+            );
+            return;
+        }
+
         Alert.alert(
             'Not yet unlocked',
-            'You do not have unlimited carts unlocked yet. Reach 30 Builder feedbacks first.'
+            `You need ${feedbackRemaining} more Builder feedbacks to unlock unlimited carts.`
         );
     };
 
@@ -127,7 +137,9 @@ export default function CartScreen() {
                 </TouchableOpacity>
 
                 <Text style={styles.counterText}>
-                    Created carts: {carts.length}/5
+                    {isUnlimitedUnlocked
+                        ? `Created carts: ${carts.length}/∞`
+                        : `Created carts: ${carts.length}/5`}
                 </Text>
 
                 <ImageBackground
@@ -139,16 +151,27 @@ export default function CartScreen() {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.upgradeTitle}>☆ UPGRADE ☆</Text>
                             <Text style={styles.upgradeText}>
-                                Give 30 pieces of feedback in Builder and unlock unlimited carts!
+                                {isUnlimitedUnlocked
+                                    ? 'Unlimited carts unlocked!'
+                                    : `Give ${feedbackRemaining} more pieces of feedback in Builder to unlock unlimited carts!`}
                             </Text>
                         </View>
 
                         <TouchableOpacity
-                            style={styles.upgradeButton}
+                            style={[
+                                styles.upgradeButton,
+                                isUnlimitedUnlocked && styles.upgradeButtonUnlocked,
+                            ]}
                             onPress={handleUnlockPress}
                         >
-                            <Feather name="lock" size={14} color="#fff" />
-                            <Text style={styles.upgradeButtonText}>Unlock</Text>
+                            <Feather
+                                name={isUnlimitedUnlocked ? 'unlock' : 'lock'}
+                                size={14}
+                                color="#fff"
+                            />
+                            <Text style={styles.upgradeButtonText}>
+                                {isUnlimitedUnlocked ? 'Unlocked' : 'Unlock'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
 
@@ -599,6 +622,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#6a6a6a',
+    },
+
+    upgradeButtonUnlocked: {
+        backgroundColor: '#111',
     },
 
 });

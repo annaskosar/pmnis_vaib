@@ -243,7 +243,12 @@ export default function CartDetailScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.checkoutButton}
-                        onPress={() => router.push(`/dotaznik/payment?cartId=${cart.id}` as any)}
+                        onPress={() =>
+                            router.push({
+                                pathname: '/payment',
+                                params: { cartId: cart.id },
+                            })
+                        }
                     >
     <Text style={styles.checkoutButtonText}>Proceed to payment</Text>
 </TouchableOpacity>

@@ -18,7 +18,7 @@ import { useCart } from '../../context/cart_context';
 
 export default function CreateCartScreen() {
     const router = useRouter();
-    const { carts, createCart, getCartById, updateCart } = useCart();
+    const { carts, createCart, getCartById, updateCart, isUnlimitedUnlocked } = useCart();
     const { cartId, returnToBuilder, returnToCartDetail } = useLocalSearchParams();
     const isEditMode = typeof cartId === 'string';
 
@@ -29,6 +29,8 @@ export default function CreateCartScreen() {
     const maxFreeCarts = 5;
     const remainingSlots = Math.max(0, maxFreeCarts - carts.length);
     const cart = isEditMode ? getCartById(cartId) : undefined;
+
+
 
     useFocusEffect(
         React.useCallback(() => {
@@ -83,7 +85,10 @@ export default function CreateCartScreen() {
             const created = createCart(trimmedName, parsedBudget);
 
             if (!created) {
-                Alert.alert('Cart limit reached', 'You can create up to 5 carts before unlocking more.');
+                Alert.alert(
+                    'Cart limit reached',
+                    'You can create up to 5 carts before unlocking unlimited carts through Builder feedback.'
+                );
                 return;
             }
 
@@ -93,10 +98,16 @@ export default function CreateCartScreen() {
                     params: { returnToBuilder: 'true' },
                 });
             } else {
-                router.replace('/(tabs)/cart');
+                router.replace({
+                    pathname: '/cart_detail',
+                    params: {cartId: created.id},
+
+                });
             }
         }
     };
+
+
 
     const handleCancel = () => {
         if (returnToCartDetail === 'true' && typeof cartId === 'string') {
@@ -151,7 +162,11 @@ export default function CreateCartScreen() {
                                     </Text>
 
                                     <Text style={styles.subTitle}>
-                                        {remainingSlots > 0 ? (
+                                        {isUnlimitedUnlocked ? (
+                                            <>
+                                                <Text style={styles.highlightText}>{carts.length}/∞</Text> cart slots used
+                                            </>
+                                        ) : remainingSlots > 0 ? (
                                             <>
                                                 <Text style={styles.highlightText}>
                                                     {carts.length}/{maxFreeCarts}
@@ -203,7 +218,7 @@ export default function CreateCartScreen() {
                                 <TouchableOpacity
                                     style={[
                                         styles.createButtonSmall,
-                                        !isEditMode && carts.length >= maxFreeCarts && styles.disabledButton,
+                                        !isEditMode && !isUnlimitedUnlocked && carts.length >= maxFreeCarts && styles.disabledButton,
                                     ]}
                                     onPress={handleSubmit}
                                 >

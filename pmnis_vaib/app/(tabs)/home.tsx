@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProducts } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useWishlist } from '../../context/wishlist_context';
 
 
 
@@ -60,6 +61,8 @@ export default function HomeScreen() {
         await AsyncStorage.removeItem('recentSearches');
         setRecentSearches([]);
     };
+
+    const { toggleWishlist, isInWishlist } = useWishlist();
 
 
     const saveSearch = async (value: string) => {
@@ -156,7 +159,6 @@ export default function HomeScreen() {
         {image: require('../../assets/images_app/model7.png'), label: 'favorites'},
     ];
 
-    const [likedItems, setLikedItems] = useState<string[]>([]);
 
     const brands = [
         {
@@ -290,7 +292,10 @@ export default function HomeScreen() {
                             />
                         </ImageBackground>
 
-                        <TouchableOpacity style={styles.iconButton}>
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => router.push('/wishlist')}
+                        >
                             <Feather name="heart" size={20} color="#393939" />
                         </TouchableOpacity>
 
@@ -507,18 +512,23 @@ export default function HomeScreen() {
 
                                         <TouchableOpacity
                                             style={styles.cartButton}
-                                            onPress={() => {
-                                                setLikedItems((prev) =>
-                                                    prev.includes(item.id)
-                                                        ? prev.filter((id) => id !== item.id)
-                                                        : [...prev, item.id]
-                                                );
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                toggleWishlist({
+                                                    id: item.id,
+                                                    name: item.name,
+                                                    price: item.price,
+                                                    image: imageSource,
+                                                    category: item.mainCategory,
+                                                    subcategory: item.subCategory,
+                                                    gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                });
                                             }}
                                         >
                                             <MaterialIcons
-                                                name={likedItems.includes(item.id) ? 'favorite' : 'favorite-border'}
+                                                name="favorite-border"
                                                 size={18}
-                                                color={likedItems.includes(item.id) ? '#df2518' : '#111'}
+                                                color={isInWishlist(item.id) ? '#df2518' : '#111'}
                                             />
                                         </TouchableOpacity>
                                     </TouchableOpacity>

@@ -19,14 +19,18 @@ export type BudgetCart = {
 
 type CartContextType = {
     carts: BudgetCart[];
+    builderFeedbackCount: number;
+    isCartLoading: boolean;
     getCartById: (id: string) => BudgetCart | undefined;
     increaseProductQuantity: (cartId: string, productId: string) => void;
     decreaseProductQuantity: (cartId: string, productId: string) => void;
     removeProductFromCart: (cartId: string, productId: string) => void;
     deleteCart: (cartId: string) => void;
-    createCart: (name: string, budget: number) => boolean;
+    createCart: (name: string, budget: number) => BudgetCart | null;
     updateCart: (cartId: string, name: string, budget: number) => void;
     addProductToCart: (cartId: string, product: CartProduct) => void;
+    addBuilderFeedback: () => void;
+    isUnlimitedUnlocked: boolean;
 };
 
 const CartContext = React.createContext<CartContextType | undefined>(undefined);
@@ -92,29 +96,43 @@ const DEFAULT_CARTS: BudgetCart[] = [
 export function CartProvider({ children }: { children: React.ReactNode }) {
     const [carts, setCarts] = React.useState<BudgetCart[]>([]);
     const [userEmail, setUserEmail] = React.useState<string | null>(null);
+    const [builderFeedbackCount, setBuilderFeedbackCount] = React.useState(0);
 
-    // Načítaj carty pri štarte podľa používateľa
+    const [isCartLoading, setIsCartLoading] = React.useState(true);
+
     React.useEffect(() => {
-        const loadCarts = async () => {
+        const loadData = async () => {
             const userData = await AsyncStorage.getItem('currentUser');
-            if (!userData) return;
+
+            if (!userData) {
+                setIsCartLoading(false);
+                return;
+            }
 
             const user = JSON.parse(userData);
             setUserEmail(user.email);
 
             const isTestAccount = user.email === TEST_EMAIL;
-            const key = `carts_${user.email}`;
-            const saved = await AsyncStorage.getItem(key);
 
-            if (saved) {
-                const savedCarts = JSON.parse(saved);
+            const cartsKey = `carts_${user.email}`;
+            const feedbackKey = `builderFeedback_${user.email}`;
+
+            const savedCartsRaw = await AsyncStorage.getItem(cartsKey);
+            const savedFeedbackRaw = await AsyncStorage.getItem(feedbackKey);
+
+            setBuilderFeedbackCount(savedFeedbackRaw ? JSON.parse(savedFeedbackRaw) : 0);
+
+            if (savedCartsRaw) {
+                const savedCarts = JSON.parse(savedCartsRaw);
+
                 if (isTestAccount) {
-                    // Test účet — obnov default obrázky pre default carty
                     const defaultIds = ['1', '2', '3'];
                     const userCarts = savedCarts.filter((c: BudgetCart) => !defaultIds.includes(c.id));
+
                     const defaultCarts = DEFAULT_CARTS.map(def => {
                         const saved = savedCarts.find((s: BudgetCart) => s.id === def.id);
                         if (!saved) return def;
+
                         return {
                             ...saved,
                             products: saved.products.map((p: CartProduct, i: number) => ({
@@ -123,24 +141,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                             })),
                         };
                     });
+
                     setCarts([...userCarts, ...defaultCarts]);
                 } else {
                     setCarts(savedCarts);
                 }
             } else {
-                // Prvé prihlásenie
                 setCarts(isTestAccount ? DEFAULT_CARTS : []);
             }
+
+            setIsCartLoading(false);
         };
 
-        loadCarts();
+        loadData();
     }, []);
 
-    // Ulož carty pri každej zmene
     const saveCarts = async (newCarts: BudgetCart[], email: string | null) => {
         if (!email) return;
+
         const key = `carts_${email}`;
-        // Pre obrázky z require() — ulož len URI stringy, require obrázky vynechaj
+
         const toSave = newCarts.map(cart => ({
             ...cart,
             products: cart.products.map(p => ({
@@ -148,7 +168,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 image: typeof p.image === 'string' ? p.image : null,
             })),
         }));
+
         await AsyncStorage.setItem(key, JSON.stringify(toSave));
+    };
+
+    const saveBuilderFeedbackCount = async (count: number, email: string | null) => {
+        if (!email) return;
+        const key = `builderFeedback_${email}`;
+        await AsyncStorage.setItem(key, JSON.stringify(count));
     };
 
     const updateCarts = (newCarts: BudgetCart[]) => {
@@ -201,21 +228,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateCarts(newCarts);
     };
 
+
     const deleteCart = (cartId: string) => {
         const newCarts = carts.filter((cart) => cart.id !== cartId);
         updateCarts(newCarts);
     };
 
     const createCart = (name: string, budget: number) => {
-        if (carts.length >= 5) return false;
+        if (!isUnlimitedUnlocked && carts.length >= 5) return null;
+
         const newCart: BudgetCart = {
             id: Date.now().toString(),
             name,
             budget,
             products: [],
         };
+
         updateCarts([...carts, newCart]);
-        return true;
+        return newCart;
     };
 
     const updateCart = (cartId: string, name: string, budget: number) => {
@@ -228,7 +258,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const addProductToCart = (cartId: string, product: CartProduct) => {
         const newCarts = carts.map((cart) => {
             if (cart.id !== cartId) return cart;
+
             const existingProduct = cart.products.find((p) => p.id === product.id);
+
             if (existingProduct) {
                 return {
                     ...cart,
@@ -239,15 +271,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     ),
                 };
             }
+
             return { ...cart, products: [...cart.products, product] };
         });
+
         updateCarts(newCarts);
     };
+
+    const isUnlimitedUnlocked = builderFeedbackCount >= 30;
+
+    const addBuilderFeedback = () => {
+        const newCount = Math.min(builderFeedbackCount + 1, 30);
+        setBuilderFeedbackCount(newCount);
+        saveBuilderFeedbackCount(newCount, userEmail);
+    };
+
+
 
     return (
         <CartContext.Provider
             value={{
                 carts,
+                builderFeedbackCount,
+                isCartLoading,
                 getCartById,
                 increaseProductQuantity,
                 decreaseProductQuantity,
@@ -256,6 +302,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 createCart,
                 updateCart,
                 addProductToCart,
+                addBuilderFeedback,
+                isUnlimitedUnlocked,
             }}
         >
             {children}
@@ -265,8 +313,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCart() {
     const context = React.useContext(CartContext);
+
     if (!context) {
         throw new Error('useCart must be used inside CartProvider');
     }
+
     return context;
 }
+

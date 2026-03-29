@@ -8,27 +8,27 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useWardrobe } from '../../context/wardrobe_context';
 import { useCart } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
+import { useProducts } from '../../context/product_context';
+import { productImages } from '../../context/product_images';
 
-const SHOP_PRODUCTS = [
-    { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'modra', 'blue'] },
-    { id: 's2', image: require('../../assets/images_app/model9.png'), name: 'Summer dress', tags: ['summer', 'dress', 'casual', 'boho', 'letny', 'saty'] },
-    { id: 's3', image: require('../../assets/images_app/model10.png'), name: 'One shoulder top', tags: ['top', 'elegant', 'streetwear', 'black', 'cierna', 'minimalist'] },
-    { id: 's4', image: require('../../assets/images_app/model11.png'), name: 'Adidas sport set', tags: ['sport', 'sporty', 'green', 'zelena', 'casual', 'adidas'] },
-    { id: 's5', image: require('../../assets/images_app/model2.png'), name: 'Denim look', tags: ['denim', 'casual', 'modra', 'blue', 'rifle'] },
-    { id: 's6', image: require('../../assets/images_app/model3.png'), name: 'Elegant dress', tags: ['dress', 'elegant', 'formal', 'saty', 'elegantny'] },
-    { id: 's7', image: require('../../assets/images_app/model4.png'), name: 'Spring outfit', tags: ['spring', 'casual', 'jar', 'jarny', 'outfit'] },
-    { id: 's8', image: require('../../assets/images_app/model5.png'), name: 'Shoes collection', tags: ['shoes', 'topanky', 'casual', 'sport'] },
-];
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
-type OutfitItem = { id: string; image: any; name: string; tags: string[]; fromWardrobe?: boolean };
+type OutfitItem = {
+    id: string;
+    image: any;
+    name: string;
+    tags: string[];
+    fromWardrobe?: boolean;
+    fromShop?: boolean;
+};
 
 export default function BuilderScreen() {
     const router = useRouter();
     const { returnToBuilder } = useLocalSearchParams();
     const { wardrobeItems } = useWardrobe();
-    const { carts, addProductToCart } = useCart();
+    const { carts, addProductToCart, addBuilderFeedback } = useCart();
     const { wishlistItems } = useWishlist();
+    const { products } = useProducts();
 
     const [prompt, setPrompt] = useState('');
     const [sources, setSources] = useState<Source[]>(['shop']);
@@ -42,6 +42,30 @@ export default function BuilderScreen() {
     const [selectedItems, setSelectedItems] = useState<OutfitItem[]>([]);
     const [cartModalVisible, setCartModalVisible] = useState(false);
 
+    const shopProducts: OutfitItem[] = products
+        .map(product => {
+            const firstImageKey =
+                product.availableColors?.[0]?.imageKeys?.[0] || product.images?.[0];
+
+            const imageSource = firstImageKey ? productImages[firstImageKey] : null;
+
+            if (!imageSource) return null;
+
+            return {
+                id: product.id,
+                image: imageSource,
+                name: product.name,
+                tags: [
+                    product.brand.toLowerCase(),
+                    product.mainCategory.toLowerCase(),
+                    product.subCategory.toLowerCase(),
+                    ...product.tags.map(tag => tag.toLowerCase()),
+                    ...product.availableColors.map(color => color.name.toLowerCase()),
+                ],
+            };
+        })
+        .filter(Boolean) as OutfitItem[];
+
     useFocusEffect(
         React.useCallback(() => {
             if (returnToBuilder === 'true') {
@@ -49,6 +73,12 @@ export default function BuilderScreen() {
             }
         }, [returnToBuilder])
     );
+
+    const [selectedRating, setSelectedRating] = useState<number>(0);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+
+
 
     const wardrobeAsOutfits: OutfitItem[] = wardrobeItems.map(item => ({
         id: item.id,
@@ -68,7 +98,7 @@ export default function BuilderScreen() {
     const getSheetItems = (): OutfitItem[] => {
         if (sheetSource === 'wardrobe') return wardrobeAsOutfits;
         if (sheetSource === 'wishlist') return wishlistAsOutfits;
-        return SHOP_PRODUCTS;
+        return shopProducts;
     };
 
     const toggleSource = (s: Source) => {
@@ -119,7 +149,7 @@ export default function BuilderScreen() {
     const getSourceItems = (): OutfitItem[] => {
         let items: OutfitItem[] = [];
         if (selectedItems.length > 0) items = [...items, ...selectedItems];
-        if (sources.includes('shop')) items = [...items, ...SHOP_PRODUCTS];
+        if (sources.includes('shop')) items = [...items, ...shopProducts];
         return items.filter((item, index, self) =>
             self.findIndex(i => i.id === item.id) === index
         );
@@ -129,6 +159,9 @@ export default function BuilderScreen() {
         setLoading(true);
         setGenerated(false);
         setAddedToCart(false);
+        setSelectedRating(0);
+        setFeedbackSubmitted(false);
+
         setTimeout(() => {
             const sourceItems = getSourceItems();
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 2);
@@ -148,6 +181,14 @@ export default function BuilderScreen() {
             setGenerated(true);
             setLoading(false);
         }, 1500);
+    };
+
+
+    const handleSubmitFeedback = () => {
+        if (selectedRating === 0 || feedbackSubmitted) return;
+
+        addBuilderFeedback();
+        setFeedbackSubmitted(true);
     };
 
     const regenerateItem = (index: number) => {
@@ -362,6 +403,45 @@ export default function BuilderScreen() {
                                 </TouchableOpacity>
                             )}
                         </View>
+                        <View style={styles.feedbackCard}>
+                            <Text style={styles.feedbackTitle}>How do you rate this outfit suggestion?</Text>
+
+                            <View style={styles.starsRow}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity
+                                        key={star}
+                                        onPress={() => {
+                                            if (!feedbackSubmitted) setSelectedRating(star);
+                                        }}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Feather
+                                            name="star"
+                                            size={24}
+                                            color={star <= selectedRating ? '#111' : '#bcbcbc'}
+                                            style={styles.starIcon}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.feedbackButton,
+                                    (selectedRating === 0 || feedbackSubmitted) && styles.feedbackButtonDisabled,
+                                ]}
+                                onPress={handleSubmitFeedback}
+                                disabled={selectedRating === 0 || feedbackSubmitted}
+                            >
+                                <Text style={styles.feedbackButtonText}>
+                                    {feedbackSubmitted ? 'Submitted' : 'Submit'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {feedbackSubmitted && (
+                                <Text style={styles.feedbackThanksText}>Thanks for your feedback!</Text>
+                            )}
+                        </View>
                     </View>
                 )}
 
@@ -382,7 +462,12 @@ export default function BuilderScreen() {
             >
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setSheetVisible(false)} />
-                    <View style={styles.bottomSheet}>
+                    <View
+                        style={[
+                            styles.bottomSheet,
+                            sheetSource === 'wishlist' && styles.wishlistBottomSheet,
+                        ]}
+                    >
                         <View style={styles.sheetHandle} />
                         <View style={styles.sheetHeader}>
                             <Text style={styles.sheetTitle}>
@@ -519,14 +604,14 @@ const styles = StyleSheet.create({
     sourceButtonActive: { backgroundColor: '#fff', borderColor: '#111' },
     sourceButtonText: { fontSize: 13, fontWeight: '600', color: '#999' },
     sourceButtonTextActive: { color: '#111' },
-    selectedPreview: { marginBottom: 16 },
+    selectedPreview: { marginBottom: 16, paddingTop: 6 },
     selectedLabel: { fontSize: 13, color: '#393939', marginBottom: 8, fontWeight: '600' },
-    selectedChip: { marginRight: 8, position: 'relative' },
+    selectedChip: { marginTop: 10, marginRight: 8, position: 'relative' },
     selectedChipImage: { width: 56, height: 56, borderRadius: 10 },
     selectedChipRemove: {
         position: 'absolute', top: -4, right: -4,
         backgroundColor: '#111', borderRadius: 10,
-        width: 18, height: 18, justifyContent: 'center', alignItems: 'center',
+        width: 18, height: 18, justifyContent: 'center', alignItems: 'center'
     },
     inputWrapper: {
         flexDirection: 'row', alignItems: 'center',
@@ -585,8 +670,12 @@ const styles = StyleSheet.create({
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {
         backgroundColor: '#f3f3f3', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        paddingHorizontal: 18, paddingBottom: 34, maxHeight: '75%',
+        paddingHorizontal: 18, paddingBottom: 34, maxHeight: '80%',
     },
+    wishlistBottomSheet: {
+        height: '50%',
+    },
+
     sheetHandle: {
         width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc',
         alignSelf: 'center', marginTop: 12, marginBottom: 16,
@@ -629,4 +718,59 @@ const styles = StyleSheet.create({
     cartSelectName: { fontSize: 15, fontWeight: '700', color: '#111' },
     cartSelectSub: { fontSize: 12, color: '#6a6a6a', marginTop: 2 },
     noCartsText: { textAlign: 'center', color: '#999', fontSize: 14, marginTop: 20 },
+
+    feedbackCard: {
+        marginTop: 18,
+        backgroundColor: '#e9e9e9',
+        borderRadius: 18,
+        paddingVertical: 16,
+        paddingHorizontal: 14,
+        alignItems: 'center',
+    },
+
+    feedbackTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+
+    starsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 14,
+    },
+
+    starIcon: {
+        marginHorizontal: 6,
+    },
+
+    feedbackButton: {
+        minWidth: 120,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#111',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+
+    feedbackButtonDisabled: {
+        backgroundColor: '#bdbdbd',
+    },
+
+    feedbackButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+
+    feedbackThanksText: {
+        marginTop: 10,
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#5f5f5f',
+    },
 });
