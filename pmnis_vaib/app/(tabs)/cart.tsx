@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#111', borderRadius: 14, paddingHorizontal: 14,
         paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6,
     },
-    upgradeButtonUnlocked: { backgroundColor: '#006958' },
+    upgradeButtonUnlocked: { backgroundColor: '#000000' },
     upgradeButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
     progressSection: { marginTop: 20 },
     progressLabelsRow: {
