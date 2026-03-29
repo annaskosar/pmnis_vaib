@@ -14,9 +14,17 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useWardrobe } from '../../context/wardrobe_context';
+import { useWardrobe, WardrobeCategory } from '../../context/wardrobe_context';
 import { useFocusEffect } from '@react-navigation/native';
 
+const CATEGORIES: { value: WardrobeCategory; label: string; icon: string }[] = [
+    { value: 'shoes', label: 'Shoes', icon: '👟' },
+    { value: 'pants', label: 'Pants / Skirt', icon: '👖' },
+    { value: 'top', label: 'Top / T-shirt', icon: '👕' },
+    { value: 'jacket', label: 'Jacket / Coat', icon: '🧥' },
+    { value: 'dress', label: 'Dress', icon: '👗' },
+    { value: 'other', label: 'Other', icon: '🛍️' },
+];
 
 export default function WardrobeAddScreen() {
     const router = useRouter();
@@ -25,6 +33,7 @@ export default function WardrobeAddScreen() {
 
     const [itemName, setItemName] = React.useState('');
     const [additionalInfo, setAdditionalInfo] = React.useState('');
+    const [selectedCategory, setSelectedCategory] = React.useState<WardrobeCategory | null>(null);
 
     const imageSource =
         typeof imageUri === 'string' ? { uri: imageUri } : undefined;
@@ -39,8 +48,9 @@ export default function WardrobeAddScreen() {
         addWardrobeItem({
             image: imageUri,
             name: itemName.trim() || 'new item',
+            category: selectedCategory ?? 'other',
             additionalInfo: additionalInfo.trim(),
-            createdAt: Date.now(), 
+            createdAt: Date.now(),
         });
 
         router.replace('/(tabs)/wardrobe');
@@ -53,6 +63,7 @@ export default function WardrobeAddScreen() {
             setSelectedAction(null);
             setItemName('');
             setAdditionalInfo('');
+            setSelectedCategory(null);
         }, [])
     );
 
@@ -79,7 +90,6 @@ export default function WardrobeAddScreen() {
                         >
                             <Feather name="arrow-left" size={24} color="#111" />
                         </TouchableOpacity>
-
                         <Text style={styles.headerText}>Add to wardrobe</Text>
                     </ImageBackground>
 
@@ -135,6 +145,30 @@ export default function WardrobeAddScreen() {
                         </View>
 
                         <View style={styles.form}>
+                            <Text style={styles.label}>Category</Text>
+                            <View style={styles.categoryGrid}>
+                                {CATEGORIES.map(cat => (
+                                    <TouchableOpacity
+                                        key={cat.value}
+                                        style={[
+                                            styles.categoryChip,
+                                            selectedCategory === cat.value && styles.categoryChipActive,
+                                        ]}
+                                        onPress={() => setSelectedCategory(
+                                            selectedCategory === cat.value ? null : cat.value
+                                        )}
+                                    >
+                                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                                        <Text style={[
+                                            styles.categoryLabel,
+                                            selectedCategory === cat.value && styles.categoryLabelActive,
+                                        ]}>
+                                            {cat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
                             <Text style={styles.label}>Name</Text>
                             <TextInput
                                 value={itemName}
@@ -164,128 +198,56 @@ export default function WardrobeAddScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#f3f3f3',
+    safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
+    flex: { flex: 1 },
+    scrollViewContent: { paddingBottom: 40, flexGrow: 1 },
+    scrollContent: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 30 },
+    headerWrapper: {
+        height: 64, flexDirection: 'row', alignItems: 'center',
+        paddingHorizontal: 22, marginLeft: -18, marginRight: -18, overflow: 'hidden',
     },
-
-    scrollContent: {
-        paddingHorizontal: 18,
-        paddingTop: 14,
-        paddingBottom: 30,
+    backButton: {
+        width: 34, height: 40, justifyContent: 'center',
+        alignItems: 'flex-start', marginRight: 18, marginLeft: 6,
     },
-
-    topRow: {
-        marginBottom: 18,
-    },
-
-
+    headerText: { fontSize: 22, fontWeight: '700', color: '#111' },
     previewCard: {
-        width: '100%',
-        aspectRatio: 0.78,
-        borderRadius: 28,
-        overflow: 'hidden',
-        backgroundColor: '#f3f3f3',
+        width: '100%', aspectRatio: 0.78, borderRadius: 28,
+        overflow: 'hidden', backgroundColor: '#f3f3f3',
     },
-
-    previewImage: {
-        width: '100%',
-        height: '100%',
-    },
-
-    emptyPreview: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
-    emptyPreviewText: {
-        color: '#888',
-        fontSize: 16,
-    },
-
+    previewImage: { width: '100%', height: '100%' },
+    emptyPreview: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyPreviewText: { color: '#888', fontSize: 16 },
     actionsRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 26,
-        marginTop: 18,
-        marginBottom: 26,
+        flexDirection: 'row', justifyContent: 'center',
+        gap: 26, marginTop: 18, marginBottom: 26,
     },
-
     iconButton: {
-        width: 54,
-        height: 54,
-        borderRadius: 27,
-        borderWidth: 1.4,
-        borderColor: '#111',
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: 54, height: 54, borderRadius: 27, borderWidth: 1.4,
+        borderColor: '#111', justifyContent: 'center', alignItems: 'center',
         backgroundColor: '#fff',
     },
-
-    form: {
-        gap: 12,
+    iconButtonActive: { backgroundColor: '#111' },
+    form: { gap: 12 },
+    label: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: -2 },
+    categoryGrid: {
+        flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4,
     },
-
-    label: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: -2,
+    categoryChip: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingHorizontal: 14, paddingVertical: 10,
+        borderRadius: 20, backgroundColor: '#dedede',
+        borderWidth: 1.5, borderColor: 'transparent',
     },
-
+    categoryChipActive: {
+        backgroundColor: '#fff', borderColor: '#111',
+    },
+    categoryIcon: { fontSize: 16 },
+    categoryLabel: { fontSize: 13, fontWeight: '600', color: '#666' },
+    categoryLabelActive: { color: '#111' },
     input: {
-        minHeight: 48,
-        borderRadius: 14,
-        backgroundColor: '#dedede',
-        paddingHorizontal: 14,
-        fontSize: 15,
-        color: '#111',
+        minHeight: 48, borderRadius: 14, backgroundColor: '#dedede',
+        paddingHorizontal: 14, fontSize: 15, color: '#111',
     },
-
-    textArea: {
-        minHeight: 110,
-        paddingTop: 14,
-    },
-
-    headerWrapper: {
-        height: 64,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 22,
-        marginLeft: -18,
-        marginRight: -18,
-        overflow: 'hidden',
-    },
-
-
-
-    backButton: {
-        width: 34,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        marginRight: 18,
-        marginLeft: 6,
-    },
-
-    headerText: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#111',
-    },
-
-    iconButtonActive: {
-        backgroundColor: '#111',
-    },
-
-    flex: {
-        flex: 1,
-    },
-
-    scrollViewContent: {
-        paddingBottom: 40,
-        flexGrow: 1,
-    },
-
+    textArea: { minHeight: 110, paddingTop: 14 },
 });

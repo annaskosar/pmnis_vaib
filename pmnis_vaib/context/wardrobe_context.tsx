@@ -1,10 +1,13 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type WardrobeCategory = 'shoes' | 'pants' | 'top' | 'jacket' | 'dress' | 'other';
+
 export type WardrobeItem = {
     id: string;
     image: any;
     name: string;
+    category?: WardrobeCategory;
     additionalInfo?: string;
     isPinned?: boolean;
     pinnedAt?: number | null;
@@ -28,6 +31,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '1',
         image: require('../assets/wardrobe_images/item1.png'),
         name: 'hneda kabelka',
+        category: 'other',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -38,6 +42,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '2',
         image: require('../assets/wardrobe_images/item2.png'),
         name: 'modre topanky',
+        category: 'shoes',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -48,6 +53,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '3',
         image: require('../assets/wardrobe_images/item3.png'),
         name: 'rifle po sestre',
+        category: 'pants',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -58,6 +64,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '4',
         image: require('../assets/wardrobe_images/item4.png'),
         name: 'letna sukna',
+        category: 'pants',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -68,6 +75,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '5',
         image: require('../assets/wardrobe_images/item5.png'),
         name: 'pruzkovane tricko',
+        category: 'top',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -78,6 +86,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '6',
         image: require('../assets/wardrobe_images/item6.png'),
         name: 'bluzka ruzova',
+        category: 'top',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -88,6 +97,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '7',
         image: require('../assets/wardrobe_images/item7.png'),
         name: 'fialovy top',
+        category: 'top',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,
@@ -98,6 +108,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         id: '8',
         image: require('../assets/wardrobe_images/item8.png'),
         name: 'retro tielko',
+        category: 'top',
         additionalInfo: '',
         isPinned: false,
         pinnedAt: null,

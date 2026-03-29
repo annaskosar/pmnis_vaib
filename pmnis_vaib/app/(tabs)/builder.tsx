@@ -8,20 +8,37 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useWardrobe } from '../../context/wardrobe_context';
 import { useCart } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SHOP_PRODUCTS = [
-    { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'modra', 'blue'] },
-    { id: 's2', image: require('../../assets/images_app/model9.png'), name: 'Summer dress', tags: ['summer', 'dress', 'casual', 'boho', 'letny', 'saty'] },
-    { id: 's3', image: require('../../assets/images_app/model10.png'), name: 'One shoulder top', tags: ['top', 'elegant', 'streetwear', 'black', 'cierna', 'minimalist'] },
-    { id: 's4', image: require('../../assets/images_app/model11.png'), name: 'Adidas sport set', tags: ['sport', 'sporty', 'green', 'zelena', 'casual', 'adidas'] },
-    { id: 's5', image: require('../../assets/images_app/model2.png'), name: 'Denim look', tags: ['denim', 'casual', 'modra', 'blue', 'rifle'] },
-    { id: 's6', image: require('../../assets/images_app/model3.png'), name: 'Elegant dress', tags: ['dress', 'elegant', 'formal', 'saty', 'elegantny'] },
-    { id: 's7', image: require('../../assets/images_app/model4.png'), name: 'Spring outfit', tags: ['spring', 'casual', 'jar', 'jarny', 'outfit'] },
-    { id: 's8', image: require('../../assets/images_app/model5.png'), name: 'Shoes collection', tags: ['shoes', 'topanky', 'casual', 'sport'] },
+    { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', category: 'jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'blue'] },
+    { id: 's2', image: require('../../assets/images_app/model9.png'), name: 'Summer dress', category: 'dress', tags: ['summer', 'dress', 'casual', 'boho'] },
+    { id: 's3', image: require('../../assets/images_app/model10.png'), name: 'One shoulder top', category: 'top', tags: ['top', 'elegant', 'streetwear', 'black', 'minimalist'] },
+    { id: 's4', image: require('../../assets/images_app/model11.png'), name: 'Adidas sport set', category: 'set', tags: ['sport', 'sporty', 'green', 'casual', 'adidas'] },
+    { id: 's5', image: require('../../assets/images_app/model2.png'), name: 'Denim jeans', category: 'pants', tags: ['denim', 'casual', 'blue', 'jeans'] },
+    { id: 's6', image: require('../../assets/images_app/model3.png'), name: 'Elegant dress', category: 'dress', tags: ['dress', 'elegant', 'formal'] },
+    { id: 's7', image: require('../../assets/images_app/model4.png'), name: 'Spring blazer', category: 'jacket', tags: ['spring', 'casual', 'blazer', 'elegant'] },
+    { id: 's8', image: require('../../assets/images_app/model5.png'), name: 'White sneakers', category: 'shoes', tags: ['shoes', 'casual', 'sport', 'white'] },
+    { id: 's9', image: require('../../assets/images_app/model6.png'), name: 'Floral skirt', category: 'pants', tags: ['skirt', 'boho', 'summer', 'floral'] },
+    { id: 's10', image: require('../../assets/images_app/model7.png'), name: 'Ankle boots', category: 'shoes', tags: ['boots', 'elegant', 'autumn', 'brown'] },
+];
+
+const PRESET_PROMPTS = [
+    { label: '☀️ Casual summer', value: 'casual summer outfit' },
+    { label: '🌙 Elegant evening', value: 'elegant formal dress evening' },
+    { label: '🏃 Sport', value: 'sport sporty workout gym' },
+    { label: '🍂 Autumn cozy', value: 'autumn cozy casual jacket' },
+    { label: '💼 Office', value: 'office elegant blazer formal' },
+    { label: '🎉 Party', value: 'party elegant dress night' },
+];
+
+const FEEDBACK_CHIPS = [
+    'Wrong style', 'Not my size', 'Needs more color',
+    'Too similar', 'Not my taste', 'Not seasonal',
 ];
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
-type OutfitItem = { id: string; image: any; name: string; tags: string[]; fromWardrobe?: boolean };
+type OutfitItem = { id: string; image: any; name: string; category?: string; tags: string[]; fromWardrobe?: boolean };
 
 export default function BuilderScreen() {
     const router = useRouter();
@@ -42,6 +59,25 @@ export default function BuilderScreen() {
     const [selectedItems, setSelectedItems] = useState<OutfitItem[]>([]);
     const [cartModalVisible, setCartModalVisible] = useState(false);
 
+    const [feedbackVisible, setFeedbackVisible] = useState(false);
+    const [feedbackRating, setFeedbackRating] = useState(0);
+    const [feedbackHoverRating, setFeedbackHoverRating] = useState(0);
+    const [selectedChips, setSelectedChips] = useState<string[]>([]);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+    const [hasShownFeedback, setHasShownFeedback] = useState(false);
+    const [rewardModalVisible, setRewardModalVisible] = useState(false);
+
+    React.useEffect(() => {
+        const checkFeedback = async () => {
+            const userData = await AsyncStorage.getItem('currentUser');
+            if (!userData) return;
+            const user = JSON.parse(userData);
+            const shown = await AsyncStorage.getItem(`builder_feedback_shown_${user.email}`);
+            if (shown === 'true') setHasShownFeedback(true);
+        };
+        checkFeedback();
+    }, []);
+
     useFocusEffect(
         React.useCallback(() => {
             if (returnToBuilder === 'true') {
@@ -54,6 +90,7 @@ export default function BuilderScreen() {
         id: item.id,
         image: item.image,
         name: item.name,
+        category: (item as any).category ?? 'other',
         tags: item.name.toLowerCase().split(' '),
         fromWardrobe: true,
     }));
@@ -112,9 +149,7 @@ export default function BuilderScreen() {
         );
     };
 
-    const confirmSheetSelection = () => {
-        setSheetVisible(false);
-    };
+    const confirmSheetSelection = () => setSheetVisible(false);
 
     const getSourceItems = (): OutfitItem[] => {
         let items: OutfitItem[] = [];
@@ -129,25 +164,109 @@ export default function BuilderScreen() {
         setLoading(true);
         setGenerated(false);
         setAddedToCart(false);
-        setTimeout(() => {
-            const sourceItems = getSourceItems();
-            const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 2);
-            const scored = sourceItems.map(item => {
-                const score = keywords.reduce((acc, keyword) => {
+
+        setTimeout(async () => {
+            const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
+
+            const scoreItem = (item: OutfitItem) => {
+                return keywords.reduce((acc, keyword) => {
                     const nameMatch = item.name.toLowerCase().includes(keyword) ? 2 : 0;
-                    const tagMatch = item.tags.some(tag => tag.includes(keyword) || keyword.includes(tag)) ? 1 : 0;
+                    const tagMatch = item.tags.some(tag =>
+                        tag.includes(keyword) || keyword.includes(tag)
+                    ) ? 1 : 0;
                     return acc + nameMatch + tagMatch;
                 }, 0);
-                return { ...item, score };
+            };
+
+            const sourceItems = getSourceItems();
+
+            const byCategory = (cat: string) =>
+                sourceItems
+                    .filter(i => (i as any).category === cat)
+                    .sort((a, b) => scoreItem(b) - scoreItem(a));
+
+            const shoes = byCategory('shoes');
+            const pants = byCategory('pants');
+            const tops = byCategory('top');
+            const jackets = byCategory('jacket');
+            const dresses = byCategory('dress');
+            const sets = byCategory('set');
+
+            let result: OutfitItem[] = [];
+
+            const wantsDress = keywords.some(k =>
+                ['dress', 'elegant', 'formal', 'party', 'evening', 'night'].includes(k)
+            );
+            const wantsSport = keywords.some(k =>
+                ['sport', 'sporty', 'gym', 'workout', 'running'].includes(k)
+            );
+
+            if (wantsSport && sets.length > 0) {
+                result = [sets[0], shoes[0] ?? tops[0], jackets[0] ?? tops[1] ?? pants[0], shoes[1] ?? pants[0] ?? tops[0]];
+            } else if (wantsDress && dresses.length > 0) {
+                result = [dresses[0], shoes[0] ?? shoes[1], jackets[0] ?? tops[0], shoes[1] ?? jackets[1] ?? tops[1]];
+            } else {
+                result = [shoes[0] ?? sourceItems[0], pants[0] ?? sourceItems[1], tops[0] ?? sourceItems[2], jackets[0] ?? sourceItems[3]];
+            }
+
+            const seen = new Set<string>();
+            const filtered = result.filter(Boolean).filter(item => {
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
             });
-            const sorted = prompt.trim()
-                ? scored.filter(i => i.score > 0).sort((a, b) => b.score - a.score)
-                : sourceItems;
-            const result = (sorted.length >= 4 ? sorted : sourceItems).slice(0, 4);
-            setOutfits(result);
+
+            const fallback = sourceItems.filter(i => !seen.has(i.id));
+            while (filtered.length < 4 && fallback.length > 0) filtered.push(fallback.shift()!);
+
+            setOutfits(filtered.slice(0, 4));
             setGenerated(true);
             setLoading(false);
-        }, 1500);
+
+            const userData = await AsyncStorage.getItem('currentUser');
+            const email = userData ? JSON.parse(userData).email : 'unknown';
+
+            if (email === 'test@test.com') {
+                setTimeout(() => setFeedbackVisible(true), 3000);
+            } else {
+                const shown = await AsyncStorage.getItem(`builder_feedback_shown_${email}`);
+                if (!shown) {
+                    setTimeout(() => setFeedbackVisible(true), 3000);
+                }
+            }
+        }, 1800);
+    };
+
+    const handleSubmitFeedback = async () => {
+    const userData = await AsyncStorage.getItem('currentUser');
+    const email = userData ? JSON.parse(userData).email : 'unknown';
+
+    // Pre ostatných používateľov ulož že feedback bol zobrazený
+    if (email !== 'test@test.com') {
+        await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
+    }
+
+    // Zvýš feedback counter
+    const countStr = await AsyncStorage.getItem(`feedback_count_${email}`);
+    const newCount = parseInt(countStr ?? '0') + 1;
+    await AsyncStorage.setItem(`feedback_count_${email}`, String(newCount));
+
+    setHasShownFeedback(true);
+    setFeedbackSubmitted(true);
+
+    setTimeout(() => {
+        setFeedbackVisible(false);
+        setFeedbackSubmitted(false);
+        setFeedbackRating(0);
+        setSelectedChips([]);
+        setRewardModalVisible(true);
+    }, 2800);
+};
+
+    const toggleChip = (chip: string) => {
+        setSelectedChips(prev =>
+            prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip]
+        );
     };
 
     const regenerateItem = (index: number) => {
@@ -193,15 +312,11 @@ export default function BuilderScreen() {
 
         setTimeout(() => {
             handleClear();
-            router.replace({
-                pathname: '/cart_detail',
-                params: { cartId },
-            });
+            router.replace({ pathname: '/cart_detail', params: { cartId } });
         }, 1500);
     };
 
     const shopItemsCount = outfits.filter(i => !i.fromWardrobe).length;
-
     const isShopActive = sources.includes('shop');
     const isWardrobeActive = selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id));
     const isWishlistActive = selectedItems.some(i => wishlistAsOutfits.find(w => w.id === i.id));
@@ -225,7 +340,6 @@ export default function BuilderScreen() {
                             (s === 'shop' && isShopActive) ||
                             (s === 'wardrobe' && isWardrobeActive) ||
                             (s === 'wishlist' && isWishlistActive);
-
                         return (
                             <TouchableOpacity
                                 key={s}
@@ -270,6 +384,26 @@ export default function BuilderScreen() {
                 )}
 
                 <Text style={styles.sectionLabel}>Describe your outfit</Text>
+
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={{ marginBottom: 12 }}
+                    contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+                >
+                    {PRESET_PROMPTS.map(preset => (
+                        <TouchableOpacity
+                            key={preset.value}
+                            style={[styles.presetChip, prompt === preset.value && styles.presetChipActive]}
+                            onPress={() => setPrompt(prompt === preset.value ? '' : preset.value)}
+                        >
+                            <Text style={[styles.presetChipText, prompt === preset.value && styles.presetChipTextActive]}>
+                                {preset.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
                 <View style={styles.inputWrapper}>
                     <Feather name="edit-2" size={16} color="#999" />
                     <TextInput
@@ -303,7 +437,6 @@ export default function BuilderScreen() {
                         <Text style={styles.resultsTitle}>
                             {prompt.trim() ? `Results for "${prompt}"` : 'Suggested outfits'}
                         </Text>
-
                         <View style={styles.outfitsGrid}>
                             {outfits.map((item, index) => (
                                 <View key={item.id} style={styles.outfitCard}>
@@ -345,19 +478,13 @@ export default function BuilderScreen() {
                                 </ImageBackground>
                             ) : (
                                 <TouchableOpacity
-                                    style={[
-                                        styles.actionButtonFill,
-                                        shopItemsCount === 0 && styles.actionButtonDisabled,
-                                    ]}
+                                    style={[styles.actionButtonFill, shopItemsCount === 0 && styles.actionButtonDisabled]}
                                     onPress={handleAddToCart}
                                     disabled={shopItemsCount === 0}
                                 >
                                     <Feather name="shopping-cart" size={16} color="#fff" />
                                     <Text style={styles.actionButtonFillText}>
-                                        {shopItemsCount > 0
-                                            ? `Add to cart (${shopItemsCount})`
-                                            : 'All from wardrobe'
-                                        }
+                                        {shopItemsCount > 0 ? `Add to cart (${shopItemsCount})` : 'All from wardrobe'}
                                     </Text>
                                 </TouchableOpacity>
                             )}
@@ -373,13 +500,116 @@ export default function BuilderScreen() {
                 )}
             </ScrollView>
 
-            {/* Wardrobe / Wishlist Bottom Sheet */}
-            <Modal
-                visible={sheetVisible}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setSheetVisible(false)}
-            >
+            {/* Feedback Modal */}
+            <Modal visible={feedbackVisible} transparent animationType="slide" onRequestClose={() => setFeedbackVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalBackdrop} onPress={() => setFeedbackVisible(false)} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+                        {feedbackSubmitted ? (
+                            <View style={styles.feedbackThanks}>
+                                <Feather name="check-circle" size={40} color="#111" />
+                                <Text style={styles.feedbackThanksTitle}>Thanks for your feedback!</Text>
+                                <Text style={styles.feedbackThanksSubtitle}>
+                                    Your feedback helps us improve future outfit recommendations!
+                                </Text>
+                            </View>
+                        ) : (
+                            <>
+                                <Text style={styles.sheetTitle}>How was your outfit?</Text>
+                                <Text style={styles.sheetSubtitle}>Rate the suggestions to help us improve</Text>
+                                <View style={styles.starsRow}>
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <TouchableOpacity
+                                            key={star}
+                                            onPress={() => setFeedbackRating(star)}
+                                            onPressIn={() => setFeedbackHoverRating(star)}
+                                            onPressOut={() => setFeedbackHoverRating(0)}
+                                        >
+                                            <Feather
+                                                name="star"
+                                                size={36}
+                                                color={star <= (feedbackHoverRating || feedbackRating) ? '#f2b55d' : '#d0d0d0'}
+                                                style={{ marginHorizontal: 6 }}
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                {feedbackRating > 0 && (
+                                    <>
+                                        <Text style={styles.chipsLabel}>What can we improve?</Text>
+                                        <View style={styles.chipsGrid}>
+                                            {FEEDBACK_CHIPS.map(chip => (
+                                                <TouchableOpacity
+                                                    key={chip}
+                                                    style={[styles.feedbackChip, selectedChips.includes(chip) && styles.feedbackChipActive]}
+                                                    onPress={() => toggleChip(chip)}
+                                                >
+                                                    <Text style={[styles.feedbackChipText, selectedChips.includes(chip) && styles.feedbackChipTextActive]}>
+                                                        {chip}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </>
+                                )}
+                                <TouchableOpacity
+                                    style={[styles.submitButton, feedbackRating === 0 && styles.submitButtonDisabled]}
+                                    onPress={handleSubmitFeedback}
+                                    disabled={feedbackRating === 0}
+                                >
+                                    <Text style={styles.submitButtonText}>SEND FEEDBACK</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.skipButton}
+                                    onPress={async () => {
+                                        const userData = await AsyncStorage.getItem('currentUser');
+                                        const email = userData ? JSON.parse(userData).email : 'unknown';
+                                        await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
+                                        setFeedbackVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.skipButtonText}>Skip</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={rewardModalVisible} transparent animationType="fade" onRequestClose={() => setRewardModalVisible(false)}>
+    <TouchableOpacity
+        style={styles.rewardOverlay}
+        activeOpacity={1}
+        onPress={() => setRewardModalVisible(false)}
+    >
+        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={styles.rewardCard}>
+                <Text style={styles.rewardEmoji}>🎉</Text>
+                <Text style={styles.rewardTitle}>You earned points!</Text>
+                <Text style={styles.rewardSubtitle}>
+                    Thanks to your feedback you earned
+                </Text>
+                <View style={styles.rewardBadge}>
+                    <Text style={styles.rewardBadgePoints}>+5</Text>
+                    <Text style={styles.rewardBadgeLabel}> points</Text>
+                </View>
+                <Text style={styles.rewardNote}>
+                    Reach 30 points to unlock unlimited carts!
+                </Text>
+                <TouchableOpacity
+                    style={styles.rewardButton}
+                    onPress={() => setRewardModalVisible(false)}
+                >
+                    <Text style={styles.rewardButtonText}>AWESOME!</Text>
+                </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    </TouchableOpacity>
+</Modal>
+
+            {/* Wardrobe / Wishlist Sheet */}
+            <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setSheetVisible(false)} />
                     <View style={styles.bottomSheet}>
@@ -392,15 +622,13 @@ export default function BuilderScreen() {
                                 <Feather name="x" size={22} color="#111" />
                             </TouchableOpacity>
                         </View>
-
                         {getSheetItems().length === 0 ? (
                             <View style={styles.emptySheet}>
                                 <Feather name={sheetSource === 'wishlist' ? 'heart' : 'grid'} size={36} color="#ccc" />
                                 <Text style={styles.emptySheetText}>
                                     {sheetSource === 'wishlist'
                                         ? 'Your wishlist is empty. Add items from the shop first.'
-                                        : 'Your wardrobe is empty. Add items first.'
-                                    }
+                                        : 'Your wardrobe is empty. Add items first.'}
                                 </Text>
                             </View>
                         ) : (
@@ -432,23 +660,15 @@ export default function BuilderScreen() {
                                 }}
                             />
                         )}
-
                         <TouchableOpacity style={styles.confirmButton} onPress={confirmSheetSelection}>
-                            <Text style={styles.confirmButtonText}>
-                                Confirm ({selectedItems.length} selected)
-                            </Text>
+                            <Text style={styles.confirmButtonText}>Confirm ({selectedItems.length} selected)</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
 
-            {/* Cart selection Modal */}
-            <Modal
-                visible={cartModalVisible}
-                animationType="slide"
-                transparent
-                onRequestClose={() => setCartModalVisible(false)}
-            >
+            {/* Cart Modal */}
+            <Modal visible={cartModalVisible} animationType="slide" transparent onRequestClose={() => setCartModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setCartModalVisible(false)} />
                     <View style={styles.bottomSheet}>
@@ -459,22 +679,17 @@ export default function BuilderScreen() {
                                 <Feather name="x" size={22} color="#111" />
                             </TouchableOpacity>
                         </View>
-
                         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
                             <TouchableOpacity
                                 style={styles.createNewCartButton}
                                 onPress={() => {
                                     setCartModalVisible(false);
-                                    router.push({
-                                        pathname: '/(tabs)/cart_create',
-                                        params: { returnToBuilder: 'true' },
-                                    });
+                                    router.push({ pathname: '/(tabs)/cart_create', params: { returnToBuilder: 'true' } });
                                 }}
                             >
                                 <Feather name="plus" size={16} color="#fff" />
                                 <Text style={styles.createNewCartButtonText}>Create new cart</Text>
                             </TouchableOpacity>
-
                             {carts.length === 0 ? (
                                 <Text style={styles.noCartsText}>No carts yet. Create one first!</Text>
                             ) : (
@@ -486,9 +701,7 @@ export default function BuilderScreen() {
                                     >
                                         <View style={styles.cartSelectInfo}>
                                             <Text style={styles.cartSelectName}>{cart.name}</Text>
-                                            <Text style={styles.cartSelectSub}>
-                                                Budget: €{cart.budget} · {cart.products.length} items
-                                            </Text>
+                                            <Text style={styles.cartSelectSub}>Budget: €{cart.budget} · {cart.products.length} items</Text>
                                         </View>
                                         <Feather name="chevron-right" size={18} color="#8a8a8a" />
                                     </TouchableOpacity>
@@ -511,9 +724,8 @@ const styles = StyleSheet.create({
     sectionLabel: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 10 },
     sourceRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
     sourceButton: {
-        flex: 1, paddingVertical: 10, borderRadius: 20,
-        backgroundColor: '#e9e9e9', alignItems: 'center',
-        borderWidth: 2, borderColor: 'transparent',
+        flex: 1, paddingVertical: 10, borderRadius: 20, backgroundColor: '#e9e9e9',
+        alignItems: 'center', borderWidth: 2, borderColor: 'transparent',
         flexDirection: 'row', justifyContent: 'center', gap: 6,
     },
     sourceButtonActive: { backgroundColor: '#fff', borderColor: '#111' },
@@ -524,21 +736,24 @@ const styles = StyleSheet.create({
     selectedChip: { marginRight: 8, position: 'relative' },
     selectedChipImage: { width: 56, height: 56, borderRadius: 10 },
     selectedChipRemove: {
-        position: 'absolute', top: -4, right: -4,
-        backgroundColor: '#111', borderRadius: 10,
-        width: 18, height: 18, justifyContent: 'center', alignItems: 'center',
+        position: 'absolute', top: -4, right: -4, backgroundColor: '#111',
+        borderRadius: 10, width: 18, height: 18, justifyContent: 'center', alignItems: 'center',
     },
+    presetChip: {
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+        backgroundColor: '#e9e9e9', borderWidth: 1.5, borderColor: 'transparent',
+    },
+    presetChipActive: { backgroundColor: '#fff', borderColor: '#111' },
+    presetChipText: { fontSize: 13, color: '#666', fontWeight: '500' },
+    presetChipTextActive: { color: '#111', fontWeight: '700' },
     inputWrapper: {
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#e9e9e9', borderRadius: 14,
-        paddingHorizontal: 14, paddingVertical: 12,
-        marginBottom: 14, gap: 10,
+        flexDirection: 'row', alignItems: 'center', backgroundColor: '#e9e9e9',
+        borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14, gap: 10,
     },
     input: { flex: 1, fontSize: 15, color: '#111', maxHeight: 80 },
     generateButton: {
         backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
-        alignItems: 'center', flexDirection: 'row',
-        justifyContent: 'center', gap: 8, marginBottom: 24,
+        alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24,
     },
     generateButtonLoading: { backgroundColor: '#555' },
     generateButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
@@ -548,15 +763,13 @@ const styles = StyleSheet.create({
     outfitCard: { width: '48%', marginBottom: 16, position: 'relative' },
     outfitImage: { width: '100%', height: 180, borderRadius: 14, backgroundColor: '#e9e9e9' },
     regenerateItemButton: {
-        position: 'absolute', top: 8, right: 8,
-        backgroundColor: '#fff', borderRadius: 20,
+        position: 'absolute', top: 8, right: 8, backgroundColor: '#fff', borderRadius: 20,
         width: 30, height: 30, justifyContent: 'center', alignItems: 'center',
         shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
     },
     wardrobeBadge: {
-        position: 'absolute', top: 8, left: 8,
-        backgroundColor: '#111', borderRadius: 10,
-        paddingHorizontal: 8, paddingVertical: 3,
+        position: 'absolute', top: 8, left: 8, backgroundColor: '#111',
+        borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3,
     },
     wardrobeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
     outfitName: { marginTop: 8, fontSize: 13, color: '#111', fontWeight: '500' },
@@ -579,51 +792,94 @@ const styles = StyleSheet.create({
     addedButtonText: { color: '#111', fontSize: 14, fontWeight: '700' },
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 14 },
     emptyStateText: { fontSize: 14, color: '#aaa', textAlign: 'center' },
-    emptySheet: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
-    emptySheetText: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingHorizontal: 20 },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {
         backgroundColor: '#f3f3f3', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        paddingHorizontal: 18, paddingBottom: 34, maxHeight: '75%',
+        paddingHorizontal: 18, paddingBottom: 34, maxHeight: '85%',
     },
     sheetHandle: {
         width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc',
         alignSelf: 'center', marginTop: 12, marginBottom: 16,
     },
     sheetHeader: {
-        flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: 16,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
     },
     sheetTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
-    sheetGrid: { paddingBottom: 16 },
-    sheetItem: {
-        flex: 1, margin: 4, borderRadius: 12, overflow: 'hidden',
-        borderWidth: 2, borderColor: 'transparent',
+    sheetSubtitle: { fontSize: 13, color: '#8a8a8a', marginTop: 4, marginBottom: 20 },
+    starsRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24 },
+    chipsLabel: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 12 },
+    chipsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+    feedbackChip: {
+        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+        backgroundColor: '#e9e9e9', borderWidth: 1.5, borderColor: 'transparent',
     },
+    feedbackChipActive: { backgroundColor: '#fff', borderColor: '#111' },
+    feedbackChipText: { fontSize: 13, color: '#666', fontWeight: '500' },
+    feedbackChipTextActive: { color: '#111', fontWeight: '700' },
+    submitButton: {
+        backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center',
+    },
+    submitButtonDisabled: { backgroundColor: '#ccc' },
+    submitButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    skipButton: { alignItems: 'center', paddingVertical: 14 },
+    skipButtonText: { fontSize: 14, color: '#8a8a8a', fontWeight: '500' },
+    feedbackThanks: { alignItems: 'center', paddingVertical: 30, gap: 12 },
+    feedbackThanksTitle: { fontSize: 20, fontWeight: '700', color: '#111' },
+    feedbackThanksSubtitle: { fontSize: 14, color: '#6a6a6a', textAlign: 'center', lineHeight: 20 },
+    rewardOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24,
+    },
+    rewardCard: {
+        backgroundColor: '#f3f3f3', borderRadius: 24, padding: 24,
+        alignItems: 'center', width: '100%',
+    },
+    rewardEmoji: { fontSize: 48, marginBottom: 12 },
+    rewardTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 8, textAlign: 'center' },
+    rewardSubtitle: { fontSize: 14, color: '#6a6a6a', textAlign: 'center', marginBottom: 16 },
+    rewardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+},
+rewardBadgePoints: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#f2b55d',
+},
+rewardBadgeLabel: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111',
+},
+    rewardNote: { fontSize: 13, color: '#8a8a8a', textAlign: 'center', marginBottom: 20, lineHeight: 18 },
+    rewardButton: {
+        backgroundColor: '#111', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 20,
+    },
+    rewardButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    emptySheet: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+    emptySheetText: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingHorizontal: 20 },
+    sheetGrid: { paddingBottom: 16 },
+    sheetItem: { flex: 1, margin: 4, borderRadius: 12, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
     sheetItemSelected: { borderColor: '#111' },
     sheetItemImage: { width: '100%', height: 100, backgroundColor: '#e9e9e9' },
     sheetItemCheck: {
-        position: 'absolute', top: 6, right: 6,
-        backgroundColor: '#111', borderRadius: 10,
-        width: 22, height: 22, justifyContent: 'center', alignItems: 'center',
+        position: 'absolute', top: 6, right: 6, backgroundColor: '#111',
+        borderRadius: 10, width: 22, height: 22, justifyContent: 'center', alignItems: 'center',
     },
     sheetItemName: { fontSize: 11, color: '#111', padding: 4, fontWeight: '500' },
-    confirmButton: {
-        backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
-        alignItems: 'center', marginTop: 8,
-    },
+    confirmButton: { backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center', marginTop: 8 },
     confirmButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
     createNewCartButton: {
         backgroundColor: '#111', paddingVertical: 14, borderRadius: 14,
-        flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'center', gap: 8, marginBottom: 12,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12,
     },
     createNewCartButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
     cartSelectItem: {
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#e9e9e9', borderRadius: 14,
-        padding: 14, marginBottom: 10,
+        flexDirection: 'row', alignItems: 'center', backgroundColor: '#e9e9e9',
+        borderRadius: 14, padding: 14, marginBottom: 10,
     },
     cartSelectInfo: { flex: 1 },
     cartSelectName: { fontSize: 15, fontWeight: '700', color: '#111' },
