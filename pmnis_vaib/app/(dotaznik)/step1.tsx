@@ -27,29 +27,29 @@ export default function Step1() {
             <View style={styles.progressDot} />
           </View>
           <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
-            <Text style={styles.skip}>Preskočiť</Text>
+            <Text style={styles.skip}>Skip</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.title}>Kto si?</Text>
-        <Text style={styles.subtitle}>Pomôže nám to lepšie personalizovať tvoj obsah</Text>
+        <Text style={styles.title}>Who are you?</Text>
+        <Text style={styles.subtitle}>This helps us personalise your content better</Text>
 
         <View style={styles.mainOptions}>
           <TouchableOpacity
-            style={[styles.mainOption, selected === 'Žena' && styles.mainOptionSelected]}
-            onPress={() => setSelected('Žena')}
+            style={[styles.mainOption, selected === 'Woman' && styles.mainOptionSelected]}
+            onPress={() => setSelected('Woman')}
           >
-            <Text style={[styles.mainOptionText, selected === 'Žena' && styles.mainOptionTextSelected]}>
-              Žena
+            <Text style={[styles.mainOptionText, selected === 'Woman' && styles.mainOptionTextSelected]}>
+              Woman
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.mainOption, selected === 'Muž' && styles.mainOptionSelected]}
-            onPress={() => setSelected('Muž')}
+            style={[styles.mainOption, selected === 'Man' && styles.mainOptionSelected]}
+            onPress={() => setSelected('Man')}
           >
-            <Text style={[styles.mainOptionText, selected === 'Muž' && styles.mainOptionTextSelected]}>
-              Muž
+            <Text style={[styles.mainOptionText, selected === 'Man' && styles.mainOptionTextSelected]}>
+              Man
             </Text>
           </TouchableOpacity>
         </View>
@@ -59,7 +59,7 @@ export default function Step1() {
           onPress={handleNext}
           disabled={!selected}
         >
-          <Text style={styles.buttonText}>ĎALEJ</Text>
+          <Text style={styles.buttonText}>NEXT</Text>
         </TouchableOpacity>
 
       </View>
@@ -80,15 +80,15 @@ const styles = StyleSheet.create({
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#e0e0e0' },
   progressActive: { backgroundColor: '#111' },
   skip: {
-  fontSize: 13,
-  color: '#111',
-  fontWeight: '700',
-  borderWidth: 1.5,
-  borderColor: '#111',
-  paddingVertical: 6,
-  paddingHorizontal: 14,
-  borderRadius: 20,
-},
+    fontSize: 13,
+    color: '#111',
+    fontWeight: '700',
+    borderWidth: 1.5,
+    borderColor: '#111',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
   title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 8, letterSpacing: -0.7 },
   subtitle: { fontSize: 14, color: '#393939', marginBottom: 36 },
   mainOptions: { flexDirection: 'row', gap: 14 },

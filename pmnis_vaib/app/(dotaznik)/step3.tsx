@@ -4,7 +4,7 @@ import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const budgets = [
-  { label: 'Do €30', value: 'low' },
+  { label: 'Up to €30', value: 'low' },
   { label: '€30 – €80', value: 'mid' },
   { label: '€80 – €150', value: 'high' },
   { label: '€150+', value: 'luxury' },
@@ -34,12 +34,12 @@ export default function Step3() {
             <View style={[styles.progressDot, styles.progressActive]} />
           </View>
           <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
-            <Text style={styles.skip}>Preskočiť</Text>
+            <Text style={styles.skip}>Skip</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.title}>Rozpočet</Text>
-        <Text style={styles.subtitle}>Koľko zvyčajne míňaš na jeden kus oblečenia?</Text>
+        <Text style={styles.title}>Budget</Text>
+        <Text style={styles.subtitle}>How much do you usually spend on a single clothing item?</Text>
 
         <View style={styles.optionsGrid}>
           {budgets.map((b) => (
@@ -60,7 +60,7 @@ export default function Step3() {
           onPress={handleFinish}
           disabled={!selected}
         >
-          <Text style={styles.buttonText}>ZAČAŤ OBJAVOVAŤ</Text>
+          <Text style={styles.buttonText}>START EXPLORING</Text>
         </TouchableOpacity>
 
       </View>
@@ -81,15 +81,15 @@ const styles = StyleSheet.create({
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#e0e0e0' },
   progressActive: { backgroundColor: '#111' },
   skip: {
-  fontSize: 13,
-  color: '#111',
-  fontWeight: '700',
-  borderWidth: 1.5,
-  borderColor: '#111',
-  paddingVertical: 6,
-  paddingHorizontal: 14,
-  borderRadius: 20,
-},
+    fontSize: 13,
+    color: '#111',
+    fontWeight: '700',
+    borderWidth: 1.5,
+    borderColor: '#111',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
   title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 8, letterSpacing: -0.7 },
   subtitle: { fontSize: 14, color: '#393939', marginBottom: 36 },
   optionsGrid: { gap: 12 },

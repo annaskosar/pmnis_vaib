@@ -37,28 +37,46 @@ const FEEDBACK_CHIPS = [
     'Too similar', 'Not my taste', 'Not seasonal',
 ];
 
-const ONBOARDING_STEPS = [
+const ONBOARDING_STEPS_BEFORE = [
     {
         title: 'Sources 👗',
         description: 'Choose where to get outfit items from — your Wardrobe, Wishlist, or the Shop.',
+        phase: 'before' as const,
     },
     {
         title: 'Describe your style ✨',
         description: 'Pick a preset vibe or type your own — "casual summer", "office look", anything you like!',
+        phase: 'before' as const,
     },
     {
         title: 'Generate your outfit 🎯',
         description: "Hit this button and we'll build a full outfit for you. You can regenerate as many times as you want!",
+        phase: 'before' as const,
+    },
+];
+
+const ONBOARDING_STEPS_AFTER = [
+    {
+        title: 'Your outfit results 👀',
+        description: 'Tap this item to see its full details — either in the Shop or your Wardrobe.',
+        phase: 'after' as const,
     },
     {
-        title: 'Rate your outfit ⭐',
-        description: 'After generating, rate the outfit to help us improve future suggestions for you.',
+        title: 'Shop vs My item 🏷️',
+        description: 'This badge shows where the item comes from. "Shop" means you can buy it, "My item" means it is already in your wardrobe.',
+        phase: 'after' as const,
+    },
+    {
+        title: 'Swap single items 🔄',
+        description: 'Use this refresh button to swap only this one item while keeping the rest of the outfit.',
+        phase: 'after' as const,
     },
 ];
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
 type OutfitItem = { id: string; image: any; name: string; category?: string; tags: string[]; fromWardrobe?: boolean };
 type ScoredItem = OutfitItem & { score: number };
+type OnboardingPhase = 'before' | 'after' | null;
 
 export default function BuilderScreen() {
     const router = useRouter();
@@ -90,19 +108,29 @@ export default function BuilderScreen() {
     const [inlineFeedbackRating, setInlineFeedbackRating] = useState(0);
     const [inlineFeedbackSubmitted, setInlineFeedbackSubmitted] = useState(false);
 
-    // Onboarding
     const [onboardingStep, setOnboardingStep] = useState(-1);
+    const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-    // Refs pre meranie pozícií
+    // FIX 1: isMounted guard — zabraňuje setState po odmontovaní komponentu
+    const isMounted = React.useRef(true);
+    React.useEffect(() => {
+        return () => { isMounted.current = false; };
+    }, []);
+
     const sourcesRef = React.useRef<View>(null);
     const promptRef = React.useRef<View>(null);
     const generateRef = React.useRef<View>(null);
-    const feedbackRef = React.useRef<View>(null);
+
+    const firstOutfitCardRef = React.useRef<View>(null);
+    const firstOutfitBadgeRef = React.useRef<View>(null);
+    const firstOutfitRefreshRef = React.useRef<View>(null);
+
+    const actionRowRef = React.useRef<View>(null);
     const scrollViewRef = React.useRef<ScrollView>(null);
 
-    const onboardingRefs = [sourcesRef, promptRef, generateRef, feedbackRef];
-
-    const [tooltipPos, setTooltipPos] = useState({ y: 0, height: 0 });
+    const beforeRefs = [sourcesRef, promptRef, generateRef];
+    const afterRefs = [firstOutfitCardRef, firstOutfitBadgeRef, firstOutfitRefreshRef];
 
     const isPromptEmpty = prompt.trim().length === 0;
 
@@ -130,31 +158,93 @@ export default function BuilderScreen() {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
         const email = JSON.parse(userData).email;
+
+        const justRegistered = await AsyncStorage.getItem('just_registered');
+        if (!justRegistered) return;
+
         const seen = await AsyncStorage.getItem(`builder_onboarding_shown_${email}`);
         if (!seen) {
-            setTimeout(() => showOnboardingStep(0), 600);
+            setTimeout(() => {
+                if (isMounted.current) startBeforeOnboarding();
+            }, 600);
         }
     };
 
-    const showOnboardingStep = (step: number) => {
-        if (step >= ONBOARDING_STEPS.length) {
-            finishOnboarding();
+    const startBeforeOnboarding = () => {
+        setOnboardingPhase('before');
+        showOnboardingStep(0, 'before');
+    };
+
+    const startAfterOnboarding = async () => {
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (!userData) return;
+        const email = JSON.parse(userData).email;
+
+        const justRegistered = await AsyncStorage.getItem('just_registered');
+        if (!justRegistered) return;
+
+        const seen = await AsyncStorage.getItem(`builder_onboarding_after_shown_${email}`);
+        if (!seen) {
+            // FIX 2: isMounted guard v setTimeout — nekontaktuj setState ak komponent nie je aktívny
+            setTimeout(() => {
+                if (!isMounted.current) return;
+                setOnboardingPhase('after');
+                showOnboardingStep(0, 'after');
+            }, 600);
+        }
+    };
+
+    const showOnboardingStep = (step: number, phase: OnboardingPhase) => {
+        const steps = phase === 'before' ? ONBOARDING_STEPS_BEFORE : ONBOARDING_STEPS_AFTER;
+        const refs = phase === 'before' ? beforeRefs : afterRefs;
+
+        if (step >= steps.length) {
+            finishOnboarding(phase);
             return;
         }
-        const ref = onboardingRefs[step];
-        ref.current?.measureInWindow((x, y, width, height) => {
-            setTooltipPos({ y, height });
+
+        const ref = refs[step];
+
+        // FIX 3: null-check ref pred measureInWindow — ak ref nie je ready, nastav krok bez pozície
+        // aby onboarding nezmrazil obrazovku keď callback nikdy nepríde
+        if (!ref?.current) {
+            if (isMounted.current) {
+                setOnboardingStep(step);
+            }
+            return;
+        }
+
+        ref.current.measureInWindow((x, y, width, height) => {
+            // FIX 4: isMounted check aj v measureInWindow callback (asynchrónny)
+            if (!isMounted.current) return;
+            setTooltipPos({ x, y, width, height });
             setOnboardingStep(step);
         });
     };
 
-    const finishOnboarding = async () => {
+    const finishOnboarding = async (phase: OnboardingPhase) => {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
         const email = JSON.parse(userData).email;
-        await AsyncStorage.setItem(`builder_onboarding_shown_${email}`, 'true');
-        setOnboardingStep(-1);
+
+        if (phase === 'before') {
+            await AsyncStorage.setItem(`builder_onboarding_shown_${email}`, 'true');
+        } else {
+            await AsyncStorage.setItem(`builder_onboarding_after_shown_${email}`, 'true');
+            await AsyncStorage.removeItem('just_registered');
+        }
+
+        // FIX 5: Atomicky resetuj všetky onboarding stavy naraz — Modal sa hneď zatvorí
+        // bez tohto sa mohol objaviť race condition kde Modal zostal viditeľný o jeden render dlhšie
+        if (isMounted.current) {
+            setOnboardingStep(-1);
+            setOnboardingPhase(null);
+            setTooltipPos({ x: 0, y: 0, width: 0, height: 0 });
+        }
     };
+
+    const currentSteps = onboardingPhase === 'before' ? ONBOARDING_STEPS_BEFORE : ONBOARDING_STEPS_AFTER;
+    const tooltipBottom = tooltipPos.y > 400;
 
     const wardrobeAsOutfits: OutfitItem[] = wardrobeItems.map(item => ({
         id: item.id,
@@ -240,6 +330,9 @@ export default function BuilderScreen() {
         setInlineFeedbackSubmitted(false);
 
         setTimeout(async () => {
+            // FIX 6: guard aj na začiatku async setTimeout callbacku
+            if (!isMounted.current) return;
+
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
 
             const scoreItem = (item: OutfitItem): number => {
@@ -352,19 +445,26 @@ export default function BuilderScreen() {
                 filtered.push(fallback.shift()!);
             }
 
+            if (!isMounted.current) return;
             setOutfits(filtered.slice(0, 4));
             setGenerated(true);
             setLoading(false);
+
+            startAfterOnboarding();
 
             const userData = await AsyncStorage.getItem('currentUser');
             const email = userData ? JSON.parse(userData).email : 'unknown';
 
             if (email === 'test@test.com') {
-                setTimeout(() => setFeedbackVisible(true), 3000);
+                setTimeout(() => {
+                    if (isMounted.current) setFeedbackVisible(true);
+                }, 3000);
             } else {
                 const shown = await AsyncStorage.getItem(`builder_feedback_shown_${email}`);
                 if (!shown) {
-                    setTimeout(() => setFeedbackVisible(true), 3000);
+                    setTimeout(() => {
+                        if (isMounted.current) setFeedbackVisible(true);
+                    }, 3000);
                 }
             }
         }, 1800);
@@ -386,6 +486,7 @@ export default function BuilderScreen() {
         setHasShownFeedback(true);
         setFeedbackSubmitted(true);
         setTimeout(() => {
+            if (!isMounted.current) return;
             setFeedbackVisible(false);
             setFeedbackSubmitted(false);
             setFeedbackRating(0);
@@ -450,6 +551,7 @@ export default function BuilderScreen() {
         setCartModalVisible(false);
         setAddedToCart(true);
         setTimeout(() => {
+            if (!isMounted.current) return;
             handleClear();
             router.replace({ pathname: '/cart_detail', params: { cartId } });
         }, 1500);
@@ -476,9 +578,6 @@ export default function BuilderScreen() {
         if (generated) return 'REGENERATE';
         return 'GENERATE OUTFIT';
     };
-
-    // Tooltip pozícia — zobraz nad alebo pod elementom
-    const tooltipBottom = tooltipPos.y > 400;
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -604,41 +703,64 @@ export default function BuilderScreen() {
                         <Text style={styles.resultsTitle}>
                             {prompt.trim() ? `Results for "${prompt}"` : 'Suggested outfits'}
                         </Text>
+
                         <View style={styles.outfitsGrid}>
                             {outfits.map((item, index) => (
-                                <TouchableOpacity
+                                <View
                                     key={item.id}
+                                    ref={index === 0 ? firstOutfitCardRef : null}
                                     style={styles.outfitCard}
-                                    activeOpacity={0.85}
-                                    onPress={() => handleItemPress(item)}
                                 >
-                                    <Image
-                                        source={typeof item.image === 'string' ? { uri: item.image } : item.image}
-                                        style={styles.outfitImage}
-                                        resizeMode="cover"
-                                    />
                                     <TouchableOpacity
-                                        style={styles.regenerateItemButton}
-                                        onPress={(e) => { e.stopPropagation(); regenerateItem(index); }}
+                                        activeOpacity={0.85}
+                                        onPress={() => handleItemPress(item)}
+                                        style={{ flex: 1 }}
                                     >
-                                        <Feather name="refresh-cw" size={13} color="#111" />
+                                        <Image
+                                            source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+                                            style={styles.outfitImage}
+                                            resizeMode="cover"
+                                        />
+
+                                        <View
+                                            ref={index === 0 ? firstOutfitRefreshRef : null}
+                                            collapsable={false}
+                                            style={styles.refreshAnchor}
+                                        >
+                                            <TouchableOpacity
+                                                style={styles.regenerateItemButton}
+                                                onPress={(e) => { e.stopPropagation(); regenerateItem(index); }}
+                                            >
+                                                <Feather name="refresh-cw" size={13} color="#111" />
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        {item.fromWardrobe ? (
+                                            <View
+                                                ref={index === 0 ? firstOutfitBadgeRef : null}
+                                                collapsable={false}
+                                                style={styles.wardrobeBadge}
+                                            >
+                                                <Text style={styles.wardrobeBadgeText}>My item</Text>
+                                            </View>
+                                        ) : (
+                                            <View
+                                                ref={index === 0 ? firstOutfitBadgeRef : null}
+                                                collapsable={false}
+                                                style={styles.shopBadge}
+                                            >
+                                                <Text style={styles.shopBadgeText}>Shop</Text>
+                                            </View>
+                                        )}
+
+                                        <Text style={styles.outfitName} numberOfLines={2}>{item.name}</Text>
+                                        <Text style={styles.outfitTapHint}>Tap to view details</Text>
                                     </TouchableOpacity>
-                                    {item.fromWardrobe ? (
-                                        <View style={styles.wardrobeBadge}>
-                                            <Text style={styles.wardrobeBadgeText}>My item</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={styles.shopBadge}>
-                                            <Text style={styles.shopBadgeText}>Shop</Text>
-                                        </View>
-                                    )}
-                                    <Text style={styles.outfitName} numberOfLines={2}>{item.name}</Text>
-                                    <Text style={styles.outfitTapHint}>Tap to view details</Text>
-                                </TouchableOpacity>
+                                </View>
                             ))}
                         </View>
 
-                        <View style={styles.actionRow}>
+                        <View ref={actionRowRef} style={styles.actionRow}>
                             <TouchableOpacity style={styles.actionButtonOutline} onPress={handleClear}>
                                 <Feather name="x" size={16} color="#111" />
                                 <Text style={styles.actionButtonOutlineText}>Dismiss</Text>
@@ -666,39 +788,6 @@ export default function BuilderScreen() {
                                 </TouchableOpacity>
                             )}
                         </View>
-
-                        {/* Inline feedback card */}
-                        <View ref={feedbackRef} style={styles.feedbackCard}>
-                            <Text style={styles.feedbackTitle}>How do you rate this outfit suggestion?</Text>
-                            <View style={styles.inlineStarsRow}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <TouchableOpacity
-                                        key={star}
-                                        onPress={() => { if (!inlineFeedbackSubmitted) setInlineFeedbackRating(star); }}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Feather
-                                            name="star"
-                                            size={24}
-                                            color={star <= inlineFeedbackRating ? '#f2b55d' : '#bcbcbc'}
-                                            style={styles.starIcon}
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                            <TouchableOpacity
-                                style={[
-                                    styles.feedbackButton,
-                                    (inlineFeedbackRating === 0 || inlineFeedbackSubmitted) && styles.feedbackButtonDisabled,
-                                ]}
-                                onPress={handleInlineFeedbackSubmit}
-                                disabled={inlineFeedbackRating === 0 || inlineFeedbackSubmitted}
-                            >
-                                <Text style={styles.feedbackButtonText}>
-                                    {inlineFeedbackSubmitted ? 'Submitted ✓' : 'Submit'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
                 )}
 
@@ -711,41 +800,48 @@ export default function BuilderScreen() {
             </ScrollView>
 
             {/* Onboarding Tooltip Modal */}
-            {onboardingStep >= 0 && (
+            {onboardingStep >= 0 && onboardingPhase !== null && (
                 <Modal visible transparent animationType="fade">
                     <View style={styles.onboardingOverlay}>
-                        {/* Highlight box */}
-                        <View style={[styles.onboardingHighlight, {
-                            top: tooltipPos.y - 6,
-                            height: tooltipPos.height + 12,
-                        }]} />
+                        <View
+                            style={[
+                                styles.onboardingHighlight,
+                                {
+                                    left: tooltipPos.x - 6,
+                                    top: tooltipPos.y - 6,
+                                    width: tooltipPos.width + 12,
+                                    height: tooltipPos.height + 12,
+                                },
+                            ]}
+                        />
 
-                        {/* Tooltip karta */}
-                        <View style={[
-                            styles.onboardingCard,
-                            tooltipBottom
-                                ? { bottom: 100 }
-                                : { top: tooltipPos.y + tooltipPos.height + 16 },
-                        ]}>
+                        <View
+                            style={[
+                                styles.onboardingCard,
+                                tooltipBottom
+                                    ? { bottom: 100 }
+                                    : { top: tooltipPos.y + tooltipPos.height + 16 },
+                            ]}
+                        >
                             <View style={styles.onboardingHeader}>
                                 <Text style={styles.onboardingStepLabel}>
-                                    {onboardingStep + 1} / {ONBOARDING_STEPS.length}
+                                    {onboardingStep + 1} / {currentSteps.length}
+                                    {onboardingPhase === 'after' ? '  (results)' : ''}
                                 </Text>
-                                <TouchableOpacity onPress={finishOnboarding}>
+                                <TouchableOpacity onPress={() => finishOnboarding(onboardingPhase)}>
                                     <Text style={styles.onboardingSkip}>Skip</Text>
                                 </TouchableOpacity>
                             </View>
 
                             <Text style={styles.onboardingTitle}>
-                                {ONBOARDING_STEPS[onboardingStep].title}
+                                {currentSteps[onboardingStep].title}
                             </Text>
                             <Text style={styles.onboardingDescription}>
-                                {ONBOARDING_STEPS[onboardingStep].description}
+                                {currentSteps[onboardingStep].description}
                             </Text>
 
-                            {/* Dots */}
                             <View style={styles.onboardingDots}>
-                                {ONBOARDING_STEPS.map((_, i) => (
+                                {currentSteps.map((_, i) => (
                                     <View
                                         key={i}
                                         style={[
@@ -758,10 +854,10 @@ export default function BuilderScreen() {
 
                             <TouchableOpacity
                                 style={styles.onboardingButton}
-                                onPress={() => showOnboardingStep(onboardingStep + 1)}
+                                onPress={() => showOnboardingStep(onboardingStep + 1, onboardingPhase)}
                             >
                                 <Text style={styles.onboardingButtonText}>
-                                    {onboardingStep === ONBOARDING_STEPS.length - 1 ? 'Got it! 🎉' : 'Next →'}
+                                    {onboardingStep === currentSteps.length - 1 ? 'Got it! 🎉' : 'Next →'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -1024,10 +1120,25 @@ const styles = StyleSheet.create({
     outfitsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     outfitCard: { width: '48%', marginBottom: 16, position: 'relative' },
     outfitImage: { width: '100%', height: 180, borderRadius: 14, backgroundColor: '#e9e9e9' },
+    refreshAnchor: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 30,
+        height: 30,
+        zIndex: 3,
+    },
     regenerateItemButton: {
-        position: 'absolute', top: 8, right: 8, backgroundColor: '#fff', borderRadius: 20,
-        width: 30, height: 30, justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
+        width: 30,
+        height: 30,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     wardrobeBadge: {
         position: 'absolute', top: 8, left: 8, backgroundColor: '#111',
@@ -1073,14 +1184,12 @@ const styles = StyleSheet.create({
     },
     feedbackButtonDisabled: { backgroundColor: '#bdbdbd' },
     feedbackButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-
-    // Onboarding
-    onboardingOverlay: {
-        flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    },
+    onboardingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
     onboardingHighlight: {
-        position: 'absolute', left: 12, right: 12,
-        borderRadius: 16, borderWidth: 2, borderColor: '#f2b55d',
+        position: 'absolute',
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: '#f2b55d',
         backgroundColor: 'rgba(242,181,93,0.1)',
     },
     onboardingCard: {
@@ -1098,12 +1207,8 @@ const styles = StyleSheet.create({
     onboardingDots: { flexDirection: 'row', gap: 6, marginBottom: 16 },
     onboardingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#dedede' },
     onboardingDotActive: { backgroundColor: '#111', width: 20, borderRadius: 4 },
-    onboardingButton: {
-        backgroundColor: '#111', paddingVertical: 14,
-        borderRadius: 14, alignItems: 'center',
-    },
+    onboardingButton: { backgroundColor: '#111', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
     onboardingButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {
