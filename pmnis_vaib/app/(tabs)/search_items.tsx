@@ -25,6 +25,7 @@ import { useFocusEffect } from 'expo-router';
 import { Animated, TouchableWithoutFeedback } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useCart, CartProduct } from '../../context/cart_context';
+import { useWishlist } from '../../context/wishlist_context';
 import { Image } from 'expo-image';
 import { ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +38,7 @@ export default function SearchItemsScreen() {
     const { products } = useProducts();
     const { category, subcategory, gender, query } = useLocalSearchParams();
     const queryText = Array.isArray(query) ? query[0] : query;
+    const { toggleWishlist, isInWishlist } = useWishlist();
     const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
 
     const [searchText, setSearchText] = React.useState('');
@@ -127,12 +129,8 @@ export default function SearchItemsScreen() {
     const [selectedCartProduct, setSelectedCartProduct] = React.useState<CartProduct | null>(null);
     const slideAnim = React.useRef(new Animated.Value(0)).current;
 
-
-
-
     const openCartPicker = (item: typeof filteredProducts[number]) => {
         const imageSource = productImages[item.images[0]];
-
         const cartProduct: CartProduct = {
             id: `${item.id}-default`,
             name: item.name,
@@ -141,10 +139,8 @@ export default function SearchItemsScreen() {
             image: imageSource,
             note: '',
         };
-
         setSelectedCartProduct(cartProduct);
         setShowCartPicker(true);
-
         Animated.timing(slideAnim, {
             toValue: 1,
             duration: 260,
@@ -181,7 +177,6 @@ export default function SearchItemsScreen() {
 
     const handleAddToSpecificCart = (cartId: string) => {
         if (!selectedCartProduct) return;
-
         addProductToCart(cartId, selectedCartProduct);
         closeCartPicker();
         Alert.alert('Added to cart', 'Item was added to your selected cart.');
@@ -220,7 +215,6 @@ export default function SearchItemsScreen() {
                     <Feather name="edit-2" size={15} color="#111" />
                     <Text style={styles.drawerSwipeButtonText}>Edit</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     style={[styles.drawerSwipeButton, styles.drawerDeleteSwipeButton]}
                     onPress={() => handleDeleteCart(cartId)}
@@ -232,23 +226,16 @@ export default function SearchItemsScreen() {
         );
     };
 
-
     useFocusEffect(
         React.useCallback(() => {
             setOpenMenu(null);
             setShowColours(false);
             setActivePriceThumb(null);
             setIsSliding(false);
-
             setSelectedSort('Recommended');
             setSelectedSizes([]);
             setPriceRange([5, 500]);
-
-            setSelectedFilters({
-                brand: 'All',
-                colour: 'All',
-            });
-
+            setSelectedFilters({ brand: 'All', colour: 'All' });
             setPreviewVisible(false);
             setSelectedPreview(null);
         }, [])
@@ -257,17 +244,9 @@ export default function SearchItemsScreen() {
     const [selectedSort, setSelectedSort] = React.useState('Recommended');
     const [selectedSizes, setSelectedSizes] = React.useState<string[]>([]);
     const [priceRange, setPriceRange] = React.useState<[number, number]>([5, 500]);
-
-    const [selectedFilters, setSelectedFilters] = React.useState({
-        brand: 'All',
-        colour: 'All',
-    });
-
+    const [selectedFilters, setSelectedFilters] = React.useState({ brand: 'All', colour: 'All' });
     const [previewVisible, setPreviewVisible] = React.useState(false);
-    const [selectedPreview, setSelectedPreview] = React.useState<{
-        image: any;
-        name: string;
-    } | null>(null);
+    const [selectedPreview, setSelectedPreview] = React.useState<{ image: any; name: string } | null>(null);
 
     const openPreview = (image: any, name: string) => {
         setSelectedPreview({ image, name });
@@ -277,30 +256,20 @@ export default function SearchItemsScreen() {
     const saveImageToPhone = async () => {
         try {
             if (!selectedPreview) return;
-
             const permission = await MediaLibrary.requestPermissionsAsync();
-
             if (!permission.granted) {
                 Alert.alert('Permission needed', 'Please allow access to your photos to save the image.');
                 return;
             }
-
             const asset = Asset.fromModule(selectedPreview.image);
             await asset.downloadAsync();
-
             if (!asset.localUri) {
                 Alert.alert('Error', 'Image could not be prepared for saving.');
                 return;
             }
-
             const fileName = asset.localUri.split('/').pop() || `vaib-image-${Date.now()}.png`;
             const newPath = FileSystem.documentDirectory + fileName;
-
-            await FileSystem.copyAsync({
-                from: asset.localUri,
-                to: newPath,
-            });
-
+            await FileSystem.copyAsync({ from: asset.localUri, to: newPath });
             await MediaLibrary.createAssetAsync(newPath);
             Alert.alert('Saved', 'Image was saved to your phone.');
         } catch (error) {
@@ -309,15 +278,8 @@ export default function SearchItemsScreen() {
         }
     };
 
-    const sortOptions = [
-        'Recommended',
-        "What's New",
-        'Price: High to Low',
-        'Price: Low to High',
-    ];
-
+    const sortOptions = ['Recommended', "What's New", 'Price: High to Low', 'Price: Low to High'];
     const brandOptions = ['All', 'Adidas', 'Zara', 'Mango', 'Gucci', 'Nike'];
-
     const colourOptions = [
         { name: 'All', color: '#d9d9d9' },
         { name: 'Black', color: '#111111' },
@@ -337,16 +299,13 @@ export default function SearchItemsScreen() {
 
     const filteredProducts = React.useMemo(() => {
         let result = [...products];
-
         result = result.filter((item) => item.gender === genderValue);
-
         if (categoryName) {
             result = result.filter((item) => {
                 if (item.mainCategory === categoryName) return true;
                 return item.tags.includes(categoryName as string);
             });
         }
-
         if (subcategoryName && subcategoryName !== 'All') {
             result = result.filter((item) => {
                 if (item.subCategory === subcategoryName) return true;
@@ -386,23 +345,19 @@ export default function SearchItemsScreen() {
         if (selectedFilters.brand !== 'All') {
             result = result.filter((item) => item.brand === selectedFilters.brand);
         }
-
         if (selectedFilters.colour !== 'All') {
             result = result.filter((item) =>
                 item.availableColors.some((color) => color.name === selectedFilters.colour)
             );
         }
-
         result = result.filter(
             (item) => item.price >= priceRange[0] && item.price <= priceRange[1]
         );
-
         if (selectedSizes.length > 0) {
             result = result.filter((item) =>
                 item.availableSizes.some((size) => selectedSizes.includes(size))
             );
         }
-
         if (selectedSort === 'Price: Low to High') {
             result.sort((a, b) => a.price - b.price);
         } else if (selectedSort === 'Price: High to Low') {
@@ -412,8 +367,8 @@ export default function SearchItemsScreen() {
         } else {
             result.sort((a, b) => Number(!!b.isBestSeller) - Number(!!a.isBestSeller));
         }
-
         return result;
+
     }, [
         products,
         categoryName,
@@ -428,16 +383,13 @@ export default function SearchItemsScreen() {
     ]);
 
 
-
     const toggleMenu = (menu: 'SORT' | 'FILTER' | 'SIZE') => {
         setOpenMenu((prev) => (prev === menu ? null : menu));
     };
 
     const toggleSize = (size: string) => {
         setSelectedSizes((prev) =>
-            prev.includes(size)
-                ? prev.filter((item) => item !== size)
-                : [...prev, size]
+            prev.includes(size) ? prev.filter((item) => item !== size) : [...prev, size]
         );
     };
 
@@ -457,13 +409,7 @@ export default function SearchItemsScreen() {
                         style={styles.searchWrapper}
                         imageStyle={{ borderRadius: 12 }}
                     >
-                        <Feather
-                            name="search"
-                            size={18}
-                            color="#393939"
-                            style={styles.searchIcon}
-                        />
-
+                        <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
                         <TextInput
                             ref={searchInputRef}
                             placeholder="Search"
@@ -540,6 +486,7 @@ export default function SearchItemsScreen() {
                     onScrollBeginDrag={closeSearchPanel}
                     keyboardShouldPersistTaps="handled"
                 >
+
                     <Text style={styles.title}>
                         {queryText ? `Results for "${queryText}"` : `${categoryName}: ${subcategoryName}`}
                     </Text>
@@ -547,60 +494,24 @@ export default function SearchItemsScreen() {
                     <View style={styles.filterTabsWrapper}>
                         <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('SORT')}>
                             <View style={styles.tabInner}>
-                                <Text
-                                    style={[
-                                        styles.filterTabText,
-                                        openMenu === 'SORT' && styles.activeFilterTabText,
-                                        openMenu === 'SORT' && styles.activeTabBold,
-                                    ]}
-                                >
-                                    SORT
-                                </Text>
-                                <Feather
-                                    name={openMenu === 'SORT' ? 'chevron-up' : 'chevron-down'}
-                                    size={14}
-                                    color={openMenu === 'SORT' ? '#111' : '#888'}
-                                />
+                                <Text style={[styles.filterTabText, openMenu === 'SORT' && styles.activeFilterTabText, openMenu === 'SORT' && styles.activeTabBold]}>SORT</Text>
+                                <Feather name={openMenu === 'SORT' ? 'chevron-up' : 'chevron-down'} size={14} color={openMenu === 'SORT' ? '#111' : '#888'} />
                             </View>
                             {openMenu === 'SORT' && <View style={styles.activeFilterLine} />}
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('FILTER')}>
                             <View style={styles.tabInner}>
-                                <Text
-                                    style={[
-                                        styles.filterTabText,
-                                        openMenu === 'FILTER' && styles.activeFilterTabText,
-                                        openMenu === 'FILTER' && styles.activeTabBold,
-                                    ]}
-                                >
-                                    FILTER
-                                </Text>
-                                <Feather
-                                    name={openMenu === 'FILTER' ? 'chevron-up' : 'chevron-down'}
-                                    size={14}
-                                    color={openMenu === 'FILTER' ? '#111' : '#888'}
-                                />
+                                <Text style={[styles.filterTabText, openMenu === 'FILTER' && styles.activeFilterTabText, openMenu === 'FILTER' && styles.activeTabBold]}>FILTER</Text>
+                                <Feather name={openMenu === 'FILTER' ? 'chevron-up' : 'chevron-down'} size={14} color={openMenu === 'FILTER' ? '#111' : '#888'} />
                             </View>
                             {openMenu === 'FILTER' && <View style={styles.activeFilterLine} />}
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.filterTab} onPress={() => toggleMenu('SIZE')}>
                             <View style={styles.tabInner}>
-                                <Text
-                                    style={[
-                                        styles.filterTabText,
-                                        openMenu === 'SIZE' && styles.activeFilterTabText,
-                                        openMenu === 'SIZE' && styles.activeTabBold,
-                                    ]}
-                                >
-                                    SIZE
-                                </Text>
-                                <Feather
-                                    name={openMenu === 'SIZE' ? 'chevron-up' : 'chevron-down'}
-                                    size={14}
-                                    color={openMenu === 'SIZE' ? '#111' : '#888'}
-                                />
+                                <Text style={[styles.filterTabText, openMenu === 'SIZE' && styles.activeFilterTabText, openMenu === 'SIZE' && styles.activeTabBold]}>SIZE</Text>
+                                <Feather name={openMenu === 'SIZE' ? 'chevron-up' : 'chevron-down'} size={14} color={openMenu === 'SIZE' ? '#111' : '#888'} />
                             </View>
                             {openMenu === 'SIZE' && <View style={styles.activeFilterLine} />}
                         </TouchableOpacity>
@@ -609,28 +520,10 @@ export default function SearchItemsScreen() {
                     {openMenu === 'SORT' && (
                         <View style={styles.dropdownBox}>
                             {sortOptions.map((option) => (
-                                <TouchableOpacity
-                                    key={option}
-                                    style={styles.dropdownRow}
-                                    onPress={() => {
-                                        setSelectedSort(option);
-                                        setOpenMenu(null);
-                                    }}
-                                >
+                                <TouchableOpacity key={option} style={styles.dropdownRow} onPress={() => { setSelectedSort(option); setOpenMenu(null); }}>
                                     <View style={styles.sortLeft}>
-                                        {selectedSort === option ? (
-                                            <MaterialIcons name="star" size={12} color="#111" />
-                                        ) : (
-                                            <View style={styles.starPlaceholder} />
-                                        )}
-                                        <Text
-                                            style={[
-                                                styles.dropdownText,
-                                                selectedSort === option && styles.activeSortText,
-                                            ]}
-                                        >
-                                            {option}
-                                        </Text>
+                                        {selectedSort === option ? <MaterialIcons name="star" size={12} color="#111" /> : <View style={styles.starPlaceholder} />}
+                                        <Text style={[styles.dropdownText, selectedSort === option && styles.activeSortText]}>{option}</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -639,63 +532,25 @@ export default function SearchItemsScreen() {
 
                     {openMenu === 'FILTER' && (
                         <View style={styles.dropdownBox}>
-                            <TouchableOpacity
-                                style={styles.colourHeader}
-                                onPress={() => setShowColours((prev) => !prev)}
-                            >
+                            <TouchableOpacity style={styles.colourHeader} onPress={() => setShowColours((prev) => !prev)}>
                                 <View style={styles.colourHeaderLeft}>
                                     <Text style={styles.sectionTitleNoMargin}>Colour</Text>
                                 </View>
-
                                 <View style={styles.colourHeaderRight}>
                                     <Text style={styles.seeAllText}>See all</Text>
-                                    <Feather
-                                        name={showColours ? 'chevron-up' : 'chevron-down'}
-                                        size={16}
-                                        color="#111"
-                                    />
+                                    <Feather name={showColours ? 'chevron-up' : 'chevron-down'} size={16} color="#111" />
                                 </View>
                             </TouchableOpacity>
 
                             {showColours && (
                                 <View style={styles.colourList}>
                                     {colourOptions.map((option) => (
-                                        <TouchableOpacity
-                                            key={option.name}
-                                            style={styles.colourRow}
-                                            onPress={() =>
-                                                setSelectedFilters((prev) => ({
-                                                    ...prev,
-                                                    colour: option.name,
-                                                }))
-                                            }
-                                        >
+                                        <TouchableOpacity key={option.name} style={styles.colourRow} onPress={() => setSelectedFilters((prev) => ({ ...prev, colour: option.name }))}>
                                             <View style={styles.colourLeft}>
-                                                <View
-                                                    style={[
-                                                        styles.colourDot,
-                                                        { backgroundColor: option.color },
-                                                        option.name === 'White' && styles.whiteColourDot,
-                                                    ]}
-                                                />
-                                                <Text
-                                                    style={[
-                                                        styles.colourText,
-                                                        selectedFilters.colour === option.name &&
-                                                        styles.activeColourText,
-                                                    ]}
-                                                >
-                                                    {option.name}
-                                                </Text>
+                                                <View style={[styles.colourDot, { backgroundColor: option.color }, option.name === 'White' && styles.whiteColourDot]} />
+                                                <Text style={[styles.colourText, selectedFilters.colour === option.name && styles.activeColourText]}>{option.name}</Text>
                                             </View>
-
-                                            {selectedFilters.colour === option.name && (
-                                                <MaterialIcons
-                                                    name="radio-button-checked"
-                                                    size={16}
-                                                    color="#111"
-                                                />
-                                            )}
+                                            {selectedFilters.colour === option.name && <MaterialIcons name="radio-button-checked" size={16} color="#111" />}
                                         </TouchableOpacity>
                                     ))}
                                 </View>
@@ -704,66 +559,26 @@ export default function SearchItemsScreen() {
                             <Text style={styles.sectionTitle}>Brand</Text>
                             <View style={styles.optionWrap}>
                                 {brandOptions.map((option) => (
-                                    <TouchableOpacity
-                                        key={option}
-                                        style={[
-                                            styles.optionPill,
-                                            selectedFilters.brand === option && styles.activePill,
-                                        ]}
-                                        onPress={() =>
-                                            setSelectedFilters((prev) => ({ ...prev, brand: option }))
-                                        }
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.optionPillText,
-                                                selectedFilters.brand === option && styles.activePillText,
-                                            ]}
-                                        >
-                                            {option}
-                                        </Text>
+                                    <TouchableOpacity key={option} style={[styles.optionPill, selectedFilters.brand === option && styles.activePill]} onPress={() => setSelectedFilters((prev) => ({ ...prev, brand: option }))}>
+                                        <Text style={[styles.optionPillText, selectedFilters.brand === option && styles.activePillText]}>{option}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
 
                             <Text style={styles.sectionTitle}>Price</Text>
-
                             <View style={styles.priceTopRow}>
-                                <Text
-                                    style={[
-                                        styles.priceValue,
-                                        isSliding && activePriceThumb === 0 && styles.priceValueActive,
-                                    ]}
-                                >
-                                    €{priceRange[0]}
-                                </Text>
-
-                                <Text
-                                    style={[
-                                        styles.priceValue,
-                                        isSliding && activePriceThumb === 1 && styles.priceValueActive,
-                                    ]}
-                                >
-                                    €{priceRange[1]}
-                                </Text>
+                                <Text style={[styles.priceValue, isSliding && activePriceThumb === 0 && styles.priceValueActive]}>€{priceRange[0]}</Text>
+                                <Text style={[styles.priceValue, isSliding && activePriceThumb === 1 && styles.priceValueActive]}>€{priceRange[1]}</Text>
                             </View>
 
                             <View style={styles.sliderWrapper}>
                                 <MultiSlider
                                     values={priceRange}
-                                    min={5}
-                                    max={500}
-                                    step={1}
-                                    sliderLength={280}
+                                    min={5} max={500} step={1} sliderLength={280}
                                     onValuesChange={(values: number[]) => {
                                         setIsSliding(true);
-
-                                        if (values[0] !== priceRange[0]) {
-                                            setActivePriceThumb(0);
-                                        } else if (values[1] !== priceRange[1]) {
-                                            setActivePriceThumb(1);
-                                        }
-
+                                        if (values[0] !== priceRange[0]) setActivePriceThumb(0);
+                                        else if (values[1] !== priceRange[1]) setActivePriceThumb(1);
                                         setPriceRange([values[0], values[1]] as [number, number]);
                                     }}
                                     onValuesChangeFinish={(values: number[]) => {
@@ -771,34 +586,12 @@ export default function SearchItemsScreen() {
                                         setActivePriceThumb(null);
                                         setIsSliding(false);
                                     }}
-                                    selectedStyle={{
-                                        backgroundColor: isSliding ? '#df6a2e' : '#111',
-                                        height: 4,
-                                    }}
-                                    unselectedStyle={{
-                                        backgroundColor: '#d7d7d7',
-                                        height: 4,
-                                    }}
-                                    markerStyle={{
-                                        backgroundColor: '#111',
-                                        height: 18,
-                                        width: 18,
-                                        borderRadius: 9,
-                                    }}
-                                    pressedMarkerStyle={{
-                                        backgroundColor: '#df6a2e',
-                                        height: 22,
-                                        width: 22,
-                                        borderRadius: 11,
-                                    }}
-                                    containerStyle={{
-                                        alignSelf: 'center',
-                                        height: 40,
-                                    }}
-                                    trackStyle={{
-                                        height: 4,
-                                        borderRadius: 2,
-                                    }}
+                                    selectedStyle={{ backgroundColor: isSliding ? '#df6a2e' : '#111', height: 4 }}
+                                    unselectedStyle={{ backgroundColor: '#d7d7d7', height: 4 }}
+                                    markerStyle={{ backgroundColor: '#111', height: 18, width: 18, borderRadius: 9 }}
+                                    pressedMarkerStyle={{ backgroundColor: '#df6a2e', height: 22, width: 22, borderRadius: 11 }}
+                                    containerStyle={{ alignSelf: 'center', height: 40 }}
+                                    trackStyle={{ height: 4, borderRadius: 2 }}
                                 />
                             </View>
 
@@ -807,10 +600,7 @@ export default function SearchItemsScreen() {
                                 <Text style={styles.priceRangeLabel}>Max €500</Text>
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.applyButton}
-                                onPress={() => setOpenMenu(null)}
-                            >
+                            <TouchableOpacity style={styles.applyButton} onPress={() => setOpenMenu(null)}>
                                 <Text style={styles.applyButtonText}>APPLY FILTERS</Text>
                             </TouchableOpacity>
                         </View>
@@ -823,73 +613,35 @@ export default function SearchItemsScreen() {
                                 {sizeOptions.map((size) => (
                                     <TouchableOpacity
                                         key={size.label}
-                                        style={[
-                                            styles.sizePill,
-                                            selectedSizes.includes(size.label) && styles.activeSizePill,
-                                            size.disabled && { opacity: 0.45 },
-                                        ]}
-                                        onPress={() => {
-                                            if (!size.disabled) toggleSize(size.label);
-                                        }}
+                                        style={[styles.sizePill, selectedSizes.includes(size.label) && styles.activeSizePill, size.disabled && { opacity: 0.45 }]}
+                                        onPress={() => { if (!size.disabled) toggleSize(size.label); }}
                                         disabled={size.disabled}
                                     >
-                                        <Text
-                                            style={[
-                                                styles.sizePillText,
-                                                selectedSizes.includes(size.label) && styles.activeSizePillText,
-                                            ]}
-                                        >
-                                            {size.label}
-                                        </Text>
+                                        <Text style={[styles.sizePillText, selectedSizes.includes(size.label) && styles.activeSizePillText]}>{size.label}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
-
-                            <TouchableOpacity
-                                style={styles.applyButton}
-                                onPress={() => setOpenMenu(null)}
-                            >
+                            <TouchableOpacity style={styles.applyButton} onPress={() => setOpenMenu(null)}>
                                 <Text style={styles.applyButtonText}>APPLY SIZE</Text>
                             </TouchableOpacity>
                         </View>
                     )}
 
-                    <Text style={styles.foundText}>
-                        {filteredProducts.length} items found • {selectedSort}
-                    </Text>
+                    <Text style={styles.foundText}>{filteredProducts.length} items found • {selectedSort}</Text>
 
                     <View style={styles.productsGrid}>
                         {filteredProducts.map((item) => (
                             <View key={item.id} style={styles.productCard}>
                                 <View style={styles.imageSliderWrapper}>
-                                    <ScrollView
-                                        horizontal
-                                        pagingEnabled
-                                        showsHorizontalScrollIndicator={false}
-                                        bounces={false}
-                                    >
+                                    <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} bounces={false}>
                                         {item.images.map((imageKey, imgIndex) => {
                                             const imageSource = productImages[imageKey];
                                             if (!imageSource) return null;
-
                                             return (
-                                                <View
-                                                    key={imgIndex}
-                                                    style={{ width: CARD_WIDTH, height: IMAGE_HEIGHT }}
-                                                >
+                                                <View key={imgIndex} style={{ width: CARD_WIDTH, height: IMAGE_HEIGHT }}>
                                                     <TouchableOpacity
                                                         activeOpacity={1}
-                                                        onPress={() =>
-                                                            router.push({
-                                                                pathname: '/product_detail',
-                                                                params: {
-                                                                    productId: item.id,
-                                                                    category: categoryName ?? '',
-                                                                    subcategory: subcategoryName ?? '',
-                                                                    gender: selectedGenderParam ?? 'WOMAN',
-                                                                },
-                                                            })
-                                                        }
+                                                        onPress={() => router.push({ pathname: '/product_detail', params: { productId: item.id, category: categoryName ?? '', subcategory: subcategoryName ?? '', gender: selectedGenderParam ?? 'WOMAN' } })}
                                                         onLongPress={() => openPreview(imageSource, item.name)}
                                                         delayLongPress={250}
                                                     >
@@ -899,13 +651,9 @@ export default function SearchItemsScreen() {
                                                                     <ActivityIndicator size="small" color="#999" />
                                                                 </View>
                                                             )}
-
                                                             <Image
                                                                 source={imageSource}
-                                                                style={[
-                                                                    styles.productImage,
-                                                                    { opacity: loadingImages[`${item.id}-${imgIndex}`] ? 0 : 1 },
-                                                                ]}
+                                                                style={[styles.productImage, { opacity: loadingImages[`${item.id}-${imgIndex}`] ? 0 : 1 }]}
                                                                 contentFit="cover"
                                                                 cachePolicy="memory-disk"
                                                                 transition={150}
@@ -921,28 +669,34 @@ export default function SearchItemsScreen() {
                                     </ScrollView>
                                 </View>
 
-                                <TouchableOpacity
-                                    style={styles.cartButton}
-                                    onPress={() => openCartPicker(item)}
-                                >
+                                <TouchableOpacity style={styles.cartButton} onPress={() => openCartPicker(item)}>
                                     <Feather name="shopping-cart" size={16} color="#111" />
                                 </TouchableOpacity>
 
                                 <View style={styles.productInfoRow}>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
-                                        <Text
-                                            style={styles.productName}
-                                            numberOfLines={2}
-                                            ellipsizeMode="tail"
-                                        >
-                                            {item.name}
-                                        </Text>
+                                        <Text style={styles.productName} numberOfLines={2} ellipsizeMode="tail">{item.name}</Text>
                                     </View>
 
-                                    <TouchableOpacity style={styles.heartButton}>
-                                        <Feather name="heart" size={22} color="#111" />
-                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                            style={styles.heartButton}
+                                            onPress={() => toggleWishlist({
+                                                id: item.id,
+                                                name: item.name,
+                                                price: item.price,
+                                                image: productImages[item.images[0]],
+                                                category: categoryName ?? '',
+                                                subcategory: subcategoryName ?? '',
+                                                gender: selectedGenderParam ?? 'WOMAN',
+                                            })}
+                                        >
+                                            <Feather
+                                                name="heart"
+                                                size={22}
+                                                color={isInWishlist(item.id) ? '#e74c3c' : '#111'}
+                                            />
+                                        </TouchableOpacity>
                                 </View>
                             </View>
                         ))}
@@ -950,44 +704,18 @@ export default function SearchItemsScreen() {
                 </ScrollView>
             </View>
 
-            <Modal
-                visible={previewVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setPreviewVisible(false)}
-            >
+            <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={() => setPreviewVisible(false)}>
                 <View style={styles.previewOverlay}>
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={() => setPreviewVisible(false)}
-                    />
-
+                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setPreviewVisible(false)} />
                     {selectedPreview && (
                         <View style={styles.previewContent}>
-                            <Image
-                                source={selectedPreview.image}
-                                style={styles.previewImage}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                                transition={150}
-                            />
-
+                            <Image source={selectedPreview.image} style={styles.previewImage} contentFit="cover" cachePolicy="memory-disk" transition={150} />
                             <View style={styles.previewBottomSheet}>
                                 <View>
                                     <Text style={styles.previewBrand}>VAIB</Text>
-                                    <Text
-                                        style={styles.previewName}
-                                        numberOfLines={2}
-                                        ellipsizeMode="tail"
-                                    >
-                                        {selectedPreview.name}
-                                    </Text>
+                                    <Text style={styles.previewName} numberOfLines={2} ellipsizeMode="tail">{selectedPreview.name}</Text>
                                 </View>
-
-                                <TouchableOpacity
-                                    style={styles.saveButton}
-                                    onPress={saveImageToPhone}
-                                >
+                                <TouchableOpacity style={styles.saveButton} onPress={saveImageToPhone}>
                                     <Feather name="download" size={16} color="#fff" />
                                     <Text style={styles.saveButtonText}>SAVE</Text>
                                 </TouchableOpacity>
@@ -1000,31 +728,14 @@ export default function SearchItemsScreen() {
             {showCartPicker && (
                 <View style={styles.drawerRoot} pointerEvents="box-none">
                     <TouchableWithoutFeedback onPress={closeCartPicker}>
-                        <Animated.View
-                            style={[
-                                styles.drawerBackdrop,
-                                {
-                                    opacity: overlayOpacity,
-                                },
-                            ]}
-                        />
+                        <Animated.View style={[styles.drawerBackdrop, { opacity: overlayOpacity }]} />
                     </TouchableWithoutFeedback>
 
-                    <Animated.View
-                        style={[
-                            styles.cartDrawer,
-                            {
-                                transform: [{ translateX: drawerTranslateX }],
-                            },
-                        ]}
-                    >
+                    <Animated.View style={[styles.cartDrawer, { transform: [{ translateX: drawerTranslateX }] }]}>
                         <View style={styles.cartDrawerTopSpacer} />
                         <Text style={styles.cartDrawerTitle}>Carts</Text>
 
-                        <ScrollView
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.cartDrawerList}
-                        >
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.cartDrawerList}>
                             {carts.map((cart) => {
                                 const currentTotal = getCartTotal(cart);
                                 const afterAddTotal = currentTotal + (selectedCartProduct?.price ?? 0);
@@ -1032,57 +743,23 @@ export default function SearchItemsScreen() {
                                 const isOver = difference < 0;
 
                                 return (
-                                    <Swipeable
-                                        key={cart.id}
-                                        renderRightActions={() => renderDrawerRightActions(cart.id)}
-                                        overshootRight={false}
-                                    >
-                                        <TouchableOpacity
-                                            style={styles.cartDrawerItem}
-                                            activeOpacity={0.86}
-                                            onPress={() => handleAddToSpecificCart(cart.id)}
-                                        >
+                                    <Swipeable key={cart.id} renderRightActions={() => renderDrawerRightActions(cart.id)} overshootRight={false}>
+                                        <TouchableOpacity style={styles.cartDrawerItem} activeOpacity={0.86} onPress={() => handleAddToSpecificCart(cart.id)}>
                                             <View style={styles.cartDrawerRowTop}>
-                                                <TouchableOpacity
-                                                    style={styles.cartDrawerMiniIcon}
-                                                    onPress={closeCartPicker}
-                                                    activeOpacity={0.7}
-                                                >
+                                                <TouchableOpacity style={styles.cartDrawerMiniIcon} onPress={closeCartPicker} activeOpacity={0.7}>
                                                     <Feather name="shopping-cart" size={18} color="#111" />
                                                 </TouchableOpacity>
-
-                                                <Text
-                                                    style={styles.cartDrawerName}
-                                                    numberOfLines={2}
-                                                    ellipsizeMode="tail"
-                                                >
-                                                    {cart.name}
-                                                </Text>
+                                                <Text style={styles.cartDrawerName} numberOfLines={2} ellipsizeMode="tail">{cart.name}</Text>
                                             </View>
-
-                                            <Text
-                                                style={[
-                                                    styles.cartDrawerMeta,
-                                                    isOver ? styles.cartDrawerMetaOver : styles.cartDrawerMetaRemaining,
-                                                ]}
-                                                numberOfLines={1}
-                                            >
-                                                {isOver
-                                                    ? `Over budget: €${Math.abs(difference).toFixed(2)}`
-                                                    : `Remaining: €${difference.toFixed(2)}`}
+                                            <Text style={[styles.cartDrawerMeta, isOver ? styles.cartDrawerMetaOver : styles.cartDrawerMetaRemaining]} numberOfLines={1}>
+                                                {isOver ? `Over budget: €${Math.abs(difference).toFixed(2)}` : `Remaining: €${difference.toFixed(2)}`}
                                             </Text>
                                         </TouchableOpacity>
                                     </Swipeable>
                                 );
                             })}
 
-                            <TouchableOpacity
-                                style={styles.cartDrawerAddButton}
-                                onPress={() => {
-                                    closeCartPicker();
-                                    router.push('/cart_create');
-                                }}
-                            >
+                            <TouchableOpacity style={styles.cartDrawerAddButton} onPress={() => { closeCartPicker(); router.push('/cart_create'); }}>
                                 <Feather name="plus" size={18} color="#fff" />
                                 <Text style={styles.cartDrawerAddButtonText}>Add</Text>
                             </TouchableOpacity>

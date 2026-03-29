@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useWardrobe } from '../../context/wardrobe_context';
 import { useCart } from '../../context/cart_context';
+import { useWishlist } from '../../context/wishlist_context';
 
 const SHOP_PRODUCTS = [
     { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'modra', 'blue'] },
@@ -19,13 +20,6 @@ const SHOP_PRODUCTS = [
     { id: 's8', image: require('../../assets/images_app/model5.png'), name: 'Shoes collection', tags: ['shoes', 'topanky', 'casual', 'sport'] },
 ];
 
-const WISHLIST_PRODUCTS = [
-    { id: 'w1', image: require('../../assets/images_app/model6.png'), name: 'Swim wear', tags: ['swim', 'summer', 'leto', 'beach', 'plaz'] },
-    { id: 'w2', image: require('../../assets/images_app/model7.png'), name: 'Favorite look', tags: ['casual', 'favorite', 'oblubeny', 'outfit'] },
-    { id: 'w3', image: require('../../assets/images_app/model8.png'), name: 'Denim jacket', tags: ['denim', 'jacket', 'casual', 'streetwear'] },
-    { id: 'w4', image: require('../../assets/images_app/model9.png'), name: 'Summer dress', tags: ['summer', 'dress', 'letny', 'saty'] },
-];
-
 type Source = 'wardrobe' | 'wishlist' | 'shop';
 type OutfitItem = { id: string; image: any; name: string; tags: string[]; fromWardrobe?: boolean };
 
@@ -34,6 +28,7 @@ export default function BuilderScreen() {
     const { returnToBuilder } = useLocalSearchParams();
     const { wardrobeItems } = useWardrobe();
     const { carts, addProductToCart } = useCart();
+    const { wishlistItems } = useWishlist();
 
     const [prompt, setPrompt] = useState('');
     const [sources, setSources] = useState<Source[]>(['shop']);
@@ -63,9 +58,16 @@ export default function BuilderScreen() {
         fromWardrobe: true,
     }));
 
+    const wishlistAsOutfits: OutfitItem[] = wishlistItems.map(item => ({
+        id: item.id,
+        image: item.image,
+        name: item.name,
+        tags: item.name.toLowerCase().split(' '),
+    }));
+
     const getSheetItems = (): OutfitItem[] => {
         if (sheetSource === 'wardrobe') return wardrobeAsOutfits;
-        if (sheetSource === 'wishlist') return WISHLIST_PRODUCTS;
+        if (sheetSource === 'wishlist') return wishlistAsOutfits;
         return SHOP_PRODUCTS;
     };
 
@@ -73,14 +75,14 @@ export default function BuilderScreen() {
         if (s === 'wardrobe' || s === 'wishlist') {
             const isFromThisSource = s === 'wardrobe'
                 ? selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id))
-                : selectedItems.some(i => WISHLIST_PRODUCTS.find(w => w.id === i.id));
+                : selectedItems.some(i => wishlistAsOutfits.find(w => w.id === i.id));
 
             if (isFromThisSource) {
                 setSelectedItems(prev =>
                     prev.filter(i =>
                         s === 'wardrobe'
                             ? !wardrobeAsOutfits.find(w => w.id === i.id)
-                            : !WISHLIST_PRODUCTS.find(w => w.id === i.id)
+                            : !wishlistAsOutfits.find(w => w.id === i.id)
                     )
                 );
             } else {
@@ -202,7 +204,7 @@ export default function BuilderScreen() {
 
     const isShopActive = sources.includes('shop');
     const isWardrobeActive = selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id));
-    const isWishlistActive = selectedItems.some(i => WISHLIST_PRODUCTS.find(w => w.id === i.id));
+    const isWishlistActive = selectedItems.some(i => wishlistAsOutfits.find(w => w.id === i.id));
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -391,33 +393,45 @@ export default function BuilderScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        <FlatList
-                            data={getSheetItems()}
-                            keyExtractor={item => item.id}
-                            numColumns={3}
-                            contentContainerStyle={styles.sheetGrid}
-                            renderItem={({ item }) => {
-                                const isSelected = !!selectedItems.find(i => i.id === item.id);
-                                return (
-                                    <TouchableOpacity
-                                        style={[styles.sheetItem, isSelected && styles.sheetItemSelected]}
-                                        onPress={() => toggleItemSelection(item)}
-                                    >
-                                        <Image
-                                            source={typeof item.image === 'string' ? { uri: item.image } : item.image}
-                                            style={styles.sheetItemImage}
-                                            resizeMode="cover"
-                                        />
-                                        {isSelected && (
-                                            <View style={styles.sheetItemCheck}>
-                                                <Feather name="check" size={14} color="#fff" />
-                                            </View>
-                                        )}
-                                        <Text style={styles.sheetItemName} numberOfLines={1}>{item.name}</Text>
-                                    </TouchableOpacity>
-                                );
-                            }}
-                        />
+                        {getSheetItems().length === 0 ? (
+                            <View style={styles.emptySheet}>
+                                <Feather name={sheetSource === 'wishlist' ? 'heart' : 'grid'} size={36} color="#ccc" />
+                                <Text style={styles.emptySheetText}>
+                                    {sheetSource === 'wishlist'
+                                        ? 'Your wishlist is empty. Add items from the shop first.'
+                                        : 'Your wardrobe is empty. Add items first.'
+                                    }
+                                </Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={getSheetItems()}
+                                keyExtractor={item => item.id}
+                                numColumns={3}
+                                contentContainerStyle={styles.sheetGrid}
+                                renderItem={({ item }) => {
+                                    const isSelected = !!selectedItems.find(i => i.id === item.id);
+                                    return (
+                                        <TouchableOpacity
+                                            style={[styles.sheetItem, isSelected && styles.sheetItemSelected]}
+                                            onPress={() => toggleItemSelection(item)}
+                                        >
+                                            <Image
+                                                source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+                                                style={styles.sheetItemImage}
+                                                resizeMode="cover"
+                                            />
+                                            {isSelected && (
+                                                <View style={styles.sheetItemCheck}>
+                                                    <Feather name="check" size={14} color="#fff" />
+                                                </View>
+                                            )}
+                                            <Text style={styles.sheetItemName} numberOfLines={1}>{item.name}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                            />
+                        )}
 
                         <TouchableOpacity style={styles.confirmButton} onPress={confirmSheetSelection}>
                             <Text style={styles.confirmButtonText}>
@@ -565,6 +579,8 @@ const styles = StyleSheet.create({
     addedButtonText: { color: '#111', fontSize: 14, fontWeight: '700' },
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 14 },
     emptyStateText: { fontSize: 14, color: '#aaa', textAlign: 'center' },
+    emptySheet: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+    emptySheetText: { fontSize: 14, color: '#aaa', textAlign: 'center', paddingHorizontal: 20 },
     modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     bottomSheet: {

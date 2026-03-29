@@ -264,309 +264,310 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-                <View style={styles.container}>
-                    {/* FIXED TOP */}
-                    <View style={styles.topArea}>
-                        <View style={styles.topBar}>
-                            <ImageBackground
-                                source={require('../../assets/images_app/search.jpg')}
-                                style={styles.searchWrapper}
-                                imageStyle={{ borderRadius: 12 }}
-                            >
-                                <TouchableOpacity onPress={handleHomeSearch}>
-                                    <Feather name="search" size={18} color="#393939" />
-                                </TouchableOpacity>
-
-                                <TextInput
-                                    ref={searchInputRef}
-                                    placeholder="Search"
-                                    placeholderTextColor="#393939"
-                                    style={styles.searchInput}
-                                    value={homeSearchText}
-                                    onChangeText={setHomeSearchText}
-                                    onSubmitEditing={handleHomeSearch}
-                                    onFocus={() => setIsFocused(true)}
-                                    returnKeyType="search"
-                                />
-                            </ImageBackground>
-
-                            <TouchableOpacity style={styles.iconButton}>
-                                <Feather name="heart" size={20} color="#393939" />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.profileButton}
-                                onPress={() => router.push('/(tabs)/account')}
-                            >
-                                <Feather name="user" size={22} color="#393939" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {isFocused && (
-                            <View style={styles.recentContainer}>
-                                <View style={styles.recentHeader}>
-                                    <Text style={styles.recentTitle}>Recent searches</Text>
-
-                                    {recentSearches.length > 0 && (
-                                        <TouchableOpacity
-                                            style={styles.clearButton}
-                                            onPress={clearRecentSearches}
-                                        >
-                                            <Text style={styles.clearText}>Clear</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </View>
-
-                                {recentSearches.length === 0 ? (
-                                    <View style={styles.emptyWrapper}>
-                                        <Feather name="search" size={28} color="#8a8a8a" />
-                                        <Text style={styles.emptyText}>
-                                            You have no recent searches
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <ScrollView
-                                        showsVerticalScrollIndicator={false}
-                                        contentContainerStyle={styles.recentScrollContent}
-                                        nestedScrollEnabled
-                                    >
-                                        {recentSearches.map((item, index) => (
-                                            <TouchableOpacity
-                                                key={index}
-                                                style={styles.recentItem}
-                                                onPress={async () => {
-                                                    await saveSearch(item);
-                                                    setHomeSearchText(item);
-                                                    closeSearchPanel();
-
-                                                    router.push({
-                                                        pathname: '/search_items',
-                                                        params: {
-                                                            query: item,
-                                                            gender: 'WOMAN',
-                                                        },
-                                                    });
-                                                }}
-                                            >
-                                                <Feather name="clock" size={16} color="#6a6a6a" />
-                                                <Text style={styles.recentItemText}>{item}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </ScrollView>
-                                )}
-                            </View>
-                        )}
-                    </View>
-                    {isFocused && (
-                        <Pressable
-                            style={styles.searchOverlay}
-                            onPress={closeSearchPanel}
-                        />
-                    )}
-
-                    {/* SCROLLING PAGE */}
-                    <ScrollView
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
-                        keyboardShouldPersistTaps="handled"
-                        onScrollBeginDrag={closeSearchPanel}
-                    >
-                        <Image
-                            source={require('../../assets/images_app/model1.png')}
-                            style={styles.heroImage}
-                            resizeMode="cover"
-                        />
-
-                        <View style={styles.headingWrapper}>
-                            <Text style={styles.headingLineBlack}>New</Text>
-                            <View style={styles.collectionRow}>
-                                <Text style={styles.headingLineBlack}>collecti</Text>
-                                <Text style={styles.headingLineWhite}>on</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.newSection}>
-                            <Text style={styles.newTitle}>New for you</Text>
-                            <Text style={styles.newSubtitle}>
-                                News from the world of fashion designed for enthusiasts
-                            </Text>
-                        </View>
-
-                        {Array.from({ length: Math.ceil(cards.length / 2) }).map((_, rowIndex) => (
-                            <View key={rowIndex} style={styles.cardsRow}>
-                                {cards.slice(rowIndex * 2, rowIndex * 2 + 2).map((item, index) => (
-                                    <TouchableOpacity
-                                        key={index}
-                                        style={styles.card}
-                                        onPress={() => handleHomeCategoryPress(item.label)}
-                                    >
-                                        <ImageBackground
-                                            source={item.image}
-                                            style={styles.cardImage}
-                                            resizeMode="cover"
-                                        >
-                                            <LinearGradient
-                                                colors={['transparent', 'rgba(0,0,0,0.75)']}
-                                                style={styles.cardGradient}
-                                            />
-                                            <Text style={styles.cardLabel}>{item.label}</Text>
-                                        </ImageBackground>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        ))}
-
+            <View style={styles.container}>
+                {/* FIXED TOP */}
+                <View style={styles.topArea}>
+                    <View style={styles.topBar}>
                         <ImageBackground
                             source={require('../../assets/images_app/search.jpg')}
-                            style={styles.ctaWrapper}
-                            imageStyle={{ borderRadius: 16 }}
+                            style={styles.searchWrapper}
+                            imageStyle={{ borderRadius: 12 }}
                         >
-                            <Text style={styles.ctaText}>
-                                Hey {userName}, try the new assistant for creating your dream outfits
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.ctaButton}
-                                onPress={() => router.push('/(tabs)/builder')}
-                            >
-                                <Text style={styles.ctaButtonText}>TRY NOW</Text>
+                            <TouchableOpacity onPress={handleHomeSearch}>
+                                <Feather name="search" size={18} color="#393939" />
                             </TouchableOpacity>
+
+                            <TextInput
+                                ref={searchInputRef}
+                                placeholder="Search"
+                                placeholderTextColor="#393939"
+                                style={styles.searchInput}
+                                value={homeSearchText}
+                                onChangeText={setHomeSearchText}
+                                onSubmitEditing={handleHomeSearch}
+                                onFocus={() => setIsFocused(true)}
+                                returnKeyType="search"
+                            />
                         </ImageBackground>
 
-                        <View style={styles.favoritesSection}>
-                            <Text style={styles.favoritesTitle}>Your favorite categories</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.favoritesScroll}
-                            >
-                                {cards.map((item, index) => (
+                        <TouchableOpacity style={styles.iconButton}>
+                            <Feather name="heart" size={20} color="#393939" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.profileButton}
+                            onPress={() => router.push('/(tabs)/account')}
+                        >
+                            <Feather name="user" size={22} color="#393939" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {isFocused && (
+                        <View style={styles.recentContainer}>
+                            <View style={styles.recentHeader}>
+                                <Text style={styles.recentTitle}>Recent searches</Text>
+
+                                {recentSearches.length > 0 && (
                                     <TouchableOpacity
-                                        key={index}
-                                        style={styles.favoriteCard}
-                                        onPress={() => handleHomeCategoryPress(item.label)}
+                                        style={styles.clearButton}
+                                        onPress={clearRecentSearches}
                                     >
-                                        <ImageBackground
-                                            source={item.image}
-                                            style={styles.favoriteCardImage}
-                                            imageStyle={{ borderRadius: 14 }}
-                                            resizeMode="cover"
-                                        >
-                                            <LinearGradient
-                                                colors={['transparent', 'rgba(0,0,0,0.65)']}
-                                                style={styles.favoriteCardGradient}
-                                            />
-                                            <Text style={styles.favoriteCardLabel}>{item.label}</Text>
-                                        </ImageBackground>
+                                        <Text style={styles.clearText}>Clear</Text>
                                     </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-
-                        <View style={styles.tasteSection}>
-                            <Text style={styles.tasteTitle}>Your taste</Text>
-
-                            <View style={styles.productsGrid}>
-                                {filteredProducts.map((item) => {
-                                    const imageKey = item.images?.[0];
-                                    const imageSource = imageKey ? productImages[imageKey] : null;
-
-                                    return (
-                                        <TouchableOpacity
-                                            key={item.id}
-                                            style={styles.productCard}
-                                            activeOpacity={0.9}
-                                            onPress={() =>
-                                                router.push({
-                                                    pathname: '/product_detail',
-                                                    params: {
-                                                        productId: item.id,
-                                                        category: item.mainCategory,
-                                                        subcategory: item.subCategory,
-                                                        gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
-                                                    },
-                                                })
-                                            }
-                                        >
-                                            {imageSource && (
-                                                <Image
-                                                    source={imageSource}
-                                                    style={styles.productImage}
-                                                    resizeMode="cover"
-                                                />
-                                            )}
-
-                                            <Text
-                                                style={styles.productName}
-                                                numberOfLines={1}
-                                                ellipsizeMode="tail"
-                                            >
-                                                {item.name}
-                                            </Text>
-                                            <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
-
-                                            <TouchableOpacity
-                                                style={styles.cartButton}
-                                                onPress={() => {
-                                                    setLikedItems((prev) =>
-                                                        prev.includes(item.id)
-                                                            ? prev.filter((id) => id !== item.id)
-                                                            : [...prev, item.id]
-                                                    );
-                                                }}
-                                            >
-                                                <MaterialIcons
-                                                    name={likedItems.includes(item.id) ? "favorite" : "favorite-border"}
-                                                    size={18}
-                                                    color={likedItems.includes(item.id) ? "#df2518" : "#111"}
-                                                />
-                                            </TouchableOpacity>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                )}
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.showAllButton}
-                                onPress={() =>
-                                    router.push({
-                                        pathname: '/search_items',
-                                        params: {
-                                            category: 'CLOTHING',
-                                            subcategory: 'All',
-                                            gender: 'WOMAN',
-                                        },
-                                    })
-                                }
-                            >
-                                <Text style={styles.showAllText}>SHOW ALL</Text>
-                            </TouchableOpacity>
+                            {recentSearches.length === 0 ? (
+                                <View style={styles.emptyWrapper}>
+                                    <Feather name="search" size={28} color="#8a8a8a" />
+                                    <Text style={styles.emptyText}>
+                                        You have no recent searches
+                                    </Text>
+                                </View>
+                            ) : (
+                                <ScrollView
+                                    showsVerticalScrollIndicator={false}
+                                    contentContainerStyle={styles.recentScrollContent}
+                                    nestedScrollEnabled
+                                >
+                                    {recentSearches.map((item, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={styles.recentItem}
+                                            onPress={async () => {
+                                                await saveSearch(item);
+                                                setHomeSearchText(item);
+                                                closeSearchPanel();
+
+                                                router.push({
+                                                    pathname: '/search_items',
+                                                    params: {
+                                                        query: item,
+                                                        gender: 'WOMAN',
+                                                    },
+                                                });
+                                            }}
+                                        >
+                                            <Feather name="clock" size={16} color="#6a6a6a" />
+                                            <Text style={styles.recentItemText}>{item}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            )}
+                        </View>
+                    )}
+                </View>
+
+                {isFocused && (
+                    <Pressable
+                        style={styles.searchOverlay}
+                        onPress={closeSearchPanel}
+                    />
+                )}
+
+                {/* SCROLLING PAGE */}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    onScrollBeginDrag={closeSearchPanel}
+                >
+                    <Image
+                        source={require('../../assets/images_app/model1.png')}
+                        style={styles.heroImage}
+                        resizeMode="cover"
+                    />
+
+                    <View style={styles.headingWrapper}>
+                        <Text style={styles.headingLineBlack}>New</Text>
+                        <View style={styles.collectionRow}>
+                            <Text style={styles.headingLineBlack}>collecti</Text>
+                            <Text style={styles.headingLineWhite}>on</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.newSection}>
+                        <Text style={styles.newTitle}>New for you</Text>
+                        <Text style={styles.newSubtitle}>
+                            News from the world of fashion designed for enthusiasts
+                        </Text>
+                    </View>
+
+                    {Array.from({ length: Math.ceil(cards.length / 2) }).map((_, rowIndex) => (
+                        <View key={rowIndex} style={styles.cardsRow}>
+                            {cards.slice(rowIndex * 2, rowIndex * 2 + 2).map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.card}
+                                    onPress={() => handleHomeCategoryPress(item.label)}
+                                >
+                                    <ImageBackground
+                                        source={item.image}
+                                        style={styles.cardImage}
+                                        resizeMode="cover"
+                                    >
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.75)']}
+                                            style={styles.cardGradient}
+                                        />
+                                        <Text style={styles.cardLabel}>{item.label}</Text>
+                                    </ImageBackground>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    ))}
+
+                    <ImageBackground
+                        source={require('../../assets/images_app/search.jpg')}
+                        style={styles.ctaWrapper}
+                        imageStyle={{ borderRadius: 16 }}
+                    >
+                        <Text style={styles.ctaText}>
+                            Hey {userName}, try the new assistant for creating your dream outfits
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.ctaButton}
+                            onPress={() => router.push('/(tabs)/builder')}
+                        >
+                            <Text style={styles.ctaButtonText}>TRY NOW</Text>
+                        </TouchableOpacity>
+                    </ImageBackground>
+
+                    <View style={styles.favoritesSection}>
+                        <Text style={styles.favoritesTitle}>Your favorite categories</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.favoritesScroll}
+                        >
+                            {cards.map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.favoriteCard}
+                                    onPress={() => handleHomeCategoryPress(item.label)}
+                                >
+                                    <ImageBackground
+                                        source={item.image}
+                                        style={styles.favoriteCardImage}
+                                        imageStyle={{ borderRadius: 14 }}
+                                        resizeMode="cover"
+                                    >
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.65)']}
+                                            style={styles.favoriteCardGradient}
+                                        />
+                                        <Text style={styles.favoriteCardLabel}>{item.label}</Text>
+                                    </ImageBackground>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.tasteSection}>
+                        <Text style={styles.tasteTitle}>Your taste</Text>
+
+                        <View style={styles.productsGrid}>
+                            {filteredProducts.map((item) => {
+                                const imageKey = item.images?.[0];
+                                const imageSource = imageKey ? productImages[imageKey] : null;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={styles.productCard}
+                                        activeOpacity={0.9}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/product_detail',
+                                                params: {
+                                                    productId: item.id,
+                                                    category: item.mainCategory,
+                                                    subcategory: item.subCategory,
+                                                    gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                },
+                                            })
+                                        }
+                                    >
+                                        {imageSource && (
+                                            <Image
+                                                source={imageSource}
+                                                style={styles.productImage}
+                                                resizeMode="cover"
+                                            />
+                                        )}
+
+                                        <Text
+                                            style={styles.productName}
+                                            numberOfLines={1}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {item.name}
+                                        </Text>
+                                        <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
+
+                                        <TouchableOpacity
+                                            style={styles.cartButton}
+                                            onPress={() => {
+                                                setLikedItems((prev) =>
+                                                    prev.includes(item.id)
+                                                        ? prev.filter((id) => id !== item.id)
+                                                        : [...prev, item.id]
+                                                );
+                                            }}
+                                        >
+                                            <MaterialIcons
+                                                name={likedItems.includes(item.id) ? 'favorite' : 'favorite-border'}
+                                                size={18}
+                                                color={likedItems.includes(item.id) ? '#df2518' : '#111'}
+                                            />
+                                        </TouchableOpacity>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
 
-                        <View style={styles.brandsSection}>
-                            <Text style={styles.brandsTitle}>Brand picks</Text>
-                            <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.brandsScroll}
-                            >
-                                {brands.map((item, index) => (
-                                    <TouchableOpacity
-                                        key={index}
-                                        style={styles.brandCard}
-                                        onPress={() => handleBrandPress(item.brand)}
-                                    >
-                                        <Image
-                                            source={item.image}
-                                            style={styles.brandImage}
-                                            resizeMode="cover"
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    </ScrollView>
-                </View>
+                        <TouchableOpacity
+                            style={styles.showAllButton}
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/search_items',
+                                    params: {
+                                        category: 'CLOTHING',
+                                        subcategory: 'All',
+                                        gender: 'WOMAN',
+                                    },
+                                })
+                            }
+                        >
+                            <Text style={styles.showAllText}>SHOW ALL</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.brandsSection}>
+                        <Text style={styles.brandsTitle}>Brand picks</Text>
+                        <Text style={styles.brandsSubtitle}>All your fave brands, one place</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.brandsScroll}
+                        >
+                            {brands.map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.brandCard}
+                                    onPress={() => handleBrandPress(item.brand)}
+                                >
+                                    <Image
+                                        source={item.image}
+                                        style={styles.brandImage}
+                                        resizeMode="cover"
+                                    />
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }

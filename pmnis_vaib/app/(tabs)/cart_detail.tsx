@@ -241,9 +241,12 @@ export default function CartDetailScreen() {
                         <Text style={styles.bottomTotalLabel}>Total</Text>
                         <Text style={styles.bottomTotalValue}>€{total.toFixed(2)}</Text>
                     </View>
-                    <TouchableOpacity style={styles.checkoutButton}>
-                        <Text style={styles.checkoutButtonText}>Proceed to payment</Text>
-                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.checkoutButton}
+                        onPress={() => router.push(`/dotaznik/payment?cartId=${cart.id}` as any)}
+                    >
+    <Text style={styles.checkoutButtonText}>Proceed to payment</Text>
+</TouchableOpacity>
                 </View>
             </View>
         </SafeAreaView>
