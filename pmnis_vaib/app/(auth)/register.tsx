@@ -16,6 +16,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useWishlist } from '../../context/wishlist_context';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const { reloadWishlist } = useWishlist();
 
     const handleRegister = async () => {
         if (!name || !email || !password) {
@@ -41,6 +43,7 @@ export default function RegisterScreen() {
         users.push({ name, email, password });
         await AsyncStorage.setItem('users', JSON.stringify(users));
         await AsyncStorage.setItem('currentUser', JSON.stringify({ name, email }));
+        reloadWishlist();
 
         Alert.alert('Done!', 'Account created!', [
             { text: 'OK', onPress: () => router.replace('/(dotaznik)/step1') },
@@ -119,81 +122,26 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-    background: {
-        flex: 1,
-    },
-    safeArea: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.15)',
-    },
-    container: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-        paddingBottom: 40,
-    },
-    logo: {
-        width: 100,
-        height: 100,
-        alignSelf: 'center',
-        marginBottom: 24,
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 6,
-        letterSpacing: -0.7,
-    },
-    subtitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#393939',
-        marginBottom: 36,
-    },
+    background: { flex: 1 },
+    safeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,0.15)' },
+    container: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingBottom: 40 },
+    logo: { width: 100, height: 100, alignSelf: 'center', marginBottom: 24 },
+    title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 6, letterSpacing: -0.7 },
+    subtitle: { fontSize: 14, fontWeight: '600', color: '#393939', marginBottom: 36 },
     input: {
-        backgroundColor: '#e9e9e9',
-        borderRadius: 12,
-        padding: 14,
-        fontSize: 15,
-        color: '#111',
-        marginBottom: 14,
+        backgroundColor: '#e9e9e9', borderRadius: 12,
+        padding: 14, fontSize: 15, color: '#111', marginBottom: 14,
     },
     inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#e9e9e9',
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        marginBottom: 14,
+        flexDirection: 'row', alignItems: 'center', backgroundColor: '#e9e9e9',
+        borderRadius: 12, paddingHorizontal: 14, marginBottom: 14,
     },
-    inputInner: {
-        flex: 1,
-        paddingVertical: 14,
-        fontSize: 15,
-        color: '#111',
-    },
+    inputInner: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#111' },
     button: {
-        backgroundColor: '#111',
-        paddingVertical: 16,
-        borderRadius: 20,
-        alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 20,
+        backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
+        alignItems: 'center', marginTop: 8, marginBottom: 20,
     },
-    buttonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    link: {
-        textAlign: 'center',
-        fontWeight: '600',
-        color: '#393939',
-        fontSize: 14,
-    },
-    linkBold: {
-        fontWeight: '700',
-        color: '#111',
-    },
+    buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+    link: { textAlign: 'center', fontWeight: '600', color: '#393939', fontSize: 14 },
+    linkBold: { fontWeight: '700', color: '#111' },
 });

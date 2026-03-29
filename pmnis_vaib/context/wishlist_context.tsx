@@ -1,5 +1,6 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 
 export type WishlistItem = {
     id: string;
@@ -17,6 +18,7 @@ type WishlistContextType = {
     removeFromWishlist: (id: string) => void;
     isInWishlist: (id: string) => boolean;
     toggleWishlist: (item: WishlistItem) => void;
+    reloadWishlist: () => void;
 };
 
 const WishlistContext = React.createContext<WishlistContextType | undefined>(undefined);
@@ -25,28 +27,43 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     const [wishlistItems, setWishlistItems] = React.useState<WishlistItem[]>([]);
     const [userEmail, setUserEmail] = React.useState<string | null>(null);
 
-    // Načítaj email a wishlist pri štarte
-    React.useEffect(() => {
-        const loadWishlist = async () => {
-            try {
-                const userData = await AsyncStorage.getItem('currentUser');
-                if (!userData) return;
-                const user = JSON.parse(userData);
-                const email = user.email;
-                setUserEmail(email);
-
-                const stored = await AsyncStorage.getItem(`wishlist_${email}`);
-                if (stored) {
-                    setWishlistItems(JSON.parse(stored));
-                }
-            } catch (e) {
-                console.log('Error loading wishlist:', e);
+    const loadWishlist = async () => {
+        try {
+            const userData = await AsyncStorage.getItem('currentUser');
+            if (!userData) {
+                setWishlistItems([]);
+                setUserEmail(null);
+                return;
             }
-        };
+            const user = JSON.parse(userData);
+            const email = user.email;
+
+            // Ak sa zmenil user — vymaž starý wishlist
+            setUserEmail(prev => {
+                if (prev !== email) {
+                    setWishlistItems([]);
+                }
+                return email;
+            });
+
+            const stored = await AsyncStorage.getItem(`wishlist_${email}`);
+            setWishlistItems(stored ? JSON.parse(stored) : []);
+        } catch (e) {
+            console.log('Error loading wishlist:', e);
+        }
+    };
+
+    React.useEffect(() => {
         loadWishlist();
+
+        // Reload keď sa appka vráti do popredia
+        const subscription = AppState.addEventListener('change', (state) => {
+            if (state === 'active') loadWishlist();
+        });
+
+        return () => subscription.remove();
     }, []);
 
-    // Ulož wishlist pri každej zmene
     const saveWishlist = async (items: WishlistItem[], email: string | null) => {
         if (!email) return;
         try {
@@ -73,9 +90,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const isInWishlist = (id: string) => {
-        return wishlistItems.some(i => i.id === id);
-    };
+    const isInWishlist = (id: string) => wishlistItems.some(i => i.id === id);
 
     const toggleWishlist = (item: WishlistItem) => {
         if (isInWishlist(item.id)) {
@@ -92,6 +107,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
             removeFromWishlist,
             isInWishlist,
             toggleWishlist,
+            reloadWishlist: loadWishlist,
         }}>
             {children}
         </WishlistContext.Provider>
