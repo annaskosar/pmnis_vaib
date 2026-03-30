@@ -12,15 +12,14 @@ export default function PaymentScreen() {
     const { cartId } = useLocalSearchParams();
     const { carts, getCartById, deleteCart, isCartLoading } = useCart();
 
-
     const parsedCartId =
         typeof cartId === 'string'
             ? cartId
             : Array.isArray(cartId)
                 ? cartId[0]
                 : '';
-    const isEditMode = !!parsedCartId;
-    const cart = isEditMode ? getCartById(parsedCartId) : undefined;
+
+    const cart = getCartById(parsedCartId);
 
     const [cardNumber, setCardNumber] = useState('');
     const [cardName, setCardName] = useState('');
@@ -33,12 +32,6 @@ export default function PaymentScreen() {
     const [city, setCity] = useState('');
     const [zip, setZip] = useState('');
     const [country, setCountry] = useState('');
-
-
-    console.log('PAYMENT cartId raw:', cartId);
-    console.log('PAYMENT parsedCartId:', parsedCartId);
-    console.log('PAYMENT carts ids:', carts.map(c => c.id));
-    console.log('PAYMENT found cart:', cart);
 
     const deliveryOptions = [
         { id: 'standard', label: 'Standard delivery', subtitle: '3–5 business days', price: 3.99 },
@@ -88,8 +81,7 @@ export default function PaymentScreen() {
         );
     };
 
-
-
+    // ✅ Kým sa načítava context, zobraz loading
     if (isCartLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -102,11 +94,13 @@ export default function PaymentScreen() {
         );
     }
 
+    // ✅ Cart nenájdený až PO načítaní — nie počas
     if (!cart) {
         return (
             <SafeAreaView style={styles.safeArea}>
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
                     <Text style={{ fontSize: 18, fontWeight: '600', color: '#111' }}>Cart not found</Text>
+                    <Text style={{ fontSize: 13, color: '#8a8a8a' }}>ID: {parsedCartId}</Text>
                     <TouchableOpacity style={styles.payButton} onPress={() => router.back()}>
                         <Text style={styles.payButtonText}>Go back</Text>
                     </TouchableOpacity>
@@ -135,7 +129,6 @@ export default function PaymentScreen() {
                         contentContainerStyle={styles.scrollContent}
                         keyboardShouldPersistTaps="handled"
                     >
-                        {/* Order summary */}
                         <Text style={styles.sectionTitle}>Order summary</Text>
                         <View style={styles.card}>
                             {cart.products.map(product => (
@@ -167,7 +160,6 @@ export default function PaymentScreen() {
                             </View>
                         </View>
 
-                        {/* Delivery method */}
                         <Text style={styles.sectionTitle}>Delivery method</Text>
                         <View style={styles.card}>
                             {deliveryOptions.map(option => (
@@ -197,7 +189,6 @@ export default function PaymentScreen() {
                             ))}
                         </View>
 
-                        {/* Delivery address */}
                         {deliveryMethod !== 'pickup' && (
                             <>
                                 <Text style={styles.sectionTitle}>Delivery address</Text>
@@ -247,7 +238,6 @@ export default function PaymentScreen() {
                             </>
                         )}
 
-                        {/* Card details */}
                         <Text style={styles.sectionTitle}>Card details</Text>
                         <View style={styles.card}>
                             <View style={styles.inputWrapper}>

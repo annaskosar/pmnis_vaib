@@ -37,6 +37,9 @@ const CartContext = React.createContext<CartContextType | undefined>(undefined);
 
 const TEST_EMAIL = 'test@test.com';
 
+// ✅ Jednotný kľúč pre feedback
+const FEEDBACK_KEY = (email: string) => `feedback_count_${email}`;
+
 const DEFAULT_CARTS: BudgetCart[] = [
     {
         id: '1',
@@ -97,7 +100,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [carts, setCarts] = React.useState<BudgetCart[]>([]);
     const [userEmail, setUserEmail] = React.useState<string | null>(null);
     const [builderFeedbackCount, setBuilderFeedbackCount] = React.useState(0);
-
     const [isCartLoading, setIsCartLoading] = React.useState(true);
 
     React.useEffect(() => {
@@ -113,14 +115,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             setUserEmail(user.email);
 
             const isTestAccount = user.email === TEST_EMAIL;
-
             const cartsKey = `carts_${user.email}`;
-            const feedbackKey = `builderFeedback_${user.email}`;
 
             const savedCartsRaw = await AsyncStorage.getItem(cartsKey);
-            const savedFeedbackRaw = await AsyncStorage.getItem(feedbackKey);
-
-            setBuilderFeedbackCount(savedFeedbackRaw ? JSON.parse(savedFeedbackRaw) : 0);
+            // ✅ Používame jednotný kľúč, čítame cez parseInt
+            const savedFeedbackRaw = await AsyncStorage.getItem(FEEDBACK_KEY(user.email));
+            const parsedFeedback = savedFeedbackRaw ? parseInt(savedFeedbackRaw) : 0;
+            setBuilderFeedbackCount(parsedFeedback);
 
             if (savedCartsRaw) {
                 const savedCarts = JSON.parse(savedCartsRaw);
@@ -158,9 +159,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const saveCarts = async (newCarts: BudgetCart[], email: string | null) => {
         if (!email) return;
-
         const key = `carts_${email}`;
-
         const toSave = newCarts.map(cart => ({
             ...cart,
             products: cart.products.map(p => ({
@@ -168,14 +167,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 image: typeof p.image === 'string' ? p.image : null,
             })),
         }));
-
         await AsyncStorage.setItem(key, JSON.stringify(toSave));
     };
 
     const saveBuilderFeedbackCount = async (count: number, email: string | null) => {
         if (!email) return;
-        const key = `builderFeedback_${email}`;
-        await AsyncStorage.setItem(key, JSON.stringify(count));
+        // ✅ Ukladáme ako string, konzistentné s parseInt pri čítaní
+        await AsyncStorage.setItem(FEEDBACK_KEY(email), count.toString());
     };
 
     const updateCarts = (newCarts: BudgetCart[]) => {
@@ -183,9 +181,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         saveCarts(newCarts, userEmail);
     };
 
-    const getCartById = (id: string) => {
-        return carts.find((cart) => cart.id === id);
-    };
+    const getCartById = (id: string) => carts.find((cart) => cart.id === id);
 
     const increaseProductQuantity = (cartId: string, productId: string) => {
         const newCarts = carts.map((cart) =>
@@ -228,11 +224,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateCarts(newCarts);
     };
 
-
     const deleteCart = (cartId: string) => {
         const newCarts = carts.filter((cart) => cart.id !== cartId);
         updateCarts(newCarts);
     };
+
+    // ✅ isUnlimitedUnlocked vypočítané z builderFeedbackCount
+    const isUnlimitedUnlocked = builderFeedbackCount >= 6;
 
     const createCart = (name: string, budget: number) => {
         if (!isUnlimitedUnlocked && carts.length >= 5) return null;
@@ -278,15 +276,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateCarts(newCarts);
     };
 
-    const isUnlimitedUnlocked = builderFeedbackCount >= 30;
-
+    // ✅ Odstránený Math.min limit, count rastie prirodzene
     const addBuilderFeedback = () => {
-        const newCount = Math.min(builderFeedbackCount + 1, 30);
+        const newCount = builderFeedbackCount + 1;
         setBuilderFeedbackCount(newCount);
         saveBuilderFeedbackCount(newCount, userEmail);
     };
-
-
 
     return (
         <CartContext.Provider
@@ -320,4 +315,3 @@ export function useCart() {
 
     return context;
 }
-
