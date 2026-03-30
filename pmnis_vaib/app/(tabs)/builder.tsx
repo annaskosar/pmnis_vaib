@@ -11,6 +11,7 @@ import { useWishlist } from '../../context/wishlist_context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { productImages } from '../../context/product_images';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useProducts } from '../../context/product_context';
 
 const SHOP_PRODUCTS = [
     { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', category: 'jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'blue'] },
@@ -88,8 +89,12 @@ export default function BuilderScreen() {
         preselectedProductName,
         preselectedProductImageKey,
         preselectedProductCategory,
+        builderPresetIds,
+        builderPresetTitle,
     } = useLocalSearchParams();
+
     const { wardrobeItems } = useWardrobe();
+    const { getProductById } = useProducts();
     const { carts, addProductToCart, addBuilderFeedback, isUnlimitedUnlocked, deleteCart } = useCart();
     const { wishlistItems } = useWishlist();
 
@@ -152,6 +157,61 @@ export default function BuilderScreen() {
         };
         checkFeedback();
     }, []);
+
+
+    React.useEffect(() => {
+        if (typeof builderPresetIds !== 'string') return;
+
+        try {
+            const parsedIds: string[] = JSON.parse(builderPresetIds);
+
+            const presetItems: OutfitItem[] = parsedIds
+                .map((id) => getProductById(id))
+                .filter(Boolean)
+                .map((product) => {
+                    const firstImageKey =
+                        product?.availableColors?.[0]?.imageKeys?.[0] ?? product?.images?.[0];
+
+                    return {
+                        id: product!.id,
+                        name: product!.name,
+                        image: firstImageKey ? productImages[firstImageKey] : null,
+                        category: product!.subCategory.toLowerCase(),
+                        tags: [
+                            product!.name.toLowerCase(),
+                            product!.brand.toLowerCase(),
+                            product!.subCategory.toLowerCase(),
+                            ...product!.tags.map((tag) => tag.toLowerCase()),
+                        ],
+                        fromWardrobe: false,
+                    };
+                })
+                .filter((item) => item.image);
+
+            if (presetItems.length === 0) return;
+
+            setSelectedItems((prev) => {
+                const filteredPrev = prev.filter(
+                    (item) => !parsedIds.includes(item.id)
+                );
+
+                const merged = [...filteredPrev, ...presetItems];
+
+                return merged.filter(
+                    (item, index, self) =>
+                        self.findIndex((x) => x.id === item.id) === index
+                );
+            });
+
+            setSources((prev) => (prev.includes('shop') ? prev : [...prev, 'shop']));
+
+            if (typeof builderPresetTitle === 'string' && builderPresetTitle.trim().length > 0) {
+                setPrompt(builderPresetTitle.toLowerCase());
+            }
+        } catch (error) {
+            console.log('Failed to load builder preset', error);
+        }
+    }, [builderPresetIds, builderPresetTitle, getProductById]);
 
     useFocusEffect(
         React.useCallback(() => {

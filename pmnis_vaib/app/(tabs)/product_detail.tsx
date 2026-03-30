@@ -24,6 +24,8 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Linking } from 'react-native';
 import { useProducts, sizeOptions } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -61,43 +63,40 @@ type ProductColorVariant = {
 };
 
 const mayRockItems: MiniProduct[] = [
-    { id: '1', image: require('../../assets/images_app/model8.png'), name: 'Soft minimal top', price: '€24.99' },
-    { id: '2', image: require('../../assets/images_app/model9.png'), name: 'Clean ribbed tee', price: '€31.99' },
-    { id: '3', image: require('../../assets/images_app/model10.png'), name: 'Slim fitted long sleeve', price: '€28.99' },
-    { id: '4', image: require('../../assets/images_app/model11.png'), name: 'Basic body fit top', price: '€22.99' },
-    { id: '5', image: require('../../assets/images_app/model3.png'), name: 'Essential fitted piece', price: '€19.99' },
+    { id: '1', image: require('../../assets/images_app/model8.jpg'), name: 'Soft minimal top', price: '€24.99' },
+    { id: '2', image: require('../../assets/images_app/model9.jpg'), name: 'Clean ribbed tee', price: '€31.99' },
+    { id: '3', image: require('../../assets/images_app/model10.jpg'), name: 'Slim fitted long sleeve', price: '€28.99' },
+    { id: '4', image: require('../../assets/images_app/model11.jpg'), name: 'Basic body fit top', price: '€22.99' },
+    { id: '5', image: require('../../assets/images_app/model3.jpg'), name: 'Essential fitted piece', price: '€19.99' },
 ];
 
-const builderLooks = [
+type BuilderLook = {
+    id: string;
+    image: any;
+    title: string;
+    itemIds: string[];
+};
+
+const builderLooks: BuilderLook[] = [
     {
         id: 'b1',
-        image: require('../../assets/images_app/model4.png'),
+        image: require('../../assets/images_app/model4.jpg'),
         title: 'Casual',
-        items: [
-            require('../../assets/images_app/model5.png'),
-            require('../../assets/images_app/model6.png'),
-            require('../../assets/images_app/model7.png'),
-            require('../../assets/images_app/model8.png'),
-        ],
+        itemIds: ['jeans1', 'top7', 'shirt2', 'coat10'],
     },
     {
         id: 'b2',
-        image: require('../../assets/images_app/model10.png'),
+        image: require('../../assets/images_app/model10.jpg'),
         title: 'Sporty',
-        items: [
-            require('../../assets/images_app/model5.png'),
-            require('../../assets/images_app/model8.png'),
-            require('../../assets/images_app/model11.png'),
-            require('../../assets/images_app/model3.png'),
-        ],
+        itemIds: ['jeans2', 'top3', 'coat12', 'shirt6'],
     },
 ];
 
 const peopleDecisionItems: MiniProduct[] = [
-    { id: 'p1', image: require('../../assets/images_app/model11.png'), name: 'Layering cotton top', price: '€27.99' },
-    { id: 'p2', image: require('../../assets/images_app/model8.png'), name: 'Soft contour fit', price: '€20.99' },
-    { id: 'p3', image: require('../../assets/images_app/model9.png'), name: 'Minimal daily essential', price: '€26.99' },
-    { id: 'p4', image: require('../../assets/images_app/model10.png'), name: 'Modern rib top', price: '€23.99' },
+    { id: 'p1', image: require('../../assets/images_app/model11.jpg'), name: 'Layering cotton top', price: '€27.99' },
+    { id: 'p2', image: require('../../assets/images_app/model8.jpg'), name: 'Soft contour fit', price: '€20.99' },
+    { id: 'p3', image: require('../../assets/images_app/model9.jpg'), name: 'Minimal daily essential', price: '€26.99' },
+    { id: 'p4', image: require('../../assets/images_app/model10.jpg'), name: 'Modern rib top', price: '€23.99' },
 ];
 
 function renderStars(value: number, size = 16) {
@@ -151,7 +150,17 @@ function ReviewBar({ leftLabel, rightLabel, value }: { leftLabel: string; rightL
     );
 }
 
-function MiniProductCard({ item, onOpenCartPicker }: { item: MiniProduct; onOpenCartPicker: () => void }) {
+function MiniProductCard({
+                             item,
+                             onOpenCartPicker,
+                             onToggleWishlist,
+                             wished,
+                         }: {
+    item: MiniProduct;
+    onOpenCartPicker: () => void;
+    onToggleWishlist: () => void;
+    wished: boolean;
+}) {
     return (
         <View style={styles.miniProductCard}>
             <View>
@@ -165,8 +174,12 @@ function MiniProductCard({ item, onOpenCartPicker }: { item: MiniProduct; onOpen
                     <Text style={styles.miniPrice}>{item.price}</Text>
                     <Text style={styles.miniName} numberOfLines={2} ellipsizeMode="tail">{item.name}</Text>
                 </View>
-                <TouchableOpacity style={styles.miniHeartButton}>
-                    <Feather name="heart" size={18} color={COLORS.black} />
+                <TouchableOpacity style={styles.miniHeartButton} onPress={onToggleWishlist}>
+                    <Feather
+                        name="heart"
+                        size={18}
+                        color={wished ? '#e74c3c' : COLORS.black}
+                    />
                 </TouchableOpacity>
             </View>
         </View>
@@ -178,7 +191,7 @@ export default function ProductDetailScreen() {
     const { productId, category, subcategory, gender, from } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const { carts, addProductToCart, deleteCart } = useCart();
-    const { getProductById } = useProducts();
+    const { getProductById, products } = useProducts();
     const { toggleWishlist, isInWishlist } = useWishlist();
 
     const productIdValue = Array.isArray(productId) ? productId[0] : productId;
@@ -212,6 +225,18 @@ export default function ProductDetailScreen() {
 
     const hasSimilarWardrobeItem = true;
 
+    const handleToggleMiniWishlist = (item: MiniProduct) => {
+        toggleWishlist({
+            id: item.id,
+            name: item.name,
+            price: Number(item.price.replace('€', '')),
+            image: item.image,
+            category: 'CLOTHING',
+            subcategory: 'People decision',
+            gender: genderValue ?? 'WOMAN',
+        });
+    };
+
     if (!product) {
         return (
             <SafeAreaView style={styles.safeArea}>
@@ -225,7 +250,7 @@ export default function ProductDetailScreen() {
         );
     }
 
-    const productReviews = product.reviews;
+
     const ecoData = { name: product.name, ...product.eco };
 
     const ecoAlternatives = product.eco.ecoAlternativeIds
@@ -271,9 +296,9 @@ export default function ProductDetailScreen() {
     const duplicateWardrobeItem = { id: 'w1', name: 'Similar wardrobe item', image: require('../../assets/wardrobe_images/item1.png') };
 
     const duplicateAlternatives = [
-        { id: 'a1', name: 'Organic cotton top', image: require('../../assets/images_app/model8.png'), ecoScore: 82 },
-        { id: 'a2', name: 'Recycled soft tee', image: require('../../assets/images_app/model9.png'), ecoScore: 78 },
-        { id: 'a3', name: 'Better basic long sleeve', image: require('../../assets/images_app/model10.png'), ecoScore: 85 },
+        { id: 'a1', name: 'Organic cotton top', image: require('../../assets/images_app/model8.jpg'), ecoScore: 82 },
+        { id: 'a2', name: 'Recycled soft tee', image: require('../../assets/images_app/model9.jpg'), ecoScore: 78 },
+        { id: 'a3', name: 'Better basic long sleeve', image: require('../../assets/images_app/model10.jpg'), ecoScore: 85 },
     ];
 
     const goToPrevEcoAlternative = () => setEcoAlternativeIndex((prev) => prev === 0 ? ecoAlternatives.length - 1 : prev - 1);
@@ -304,6 +329,11 @@ export default function ProductDetailScreen() {
     };
 
     const handleAddToSpecificCart = (cartId: string) => {
+        if (!selectedSize) {
+            Alert.alert('Select size', 'Please choose a size first.');
+            return;
+        }
+
         addProductToCart(cartId, productToAdd);
         closeCartPicker();
         Alert.alert('Added to cart', 'Item was added to your selected cart.');
@@ -340,6 +370,46 @@ export default function ProductDetailScreen() {
             </TouchableOpacity>
         </View>
     );
+
+    const [savedReviews, setSavedReviews] = React.useState<any[]>([]);
+
+    const storageKey =
+        typeof productIdValue === 'string'
+            ? `product_reviews_${productIdValue}`
+            : '';
+
+    const loadSavedReviews = React.useCallback(async () => {
+        if (!storageKey) return;
+
+        try {
+            const stored = await AsyncStorage.getItem(storageKey);
+            if (stored) {
+                setSavedReviews(JSON.parse(stored));
+            } else {
+                setSavedReviews([]);
+            }
+        } catch (error) {
+            console.log('Failed to load saved reviews', error);
+        }
+    }, [storageKey]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadSavedReviews();
+        }, [loadSavedReviews])
+    );
+
+
+    const allReviews = [...savedReviews, ...product.reviews];
+
+    const averageRating =
+        allReviews.length > 0
+            ? allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length
+            : 0;
+
+    const reviewCount = allReviews.length;
+
+    const productReviews = allReviews;
 
 
 
@@ -487,9 +557,9 @@ export default function ProductDetailScreen() {
                 )}
 
                 <View style={styles.ratingRow}>
-                    {renderStars(product.rating, 18)}
-                    <Text style={styles.ratingValue}>{product.rating.toFixed(1)}</Text>
-                    <Text style={styles.ratingCount}>({product.reviewCount})</Text>
+                    {renderStars(averageRating, 18)}
+                    <Text style={styles.ratingValue}>{averageRating.toFixed(1)}</Text>
+                    <Text style={styles.ratingCount}>({reviewCount})</Text>
                 </View>
 
                 <FitMeter fit={product.fit} />
@@ -575,50 +645,109 @@ export default function ProductDetailScreen() {
                         <Text style={styles.sectionTitleCount}>5 items</Text>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {mayRockItems.map((item) => <MiniProductCard key={item.id} item={item} onOpenCartPicker={openCartPicker} />)}
+                        {mayRockItems.map((item) => (
+                            <MiniProductCard
+                                key={item.id}
+                                item={item}
+                                onOpenCartPicker={openCartPicker}
+                                onToggleWishlist={() => handleToggleMiniWishlist(item)}
+                                wished={isInWishlist(item.id)}
+                            />
+                        ))}
                     </ScrollView>
                 </View>
 
                 <View style={styles.builderSectionCard}>
                     <Text style={styles.sectionTitleLarge}>Builder styles for you</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {builderLooks.map((look) => (
-                            <View key={look.id} style={styles.builderOutfitCard}>
-                                <View style={styles.lookCard}>
-                                    <Image source={look.image} style={styles.lookImage} contentFit="cover" cachePolicy="memory-disk" transition={150} />
-                                    <View style={styles.lookLabel}>
-                                        <Text style={styles.lookLabelText}>{look.title}</Text>
+                        {builderLooks.map((look) => {
+                            const lookProducts = look.itemIds
+                                .map((id) => getProductById(id))
+                                .filter(Boolean);
+
+                            return (
+                                <TouchableOpacity
+                                    key={look.id}
+                                    style={styles.builderOutfitCard}
+                                    activeOpacity={0.9}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/(tabs)/builder',
+                                            params: {
+                                                builderPresetIds: JSON.stringify(look.itemIds),
+                                                builderPresetTitle: look.title,
+                                            },
+                                        })
+                                    }
+                                >
+                                    <View style={styles.lookCard}>
+                                        <Image
+                                            source={look.image}
+                                            style={styles.lookImage}
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
+                                            transition={150}
+                                        />
+                                        <View style={styles.lookLabel}>
+                                            <Text style={styles.lookLabelText}>{look.title}</Text>
+                                        </View>
                                     </View>
-                                </View>
-                                <View style={styles.builderMiniGrid}>
-                                    {look.items.map((itemImage, index) => (
-                                        <TouchableOpacity key={`${look.id}-${index}`} style={styles.builderMiniItem}>
-                                            <Image source={itemImage} style={styles.builderMiniImage} contentFit="cover" cachePolicy="memory-disk" transition={150} />
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </View>
-                        ))}
+
+                                    <View style={styles.builderMiniGrid}>
+                                        {lookProducts.map((item, index) => {
+                                            const firstImageKey =
+                                                item?.availableColors?.[0]?.imageKeys?.[0] ?? item?.images?.[0];
+
+                                            const imageSource = firstImageKey
+                                                ? productImages[firstImageKey]
+                                                : null;
+
+                                            return (
+                                                <View key={`${look.id}-${item?.id ?? index}`} style={styles.builderMiniItem}>
+                                                    {imageSource && (
+                                                        <Image
+                                                            source={imageSource}
+                                                            style={styles.builderMiniImage}
+                                                            contentFit="cover"
+                                                            cachePolicy="memory-disk"
+                                                            transition={150}
+                                                        />
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
                 </View>
 
                 <View style={styles.sectionBlock}>
                     <Text style={styles.sectionTitleLarge}>People decision</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {peopleDecisionItems.map((item) => <MiniProductCard key={item.id} item={item} onOpenCartPicker={openCartPicker} />)}
+                        {peopleDecisionItems.map((item) => (
+                            <MiniProductCard
+                                key={item.id}
+                                item={item}
+                                onOpenCartPicker={openCartPicker}
+                                onToggleWishlist={() => handleToggleMiniWishlist(item)}
+                                wished={isInWishlist(item.id)}
+                            />
+                        ))}
                     </ScrollView>
                 </View>
 
                 <View style={styles.reviewHeaderBlock}>
                     <Text style={styles.sectionTitleLarge}>Reviews</Text>
                     <View style={styles.reviewSummaryRow}>
-                        {renderStars(product.rating, 18)}
-                        <Text style={styles.reviewSummaryValue}>{product.rating.toFixed(1)}</Text>
-                        <Text style={styles.reviewSummaryCount}>({product.reviewCount} ratings)</Text>
+                        {renderStars(averageRating, 18)}
+                        <Text style={styles.reviewSummaryValue}>{averageRating.toFixed(1)}</Text>
+                        <Text style={styles.reviewSummaryCount}>({reviewCount} ratings)</Text>
                     </View>
                 </View>
 
-                {productReviews.map((review) => (
+                {productReviews.slice(0, 4).map((review) => (
                     <View key={review.id} style={styles.reviewCard}>
                         <View style={styles.reviewTopRow}>
                             <View>

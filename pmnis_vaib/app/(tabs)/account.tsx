@@ -221,6 +221,24 @@ export default function AccountScreen() {
                         </TouchableOpacity>
                     </View>
 
+                    <View style={styles.divider} />
+
+                    <TouchableOpacity
+                        style={styles.infoRow}
+                        onPress={() => router.push('/(tabs)/my_reviews')}
+                    >
+                        <View style={styles.infoIconWrapper}>
+                            <Feather name="message-square" size={18} color="#111" />
+                        </View>
+                        <View style={styles.infoTextWrapper}>
+                            <Text style={styles.infoLabel}>Reviews</Text>
+                            <Text style={styles.infoValue}>My reviews</Text>
+                        </View>
+                        <Feather name="chevron-right" size={18} color="#aaa" />
+                    </TouchableOpacity>
+
+                    <View style={styles.divider} />
+
                     <View style={styles.personalizationCard}>
                         <View style={styles.personalizationTopRow}>
                             <View style={styles.personalizationIconWrap}>
@@ -488,6 +506,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         padding: 16,
         marginBottom: 24,
+        marginTop: 12,
     },
 
     personalizationTopRow: {

@@ -94,6 +94,7 @@ export default function TabLayout() {
                             <Tabs.Screen name="explore" options={{ href: null }} />
                             <Tabs.Screen name="wishlist" options={{ href: null }} />
                             <Tabs.Screen name="playground" options={{ href: null }} />
+                            <Tabs.Screen name="my_reviews" options={{ href: null }} />
                         </Tabs>
                     </CartProvider>
                 </WardrobeProvider>
