@@ -104,11 +104,16 @@ export default function BuilderScreen() {
     const [generated, setGenerated] = useState(false);
     const [loading, setLoading] = useState(false);
     const [addedToCart, setAddedToCart] = useState(false);
+    const [generateError, setGenerateError] = useState(false);
 
     const [sheetVisible, setSheetVisible] = useState(false);
     const [sheetSource, setSheetSource] = useState<Source | null>(null);
     const [selectedItems, setSelectedItems] = useState<OutfitItem[]>([]);
     const [cartModalVisible, setCartModalVisible] = useState(false);
+
+    const [manualPickerVisible, setManualPickerVisible] = useState(false);
+    const [manualPickerItems, setManualPickerItems] = useState<OutfitItem[]>([]);
+    const [manualPickerTab, setManualPickerTab] = useState<'shop' | 'wardrobe'>('shop');
 
     const [feedbackVisible, setFeedbackVisible] = useState(false);
     const [feedbackRating, setFeedbackRating] = useState(0);
@@ -125,7 +130,6 @@ export default function BuilderScreen() {
     const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, width: 0, height: 0 });
 
-    // FIX 1: isMounted guard — zabraňuje setState po odmontovaní komponentu
     const isMounted = React.useRef(true);
     React.useEffect(() => {
         return () => { isMounted.current = false; };
@@ -134,11 +138,9 @@ export default function BuilderScreen() {
     const sourcesRef = React.useRef<View>(null);
     const promptRef = React.useRef<View>(null);
     const generateRef = React.useRef<View>(null);
-
     const firstOutfitCardRef = React.useRef<View>(null);
     const firstOutfitBadgeRef = React.useRef<View>(null);
     const firstOutfitRefreshRef = React.useRef<View>(null);
-
     const actionRowRef = React.useRef<View>(null);
     const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -158,20 +160,15 @@ export default function BuilderScreen() {
         checkFeedback();
     }, []);
 
-
     React.useEffect(() => {
         if (typeof builderPresetIds !== 'string') return;
-
         try {
             const parsedIds: string[] = JSON.parse(builderPresetIds);
-
             const presetItems: OutfitItem[] = parsedIds
                 .map((id) => getProductById(id))
                 .filter(Boolean)
                 .map((product) => {
-                    const firstImageKey =
-                        product?.availableColors?.[0]?.imageKeys?.[0] ?? product?.images?.[0];
-
+                    const firstImageKey = product?.availableColors?.[0]?.imageKeys?.[0] ?? product?.images?.[0];
                     return {
                         id: product!.id,
                         name: product!.name,
@@ -191,16 +188,9 @@ export default function BuilderScreen() {
             if (presetItems.length === 0) return;
 
             setSelectedItems((prev) => {
-                const filteredPrev = prev.filter(
-                    (item) => !parsedIds.includes(item.id)
-                );
-
+                const filteredPrev = prev.filter((item) => !parsedIds.includes(item.id));
                 const merged = [...filteredPrev, ...presetItems];
-
-                return merged.filter(
-                    (item, index, self) =>
-                        self.findIndex((x) => x.id === item.id) === index
-                );
+                return merged.filter((item, index, self) => self.findIndex((x) => x.id === item.id) === index);
             });
 
             setSources((prev) => (prev.includes('shop') ? prev : [...prev, 'shop']));
@@ -226,10 +216,8 @@ export default function BuilderScreen() {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
         const email = JSON.parse(userData).email;
-
         const justRegistered = await AsyncStorage.getItem('just_registered');
         if (!justRegistered) return;
-
         const seen = await AsyncStorage.getItem(`builder_onboarding_shown_${email}`);
         if (!seen) {
             setTimeout(() => {
@@ -247,13 +235,10 @@ export default function BuilderScreen() {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
         const email = JSON.parse(userData).email;
-
         const justRegistered = await AsyncStorage.getItem('just_registered');
         if (!justRegistered) return;
-
         const seen = await AsyncStorage.getItem(`builder_onboarding_after_shown_${email}`);
         if (!seen) {
-            // FIX 2: isMounted guard v setTimeout — nekontaktuj setState ak komponent nie je aktívny
             setTimeout(() => {
                 if (!isMounted.current) return;
                 setOnboardingPhase('after');
@@ -265,25 +250,16 @@ export default function BuilderScreen() {
     const showOnboardingStep = (step: number, phase: OnboardingPhase) => {
         const steps = phase === 'before' ? ONBOARDING_STEPS_BEFORE : ONBOARDING_STEPS_AFTER;
         const refs = phase === 'before' ? beforeRefs : afterRefs;
-
         if (step >= steps.length) {
             finishOnboarding(phase);
             return;
         }
-
         const ref = refs[step];
-
-        // FIX 3: null-check ref pred measureInWindow — ak ref nie je ready, nastav krok bez pozície
-        // aby onboarding nezmrazil obrazovku keď callback nikdy nepríde
         if (!ref?.current) {
-            if (isMounted.current) {
-                setOnboardingStep(step);
-            }
+            if (isMounted.current) setOnboardingStep(step);
             return;
         }
-
         ref.current.measureInWindow((x, y, width, height) => {
-            // FIX 4: isMounted check aj v measureInWindow callback (asynchrónny)
             if (!isMounted.current) return;
             setTooltipPos({ x, y, width, height });
             setOnboardingStep(step);
@@ -294,16 +270,12 @@ export default function BuilderScreen() {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
         const email = JSON.parse(userData).email;
-
         if (phase === 'before') {
             await AsyncStorage.setItem(`builder_onboarding_shown_${email}`, 'true');
         } else {
             await AsyncStorage.setItem(`builder_onboarding_after_shown_${email}`, 'true');
             await AsyncStorage.removeItem('just_registered');
         }
-
-        // FIX 5: Atomicky resetuj všetky onboarding stavy naraz — Modal sa hneď zatvorí
-        // bez tohto sa mohol objaviť race condition kde Modal zostal viditeľný o jeden render dlhšie
         if (isMounted.current) {
             setOnboardingStep(-1);
             setOnboardingPhase(null);
@@ -338,19 +310,16 @@ export default function BuilderScreen() {
                 id: preselectedProductId,
                 name: preselectedProductName,
                 image: productImages[preselectedProductImageKey],
-                category:
-                    typeof preselectedProductCategory === 'string' && preselectedProductCategory
-                        ? preselectedProductCategory.toLowerCase()
-                        : 'other',
+                category: typeof preselectedProductCategory === 'string' && preselectedProductCategory
+                    ? preselectedProductCategory.toLowerCase()
+                    : 'other',
                 tags: preselectedProductName.toLowerCase().split(' '),
                 fromWardrobe: false,
-
             }
             : null;
 
     React.useEffect(() => {
         if (!preselectedBuilderItem || !preselectedBuilderItem.image) return;
-
         setSelectedItems((prev) => {
             const alreadyThere = prev.some((item) => item.id === preselectedBuilderItem.id);
             if (alreadyThere) return prev;
@@ -360,7 +329,6 @@ export default function BuilderScreen() {
 
     React.useEffect(() => {
         if (!preselectedBuilderItem) return;
-
         setSources((prev) => (prev.includes('shop') ? prev : [...prev, 'shop']));
     }, [preselectedBuilderItem]);
 
@@ -375,7 +343,6 @@ export default function BuilderScreen() {
             const isFromThisSource = s === 'wardrobe'
                 ? selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id))
                 : selectedItems.some(i => wishlistAsOutfits.find(w => w.id === i.id));
-
             if (isFromThisSource) {
                 setSelectedItems(prev =>
                     prev.filter(i =>
@@ -390,7 +357,6 @@ export default function BuilderScreen() {
             }
             return;
         }
-
         if (s === 'shop') {
             const hasOtherSources = selectedItems.length > 0;
             if (sources.includes('shop') && hasOtherSources) {
@@ -424,7 +390,7 @@ export default function BuilderScreen() {
 
     const handleGenerate = () => {
         if (isPromptEmpty) return;
-
+        setGenerateError(false);
         setLoading(true);
         setGenerated(false);
         setAddedToCart(false);
@@ -432,8 +398,22 @@ export default function BuilderScreen() {
         setInlineFeedbackSubmitted(false);
 
         setTimeout(async () => {
-            // FIX 6: guard aj na začiatku async setTimeout callbacku
             if (!isMounted.current) return;
+
+            const userData = await AsyncStorage.getItem('currentUser');
+            const email = userData ? JSON.parse(userData).email : 'unknown';
+            const countStr = await AsyncStorage.getItem(`builder_generate_count_${email}`);
+            const count = parseInt(countStr ?? '0', 10);
+            await AsyncStorage.setItem(`builder_generate_count_${email}`, String(count + 1));
+
+            if (count + 1 === 4) {
+            if (isMounted.current) {
+                setLoading(false);
+                setGenerateError(true);
+                await AsyncStorage.setItem(`builder_generate_count_${email}`, '0');
+            }
+            return;
+        }
 
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
 
@@ -449,30 +429,17 @@ export default function BuilderScreen() {
             };
 
             const sourceItems = getSourceItems();
-
             const scoredItems: ScoredItem[] = sourceItems
                 .map(item => ({ ...item, score: scoreItem(item) }))
                 .sort((a, b) => b.score - a.score);
 
-            const wantsDress = keywords.some(k =>
-                ['dress', 'elegant', 'formal', 'party', 'evening', 'night', 'gala'].includes(k)
-            );
-            const wantsSport = keywords.some(k =>
-                ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k)
-            );
-            const wantsCasual = keywords.some(k =>
-                ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k)
-            );
-            const wantsOffice = keywords.some(k =>
-                ['office', 'work', 'business', 'professional', 'blazer'].includes(k)
-            );
-            const wantsParty = keywords.some(k =>
-                ['party', 'club', 'going'].includes(k)
-            );
+            const wantsDress = keywords.some(k => ['dress', 'elegant', 'formal', 'party', 'evening', 'night', 'gala'].includes(k));
+            const wantsSport = keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k));
+            const wantsCasual = keywords.some(k => ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k));
+            const wantsOffice = keywords.some(k => ['office', 'work', 'business', 'professional', 'blazer'].includes(k));
+            const wantsParty = keywords.some(k => ['party', 'club', 'going'].includes(k));
 
-            const byCategory = (cat: string): ScoredItem[] =>
-                scoredItems.filter(i => i.category === cat);
-
+            const byCategory = (cat: string): ScoredItem[] => scoredItems.filter(i => i.category === cat);
             const shoes = byCategory('shoes');
             const pants = byCategory('pants');
             const tops = byCategory('top');
@@ -554,21 +521,14 @@ export default function BuilderScreen() {
 
             startAfterOnboarding();
 
-            const userData = await AsyncStorage.getItem('currentUser');
-            const email = userData ? JSON.parse(userData).email : 'unknown';
-
             if (email === 'test@test.com') {
                 setTimeout(() => {
                     if (isMounted.current) setFeedbackVisible(true);
                 }, 3000);
             } else {
-                const countStr = await AsyncStorage.getItem(`builder_generate_count_${email}`);
-                let count = parseInt(countStr ?? '0', 10);
-
-                count += 1;
-                await AsyncStorage.setItem(`builder_generate_count_${email}`, String(count));
-
-                if (count % 2 === 0) {
+                const newCountStr = await AsyncStorage.getItem(`builder_generate_count_${email}`);
+                const newCount = parseInt(newCountStr ?? '0', 10);
+                if (newCount % 2 === 0) {
                     setTimeout(() => {
                         if (isMounted.current) setFeedbackVisible(true);
                     }, 3000);
@@ -580,11 +540,9 @@ export default function BuilderScreen() {
     const saveFeedbackToStorage = async () => {
         const userData = await AsyncStorage.getItem('currentUser');
         const email = userData ? JSON.parse(userData).email : 'unknown';
-
         if (email !== 'test@test.com') {
             await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
         }
-
         addBuilderFeedback();
     };
 
@@ -635,6 +593,7 @@ export default function BuilderScreen() {
         setAddedToCart(false);
         setInlineFeedbackRating(0);
         setInlineFeedbackSubmitted(false);
+        setGenerateError(false);
     };
 
     const handleAddToCart = () => {
@@ -675,6 +634,24 @@ export default function BuilderScreen() {
         }
     };
 
+    const handleManualPickerToggle = (item: OutfitItem) => {
+        setManualPickerItems(prev => {
+            const exists = prev.find(i => i.id === item.id);
+            if (exists) return prev.filter(i => i.id !== item.id);
+            if (prev.length >= 4) return prev;
+            return [...prev, item];
+        });
+    };
+
+    const handleConfirmManualPicker = () => {
+        if (manualPickerItems.length === 0) return;
+        setOutfits(manualPickerItems);
+        setGenerated(true);
+        setManualPickerVisible(false);
+        setManualPickerItems([]);
+        setGenerateError(false);
+    };
+
     const shopItemsCount = outfits.filter(i => !i.fromWardrobe).length;
     const isShopActive = sources.includes('shop');
     const isWardrobeActive = selectedItems.some(i => wardrobeAsOutfits.find(w => w.id === i.id));
@@ -688,27 +665,17 @@ export default function BuilderScreen() {
 
     const handleEditCart = (cartId: string) => {
         setCartModalVisible(false);
-        router.push({
-            pathname: '/(tabs)/cart_detail',
-            params: { cartId, returnToBuilder: 'true' },
-        });
+        router.push({ pathname: '/(tabs)/cart_detail', params: { cartId, returnToBuilder: 'true' } });
     };
 
     const getCartTotal = (cart: { products: any[] }) => {
-        return cart.products.reduce(
-            (sum, product) => sum + product.price * product.quantity,
-            0
-        );
+        return cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0);
     };
 
     const handleDeleteCart = (cartId: string) => {
         Alert.alert('Delete cart', 'Are you sure you want to delete this cart?', [
             { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: () => deleteCart(cartId),
-            },
+            { text: 'Delete', style: 'destructive', onPress: () => deleteCart(cartId) },
         ]);
     };
 
@@ -721,7 +688,6 @@ export default function BuilderScreen() {
                 <Feather name="edit-2" size={16} color="#111" />
                 <Text style={styles.cartSwipeButtonText}>Edit</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
                 style={[styles.cartSwipeButton, styles.cartDeleteSwipeButton]}
                 onPress={() => handleDeleteCart(cartId)}
@@ -851,6 +817,40 @@ export default function BuilderScreen() {
                     </TouchableOpacity>
                 </View>
 
+                {/* Error state */}
+                {generateError && !generated && (
+                    <View style={styles.errorState}>
+                        <Feather name="alert-circle" size={44} color="#e74c3c" />
+                        <Text style={styles.errorTitle}>Something went wrong</Text>
+                        <Text style={styles.errorSubtitle}>
+                            We couldn't generate your outfit this time. Pick items manually or try again.
+                        </Text>
+                        <View style={styles.errorButtons}>
+                            <TouchableOpacity
+                                style={styles.retryButton}
+                                onPress={() => {
+                                    setGenerateError(false);
+                                    handleGenerate();
+                                }}
+                            >
+                                <Feather name="refresh-cw" size={14} color="#fff" />
+                                <Text style={styles.retryButtonText}>Try again</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.manualButton}
+                                onPress={() => {
+                                    setManualPickerItems([]);
+                                    setManualPickerTab('shop');
+                                    setManualPickerVisible(true);
+                                }}
+                            >
+                                <Feather name="sliders" size={14} color="#111" />
+                                <Text style={styles.manualButtonText}>Pick manually</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
                 {generated && outfits.length > 0 && (
                     <View style={styles.resultsSection}>
                         <Text style={styles.resultsTitle}>
@@ -944,7 +944,7 @@ export default function BuilderScreen() {
                     </View>
                 )}
 
-                {!generated && !loading && (
+                {!generated && !loading && !generateError && (
                     <View style={styles.emptyState}>
                         <Feather name="zap" size={40} color="#ccc" />
                         <Text style={styles.emptyStateText}>Select sources, describe your outfit and generate</Text>
@@ -952,30 +952,20 @@ export default function BuilderScreen() {
                 )}
             </ScrollView>
 
-            {/* Onboarding Tooltip Modal */}
+            {/* Onboarding */}
             {onboardingStep >= 0 && onboardingPhase !== null && (
                 <Modal visible transparent animationType="fade">
                     <View style={styles.onboardingOverlay}>
-                        <View
-                            style={[
-                                styles.onboardingHighlight,
-                                {
-                                    left: tooltipPos.x - 6,
-                                    top: tooltipPos.y - 6,
-                                    width: tooltipPos.width + 12,
-                                    height: tooltipPos.height + 12,
-                                },
-                            ]}
-                        />
-
-                        <View
-                            style={[
-                                styles.onboardingCard,
-                                tooltipBottom
-                                    ? { bottom: 100 }
-                                    : { top: tooltipPos.y + tooltipPos.height + 16 },
-                            ]}
-                        >
+                        <View style={[styles.onboardingHighlight, {
+                            left: tooltipPos.x - 6,
+                            top: tooltipPos.y - 6,
+                            width: tooltipPos.width + 12,
+                            height: tooltipPos.height + 12,
+                        }]} />
+                        <View style={[
+                            styles.onboardingCard,
+                            tooltipBottom ? { bottom: 100 } : { top: tooltipPos.y + tooltipPos.height + 16 },
+                        ]}>
                             <View style={styles.onboardingHeader}>
                                 <Text style={styles.onboardingStepLabel}>
                                     {onboardingStep + 1} / {currentSteps.length}
@@ -985,26 +975,13 @@ export default function BuilderScreen() {
                                     <Text style={styles.onboardingSkip}>Skip</Text>
                                 </TouchableOpacity>
                             </View>
-
-                            <Text style={styles.onboardingTitle}>
-                                {currentSteps[onboardingStep].title}
-                            </Text>
-                            <Text style={styles.onboardingDescription}>
-                                {currentSteps[onboardingStep].description}
-                            </Text>
-
+                            <Text style={styles.onboardingTitle}>{currentSteps[onboardingStep].title}</Text>
+                            <Text style={styles.onboardingDescription}>{currentSteps[onboardingStep].description}</Text>
                             <View style={styles.onboardingDots}>
                                 {currentSteps.map((_, i) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.onboardingDot,
-                                            i === onboardingStep && styles.onboardingDotActive,
-                                        ]}
-                                    />
+                                    <View key={i} style={[styles.onboardingDot, i === onboardingStep && styles.onboardingDotActive]} />
                                 ))}
                             </View>
-
                             <TouchableOpacity
                                 style={styles.onboardingButton}
                                 onPress={() => showOnboardingStep(onboardingStep + 1, onboardingPhase)}
@@ -1028,9 +1005,7 @@ export default function BuilderScreen() {
                             <View style={styles.feedbackThanks}>
                                 <Feather name="check-circle" size={40} color="#111" />
                                 <Text style={styles.feedbackThanksTitle}>Thanks for your feedback!</Text>
-                                <Text style={styles.feedbackThanksSubtitle}>
-                                    Your feedback helps us improve future outfit recommendations!
-                                </Text>
+                                <Text style={styles.feedbackThanksSubtitle}>Your feedback helps us improve future outfit recommendations!</Text>
                             </View>
                         ) : (
                             <>
@@ -1123,9 +1098,7 @@ export default function BuilderScreen() {
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHandle} />
                         <View style={styles.sheetHeader}>
-                            <Text style={styles.sheetTitle}>
-                                Select from {sheetSource === 'wardrobe' ? 'Wardrobe' : 'Wishlist'}
-                            </Text>
+                            <Text style={styles.sheetTitle}>Select from {sheetSource === 'wardrobe' ? 'Wardrobe' : 'Wishlist'}</Text>
                             <TouchableOpacity onPress={() => setSheetVisible(false)}>
                                 <Feather name="x" size={22} color="#111" />
                             </TouchableOpacity>
@@ -1175,6 +1148,89 @@ export default function BuilderScreen() {
                 </View>
             </Modal>
 
+            {/* Manual Picker Modal */}
+            <Modal visible={manualPickerVisible} animationType="slide" transparent onRequestClose={() => setManualPickerVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalBackdrop} onPress={() => setManualPickerVisible(false)} />
+                    <View style={[styles.bottomSheet, { maxHeight: '90%' }]}>
+                        <View style={styles.sheetHandle} />
+                        <View style={styles.sheetHeader}>
+                            <Text style={styles.sheetTitle}>Pick your outfit</Text>
+                            <TouchableOpacity onPress={() => setManualPickerVisible(false)}>
+                                <Feather name="x" size={22} color="#111" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.manualPickerHint}>
+                            {manualPickerItems.length}/4 items selected
+                        </Text>
+
+                        <View style={styles.manualTabRow}>
+                            <TouchableOpacity
+                                style={[styles.manualTab, manualPickerTab === 'shop' && styles.manualTabActive]}
+                                onPress={() => setManualPickerTab('shop')}
+                            >
+                                <Feather name="shopping-bag" size={13} color={manualPickerTab === 'shop' ? '#111' : '#999'} />
+                                <Text style={[styles.manualTabText, manualPickerTab === 'shop' && styles.manualTabTextActive]}>Shop</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.manualTab, manualPickerTab === 'wardrobe' && styles.manualTabActive]}
+                                onPress={() => setManualPickerTab('wardrobe')}
+                            >
+                                <Feather name="grid" size={13} color={manualPickerTab === 'wardrobe' ? '#111' : '#999'} />
+                                <Text style={[styles.manualTabText, manualPickerTab === 'wardrobe' && styles.manualTabTextActive]}>Wardrobe</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <FlatList
+                            data={(manualPickerTab === 'shop' ? SHOP_PRODUCTS : wardrobeAsOutfits) as OutfitItem[]}
+                            keyExtractor={item => item.id}
+                            numColumns={3}
+                            contentContainerStyle={styles.sheetGrid}
+                            renderItem={({ item }) => {
+                                const isSelected = !!manualPickerItems.find(i => i.id === item.id);
+                                const isDisabled = !isSelected && manualPickerItems.length >= 4;
+                                return (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sheetItem,
+                                            isSelected && styles.sheetItemSelected,
+                                            isDisabled && styles.sheetItemDisabled,
+                                        ]}
+                                        onPress={() => handleManualPickerToggle(item)}
+                                        disabled={isDisabled}
+                                    >
+                                        <Image
+                                            source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+                                            style={styles.sheetItemImage}
+                                            resizeMode="cover"
+                                        />
+                                        {isSelected && (
+                                            <View style={styles.sheetItemCheck}>
+                                                <Feather name="check" size={14} color="#fff" />
+                                            </View>
+                                        )}
+                                        <Text style={styles.sheetItemName} numberOfLines={1}>{item.name}</Text>
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.confirmButton, manualPickerItems.length === 0 && styles.confirmButtonDisabled]}
+                            onPress={handleConfirmManualPicker}
+                            disabled={manualPickerItems.length === 0}
+                        >
+                            <Text style={styles.confirmButtonText}>
+                                {manualPickerItems.length > 0
+                                    ? `Build outfit (${manualPickerItems.length} selected)`
+                                    : 'Select at least 1 item'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Cart Modal */}
             <Modal visible={cartModalVisible} animationType="slide" transparent onRequestClose={() => setCartModalVisible(false)}>
                 <View style={styles.modalOverlay}>
@@ -1205,7 +1261,6 @@ export default function BuilderScreen() {
                                     const currentTotal = getCartTotal(cart);
                                     const difference = cart.budget - currentTotal;
                                     const isOver = difference < 0;
-
                                     return (
                                         <Swipeable
                                             key={cart.id}
@@ -1220,26 +1275,15 @@ export default function BuilderScreen() {
                                                 <View style={styles.cartIconWrap}>
                                                     <Feather name="shopping-cart" size={20} color="#111" />
                                                 </View>
-
                                                 <View style={styles.cartSelectInfo}>
                                                     <Text style={styles.cartSelectName}>{cart.name}</Text>
-
-                                                    <Text style={styles.cartSelectSub}>
-                                                        Budget: €{cart.budget} · {cart.products.length} items
-                                                    </Text>
-
-                                                    <Text
-                                                        style={[
-                                                            styles.cartRemainingText,
-                                                            isOver ? styles.cartRemainingOver : styles.cartRemainingOk,
-                                                        ]}
-                                                    >
+                                                    <Text style={styles.cartSelectSub}>Budget: €{cart.budget} · {cart.products.length} items</Text>
+                                                    <Text style={[styles.cartRemainingText, isOver ? styles.cartRemainingOver : styles.cartRemainingOk]}>
                                                         {isOver
                                                             ? `Over budget: €${Math.abs(difference).toFixed(2)}`
                                                             : `Remaining: €${difference.toFixed(2)}`}
                                                     </Text>
                                                 </View>
-
                                                 <Feather name="chevron-right" size={18} color="#8a8a8a" />
                                             </TouchableOpacity>
                                         </Swipeable>
@@ -1290,7 +1334,6 @@ const styles = StyleSheet.create({
         borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, gap: 10,
     },
     input: { flex: 1, fontSize: 15, color: '#111', maxHeight: 80 },
-    promptHint: { fontSize: 12, color: '#8a8a8a', textAlign: 'center', marginBottom: 12, marginTop: 2 },
     generateButton: {
         backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
         alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24,
@@ -1304,25 +1347,11 @@ const styles = StyleSheet.create({
     outfitsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     outfitCard: { width: '48%', marginBottom: 16, position: 'relative' },
     outfitImage: { width: '100%', height: 180, borderRadius: 14, backgroundColor: '#e9e9e9' },
-    refreshAnchor: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        width: 30,
-        height: 30,
-        zIndex: 3,
-    },
+    refreshAnchor: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, zIndex: 3 },
     regenerateItemButton: {
-        width: 30,
-        height: 30,
-        backgroundColor: '#fff',
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        width: 30, height: 30, backgroundColor: '#fff', borderRadius: 20,
+        justifyContent: 'center', alignItems: 'center',
+        shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2,
     },
     wardrobeBadge: {
         position: 'absolute', top: 8, left: 8, backgroundColor: '#111',
@@ -1355,35 +1384,49 @@ const styles = StyleSheet.create({
     addedButtonText: { color: '#111', fontSize: 14, fontWeight: '700' },
     emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 14 },
     emptyStateText: { fontSize: 14, color: '#aaa', textAlign: 'center' },
-    feedbackCard: {
-        marginTop: 18, backgroundColor: '#e9e9e9',
-        borderRadius: 18, paddingVertical: 16, paddingHorizontal: 14, alignItems: 'center',
+    errorState: {
+        alignItems: 'center', justifyContent: 'center',
+        paddingTop: 40, gap: 12, paddingHorizontal: 8,
     },
-    feedbackTitle: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 12, textAlign: 'center' },
-    inlineStarsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    starIcon: { marginHorizontal: 6 },
-    feedbackButton: {
-        minWidth: 120, height: 44, borderRadius: 14, backgroundColor: '#111',
-        justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
+    errorTitle: { fontSize: 18, fontWeight: '700', color: '#111', textAlign: 'center' },
+    errorSubtitle: { fontSize: 14, color: '#8a8a8a', textAlign: 'center', lineHeight: 20 },
+    errorButtons: { flexDirection: 'row', gap: 10, marginTop: 8 },
+    retryButton: {
+        flex: 1, backgroundColor: '#111', paddingVertical: 14, borderRadius: 20,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     },
-    feedbackButtonDisabled: { backgroundColor: '#bdbdbd' },
-    feedbackButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    retryButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    manualButton: {
+        flex: 1, backgroundColor: '#e9e9e9', paddingVertical: 14, borderRadius: 20,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+        borderWidth: 1.5, borderColor: '#111',
+    },
+    manualButtonText: { color: '#111', fontWeight: '700', fontSize: 14 },
+    manualPickerHint: {
+        fontSize: 13, color: '#8a8a8a', fontWeight: '600',
+        marginBottom: 12, textAlign: 'center',
+    },
+    manualTabRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+    manualTab: {
+        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 6, paddingVertical: 10, borderRadius: 20,
+        backgroundColor: '#e9e9e9', borderWidth: 2, borderColor: 'transparent',
+    },
+    manualTabActive: { backgroundColor: '#fff', borderColor: '#111' },
+    manualTabText: { fontSize: 13, fontWeight: '600', color: '#999' },
+    manualTabTextActive: { color: '#111' },
+    sheetItemDisabled: { opacity: 0.35 },
+    confirmButtonDisabled: { backgroundColor: '#bdbdbd' },
     onboardingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
     onboardingHighlight: {
-        position: 'absolute',
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#f2b55d',
-        backgroundColor: 'rgba(242,181,93,0.1)',
+        position: 'absolute', borderRadius: 16, borderWidth: 2,
+        borderColor: '#f2b55d', backgroundColor: 'rgba(242,181,93,0.1)',
     },
     onboardingCard: {
         position: 'absolute', left: 16, right: 16,
         backgroundColor: '#fff', borderRadius: 20, padding: 20,
     },
-    onboardingHeader: {
-        flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: 10,
-    },
+    onboardingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     onboardingStepLabel: { fontSize: 12, color: '#8a8a8a', fontWeight: '600' },
     onboardingSkip: { fontSize: 13, color: '#8a8a8a', fontWeight: '600' },
     onboardingTitle: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 8 },
@@ -1466,63 +1509,17 @@ const styles = StyleSheet.create({
     cartSelectName: { fontSize: 15, fontWeight: '700', color: '#111' },
     cartSelectSub: { fontSize: 12, color: '#6a6a6a', marginTop: 2 },
     noCartsText: { textAlign: 'center', color: '#999', fontSize: 14, marginTop: 20 },
-
-    cartSwipeActions: {
-        flexDirection: 'row',
-        alignItems: 'stretch',
-        marginBottom: 10,
-    },
-
-    cartSwipeButton: {
-        width: 86,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
-        marginLeft: 8,
-    },
-
-    cartEditSwipeButton: {
-        backgroundColor: '#dedede',
-    },
-
-    cartDeleteSwipeButton: {
-        backgroundColor: '#111',
-    },
-
-    cartSwipeButtonText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#111',
-    },
-
-    cartDeleteSwipeButtonText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#fff',
-    },
-
-    cartRemainingText: {
-        marginTop: 6,
-        fontSize: 13,
-        fontWeight: '700',
-    },
-
-    cartRemainingOk: {
-        color: '#006958',
-    },
-
-    cartRemainingOver: {
-        color: '#df2518',
-    },
-
+    cartSwipeActions: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 10 },
+    cartSwipeButton: { width: 86, borderRadius: 14, justifyContent: 'center', alignItems: 'center', gap: 6, marginLeft: 8 },
+    cartEditSwipeButton: { backgroundColor: '#dedede' },
+    cartDeleteSwipeButton: { backgroundColor: '#111' },
+    cartSwipeButtonText: { fontSize: 13, fontWeight: '700', color: '#111' },
+    cartDeleteSwipeButtonText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    cartRemainingText: { marginTop: 6, fontSize: 13, fontWeight: '700' },
+    cartRemainingOk: { color: '#006958' },
+    cartRemainingOver: { color: '#df2518' },
     cartIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 19,
-        backgroundColor: '#dedede',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
+        width: 40, height: 40, borderRadius: 19, backgroundColor: '#dedede',
+        justifyContent: 'center', alignItems: 'center', marginRight: 12,
     },
 });
