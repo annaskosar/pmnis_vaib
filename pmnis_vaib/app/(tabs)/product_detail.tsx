@@ -12,12 +12,11 @@ import {
     NativeSyntheticEvent,
     NativeScrollEvent,
     Alert,
-    TouchableWithoutFeedback,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Animated } from 'react-native';
+import { Animated, Easing } from 'react-native';
 import { useCart, CartProduct } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -26,6 +25,7 @@ import { useProducts, sizeOptions } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+
 
 const { width } = Dimensions.get('window');
 
@@ -69,6 +69,7 @@ const mayRockItems: MiniProduct[] = [
     { id: '4', image: require('../../assets/images_app/model11.jpg'), name: 'Basic body fit top', price: '€22.99' },
     { id: '5', image: require('../../assets/images_app/model3.jpg'), name: 'Essential fitted piece', price: '€19.99' },
 ];
+
 
 type BuilderLook = {
     id: string;
@@ -191,8 +192,17 @@ export default function ProductDetailScreen() {
     const { productId, category, subcategory, gender, from } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const { carts, addProductToCart, deleteCart } = useCart();
-    const { getProductById, products } = useProducts();
+    const { getProductById } = useProducts();
     const { toggleWishlist, isInWishlist } = useWishlist();
+
+    const pulse1 = React.useRef(new Animated.Value(1)).current;
+    const pulse2 = React.useRef(new Animated.Value(1)).current;
+    const pulse3 = React.useRef(new Animated.Value(1)).current;
+
+    const [showDuplicateFeedbackModal, setShowDuplicateFeedbackModal] = React.useState(false);
+    const [duplicateFeedbackSubmitted, setDuplicateFeedbackSubmitted] = React.useState(false);
+    const [duplicateFeedbackChoice, setDuplicateFeedbackChoice] = React.useState<'yes' | 'no' | null>(null);
+    const [pendingDuplicateAction, setPendingDuplicateAction] = React.useState<'close' | 'add' | null>(null);
 
     const productIdValue = Array.isArray(productId) ? productId[0] : productId;
     const categoryName = Array.isArray(category) ? category[0] : category;
@@ -224,6 +234,42 @@ export default function ProductDetailScreen() {
     const [openPanels, setOpenPanels] = React.useState({ delivery: true, sizeFit: false, productDetails: false });
 
     const hasSimilarWardrobeItem = true;
+
+    React.useEffect(() => {
+        const createPulse = (anim: Animated.Value, delay: number) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.delay(delay),
+                    Animated.timing(anim, {
+                        toValue: 1.08,
+                        duration: 700,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(anim, {
+                        toValue: 1,
+                        duration: 700,
+                        easing: Easing.inOut(Easing.ease),
+                        useNativeDriver: true,
+                    }),
+                    Animated.delay(250),
+                ])
+            );
+
+        const animation1 = createPulse(pulse1, 0);
+        const animation2 = createPulse(pulse2, 300);
+        const animation3 = createPulse(pulse3, 600);
+
+        animation1.start();
+        animation2.start();
+        animation3.start();
+
+        return () => {
+            animation1.stop();
+            animation2.stop();
+            animation3.stop();
+        };
+    }, [pulse1, pulse2, pulse3]);
 
     const handleToggleMiniWishlist = (item: MiniProduct) => {
         toggleWishlist({
@@ -410,6 +456,23 @@ export default function ProductDetailScreen() {
     const reviewCount = allReviews.length;
 
     const productReviews = allReviews;
+
+    const handleDuplicateFeedback = (choice: 'yes' | 'no') => {
+        setDuplicateFeedbackChoice(choice);
+        setDuplicateFeedbackSubmitted(true);
+
+        setTimeout(() => {
+            setShowDuplicateFeedbackModal(false);
+            setDuplicateFeedbackSubmitted(false);
+            setDuplicateFeedbackChoice(null);
+
+            if (pendingDuplicateAction === 'add') {
+                openCartPicker();
+            }
+
+            setPendingDuplicateAction(null);
+        }, 1200);
+    };
 
 
 
@@ -931,10 +994,14 @@ export default function ProductDetailScreen() {
                 <View style={styles.duplicateOverlay}>
                     <View style={styles.duplicateCard}>
                         <View style={styles.duplicateHandle} />
-                        <View style={styles.duplicateTopIcon}>
-                            <Feather name="alert-circle" size={24} color="#111" />
+                        <View style={styles.duplicateTitleRow}>
+                            <Feather name="alert-circle" size={22} color="#111" />
+                            <Text style={styles.duplicateTitleText}>Duplicate!</Text>
                         </View>
-                        <Text style={styles.duplicateMainText}>You already have a very similar piece in your wardrobe.</Text>
+
+                        <Text style={styles.duplicateMainText}>
+                            You already have a very similar piece in your wardrobe.
+                        </Text>
                         <View style={styles.duplicateCompareBox}>
                             <View style={styles.duplicateCompareItem}>
                                 <Image source={productGallery[imageIndex] ?? productGallery[0]} style={styles.duplicateCompareImage} contentFit="cover" cachePolicy="memory-disk" transition={150} />
@@ -948,17 +1015,61 @@ export default function ProductDetailScreen() {
                                 <Text style={styles.duplicateCompareLabel} numberOfLines={1}>In wardrobe</Text>
                             </View>
                         </View>
+                        <Text style={styles.duplicateSuggestionsText}>
+                            We recommend these pieces more{"\n"}
+                            <Text style={{ fontWeight: '800', color: '#111' }}>
+                                similar vibe, but more unique
+                            </Text>
+                        </Text>
                         <View style={styles.duplicateAlternativesRow}>
-                            {duplicateAlternatives.map((alt) => (
-                                <TouchableOpacity key={alt.id} style={styles.duplicateAlternativeCard} activeOpacity={0.85}>
-                                    <Image source={alt.image} style={styles.duplicateAlternativeImage} contentFit="cover" />
-                                    <Text style={styles.duplicateAlternativeScore}>{alt.ecoScore}</Text>
-                                </TouchableOpacity>
-                            ))}
+                            {duplicateAlternatives.map((alt, index) => {
+                                const scaleAnim =
+                                    index === 0 ? pulse1 :
+                                        index === 1 ? pulse2 :
+                                            pulse3;
+
+                                return (
+                                    <Animated.View
+                                        key={alt.id}
+                                        style={[
+                                            styles.duplicateAlternativeCard,
+                                            { transform: [{ scale: scaleAnim }] },
+                                        ]}
+                                    >
+                                        <TouchableOpacity activeOpacity={0.85} style={{ flex: 1 }}>
+                                            <Image
+                                                source={alt.image}
+                                                style={styles.duplicateAlternativeImage}
+                                                contentFit="cover"
+                                            />
+                                        </TouchableOpacity>
+                                    </Animated.View>
+                                );
+                            })}
                         </View>
-                        <TouchableOpacity style={styles.duplicateCloseCenterButton} onPress={() => setShowDuplicateModal(false)}>
-                            <Feather name="x" size={20} color="#111" />
-                        </TouchableOpacity>
+                        <View style={styles.duplicateActionsRow}>
+                            <TouchableOpacity
+                                style={styles.duplicateCancelButton}
+                                onPress={() => {
+                                    setShowDuplicateModal(false);
+                                    setPendingDuplicateAction('close');
+                                    setShowDuplicateFeedbackModal(true);
+                                }}
+                            >
+                                <Text style={styles.duplicateCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.duplicateConfirmButton}
+                                onPress={() => {
+                                    setShowDuplicateModal(false);
+                                    setPendingDuplicateAction('add');
+                                    setShowDuplicateFeedbackModal(true);
+                                }}
+                            >
+                                <Text style={styles.duplicateConfirmText}>+ Add anyway</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -1034,6 +1145,58 @@ export default function ProductDetailScreen() {
                                 ))
                             )}
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                visible={showDuplicateFeedbackModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDuplicateFeedbackModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity
+                        style={styles.modalBackdrop}
+                        onPress={() => setShowDuplicateFeedbackModal(false)}
+                    />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+
+                        {duplicateFeedbackSubmitted ? (
+                            <View style={styles.feedbackThanks}>
+                                <Feather name="check-circle" size={40} color="#111" />
+                                <Text style={styles.feedbackThanksTitle}>Thanks!</Text>
+                                <Text style={styles.feedbackThanksSubtitle}>
+                                    Your feedback helps us improve duplicate detection.
+                                </Text>
+                            </View>
+                        ) : (
+                            <>
+                                <Text style={styles.sheetTitle}>Was this helpful?</Text>
+                                <Text style={styles.sheetSubtitle}>
+                                    Your opinion helps us improve these recommendations.
+                                </Text>
+
+                                <View style={styles.duplicateFeedbackRow}>
+                                    <TouchableOpacity
+                                        style={styles.duplicateFeedbackButton}
+                                        onPress={() => handleDuplicateFeedback('yes')}
+                                    >
+                                        <Feather name="thumbs-up" size={16} color="#111" />
+                                        <Text style={styles.duplicateFeedbackButtonText}>Yes</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={styles.duplicateFeedbackButton}
+                                        onPress={() => handleDuplicateFeedback('no')}
+                                    >
+                                        <Feather name="thumbs-down" size={16} color="#111" />
+                                        <Text style={styles.duplicateFeedbackButtonText}>Not really</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -1201,18 +1364,73 @@ const styles = StyleSheet.create({
     duplicateOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.20)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 },
     duplicateCard: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(243, 243, 243, 0.96)', borderRadius: 30, paddingTop: 10, paddingHorizontal: 14, paddingBottom: 20, borderWidth: 1, borderColor: '#d7d7d7' },
     duplicateHandle: { width: 42, height: 4, borderRadius: 999, backgroundColor: '#c8c8c8', alignSelf: 'center', marginBottom: 14 },
-    duplicateTopIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#444', justifyContent: 'center', alignItems: 'center', backgroundColor: '#efefef', marginBottom: 14 },
-    duplicateMainText: { fontSize: 15, lineHeight: 21, fontWeight: '700', color: '#111', marginBottom: 14 },
-    duplicateCompareBox: { borderWidth: 1, borderColor: '#444', borderRadius: 18, backgroundColor: '#ededed', minHeight: 138, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+
+    duplicateMainText: {
+        fontSize: 15,
+        lineHeight: 21,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 18,
+        textAlign: 'center',
+    },
+    duplicateCompareBox: {
+        borderWidth: 1,
+        borderColor: '#444',
+        borderRadius: 22,
+        backgroundColor: '#ededed',
+        minHeight: 190,
+        paddingHorizontal: 14,
+        paddingVertical: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+
     duplicateCompareItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    duplicateCompareImage: { width: 78, height: 78, borderRadius: 14, backgroundColor: '#ddd', marginBottom: 8 },
-    duplicateCompareLabel: { fontSize: 12, fontWeight: '700', color: '#111', textAlign: 'center' },
-    duplicateEqualsWrap: { width: 28, alignItems: 'center', justifyContent: 'center' },
-    duplicateEqualsText: { fontSize: 28, fontWeight: '800', color: '#111' },
-    duplicateAlternativesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-    duplicateAlternativeCard: { width: '30.5%', height: 104, borderRadius: 16, borderWidth: 1, borderColor: '#444', backgroundColor: '#ededed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-    duplicateAlternativeImage: { width: '100%', height: '100%', position: 'absolute' },
-    duplicateAlternativeScore: { position: 'absolute', bottom: 8, fontSize: 14, fontWeight: '800', color: '#fff', backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+    duplicateCompareImage: {
+        width: 110,
+        height: 110,
+        borderRadius: 18,
+        backgroundColor: '#ddd',
+        marginBottom: 10,
+    },
+    duplicateCompareLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111',
+        textAlign: 'center',
+    },
+    duplicateEqualsWrap: {
+        width: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    duplicateEqualsText: {
+        fontSize: 42,
+        fontWeight: '900',
+        color: '#111',
+    },
+    duplicateAlternativesRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 22,
+        paddingHorizontal: 4,
+    },
+    duplicateAlternativeCard: {
+        width: '30.5%',
+        height: 104,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#444',
+        backgroundColor: '#ededed',
+        overflow: 'hidden',
+    },
+    duplicateAlternativeImage: {
+        width: '100%',
+        height: '100%',
+    },
+
     duplicateCloseCenterButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#444', backgroundColor: '#efefef', justifyContent: 'center', alignItems: 'center', alignSelf: 'center' },
 
 
@@ -1361,6 +1579,133 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
+    },
+
+    duplicateTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 14,
+    },
+
+    duplicateTitleText: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111',
+    },
+
+    duplicateSuggestionsText: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: '#5f5f5f',
+        textAlign: 'center',
+        marginBottom: 14,
+        paddingHorizontal: 10,
+        fontWeight: '600',
+    },
+
+    duplicateActionsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 6,
+    },
+
+    duplicateCancelButton: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#111',
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+        backgroundColor: '#f3f3f3',
+    },
+
+    duplicateCancelText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    duplicateConfirmButton: {
+        flex: 1,
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+        backgroundColor: '#111',
+    },
+
+    duplicateConfirmText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#fff',
+    },
+
+    duplicateAddAnywayButton: {
+        marginTop: 10,
+        backgroundColor: '#111',
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+
+    duplicateAddAnywayText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
+
+    duplicateFeedbackRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 8,
+    },
+
+    duplicateFeedbackButton: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#e9e9e9',
+        borderRadius: 14,
+        paddingVertical: 14,
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+
+    duplicateFeedbackButtonText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    sheetSubtitle: {
+        fontSize: 13,
+        color: '#8a8a8a',
+        marginTop: 4,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+
+    feedbackThanks: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        gap: 12,
+    },
+
+    feedbackThanksTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    feedbackThanksSubtitle: {
+        fontSize: 14,
+        color: '#6a6a6a',
+        textAlign: 'center',
+        lineHeight: 20,
     },
 
 
