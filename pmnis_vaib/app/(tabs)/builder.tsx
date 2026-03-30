@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, ScrollView,
-    TextInput, TouchableOpacity, Image, Modal, FlatList, ImageBackground,
+    TextInput, TouchableOpacity, Image, Modal, FlatList, ImageBackground, Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -9,6 +9,8 @@ import { useWardrobe } from '../../context/wardrobe_context';
 import { useCart } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { productImages } from '../../context/product_images';
+import { Swipeable } from 'react-native-gesture-handler';
 
 const SHOP_PRODUCTS = [
     { id: 's1', image: require('../../assets/images_app/model8.png'), name: 'Oversized denim jacket', category: 'jacket', tags: ['casual', 'denim', 'jacket', 'streetwear', 'blue'] },
@@ -80,9 +82,15 @@ type OnboardingPhase = 'before' | 'after' | null;
 
 export default function BuilderScreen() {
     const router = useRouter();
-    const { returnToBuilder } = useLocalSearchParams();
+    const {
+        returnToBuilder,
+        preselectedProductId,
+        preselectedProductName,
+        preselectedProductImageKey,
+        preselectedProductCategory,
+    } = useLocalSearchParams();
     const { wardrobeItems } = useWardrobe();
-    const { carts, addProductToCart, addBuilderFeedback, isUnlimitedUnlocked } = useCart();
+    const { carts, addProductToCart, addBuilderFeedback, isUnlimitedUnlocked, deleteCart } = useCart();
     const { wishlistItems } = useWishlist();
 
     const [prompt, setPrompt] = useState('');
@@ -261,6 +269,40 @@ export default function BuilderScreen() {
         name: item.name,
         tags: item.name.toLowerCase().split(' '),
     }));
+
+    const preselectedBuilderItem: OutfitItem | null =
+        typeof preselectedProductId === 'string' &&
+        typeof preselectedProductName === 'string' &&
+        typeof preselectedProductImageKey === 'string'
+            ? {
+                id: preselectedProductId,
+                name: preselectedProductName,
+                image: productImages[preselectedProductImageKey],
+                category:
+                    typeof preselectedProductCategory === 'string' && preselectedProductCategory
+                        ? preselectedProductCategory.toLowerCase()
+                        : 'other',
+                tags: preselectedProductName.toLowerCase().split(' '),
+                fromWardrobe: false,
+
+            }
+            : null;
+
+    React.useEffect(() => {
+        if (!preselectedBuilderItem || !preselectedBuilderItem.image) return;
+
+        setSelectedItems((prev) => {
+            const alreadyThere = prev.some((item) => item.id === preselectedBuilderItem.id);
+            if (alreadyThere) return prev;
+            return [...prev, preselectedBuilderItem];
+        });
+    }, [preselectedBuilderItem]);
+
+    React.useEffect(() => {
+        if (!preselectedBuilderItem) return;
+
+        setSources((prev) => (prev.includes('shop') ? prev : [...prev, 'shop']));
+    }, [preselectedBuilderItem]);
 
     const getSheetItems = (): OutfitItem[] => {
         if (sheetSource === 'wardrobe') return wardrobeAsOutfits;
@@ -583,6 +625,52 @@ export default function BuilderScreen() {
         if (generated) return 'REGENERATE';
         return 'GENERATE OUTFIT';
     };
+
+    const handleEditCart = (cartId: string) => {
+        setCartModalVisible(false);
+        router.push({
+            pathname: '/(tabs)/cart_detail',
+            params: { cartId, returnToBuilder: 'true' },
+        });
+    };
+
+    const getCartTotal = (cart: { products: any[] }) => {
+        return cart.products.reduce(
+            (sum, product) => sum + product.price * product.quantity,
+            0
+        );
+    };
+
+    const handleDeleteCart = (cartId: string) => {
+        Alert.alert('Delete cart', 'Are you sure you want to delete this cart?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => deleteCart(cartId),
+            },
+        ]);
+    };
+
+    const renderCartRightActions = (cartId: string) => (
+        <View style={styles.cartSwipeActions}>
+            <TouchableOpacity
+                style={[styles.cartSwipeButton, styles.cartEditSwipeButton]}
+                onPress={() => handleEditCart(cartId)}
+            >
+                <Feather name="edit-2" size={16} color="#111" />
+                <Text style={styles.cartSwipeButtonText}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={[styles.cartSwipeButton, styles.cartDeleteSwipeButton]}
+                onPress={() => handleDeleteCart(cartId)}
+            >
+                <Feather name="trash-2" size={16} color="#fff" />
+                <Text style={styles.cartDeleteSwipeButtonText}>Delete</Text>
+            </TouchableOpacity>
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -1053,19 +1141,50 @@ export default function BuilderScreen() {
                             {carts.length === 0 ? (
                                 <Text style={styles.noCartsText}>No carts yet. Create one first!</Text>
                             ) : (
-                                carts.map(cart => (
-                                    <TouchableOpacity
-                                        key={cart.id}
-                                        style={styles.cartSelectItem}
-                                        onPress={() => handleConfirmAddToCart(cart.id)}
-                                    >
-                                        <View style={styles.cartSelectInfo}>
-                                            <Text style={styles.cartSelectName}>{cart.name}</Text>
-                                            <Text style={styles.cartSelectSub}>Budget: €{cart.budget} · {cart.products.length} items</Text>
-                                        </View>
-                                        <Feather name="chevron-right" size={18} color="#8a8a8a" />
-                                    </TouchableOpacity>
-                                ))
+                                carts.map((cart) => {
+                                    const currentTotal = getCartTotal(cart);
+                                    const difference = cart.budget - currentTotal;
+                                    const isOver = difference < 0;
+
+                                    return (
+                                        <Swipeable
+                                            key={cart.id}
+                                            renderRightActions={() => renderCartRightActions(cart.id)}
+                                            overshootRight={false}
+                                        >
+                                            <TouchableOpacity
+                                                style={styles.cartSelectItem}
+                                                activeOpacity={0.86}
+                                                onPress={() => handleConfirmAddToCart(cart.id)}
+                                            >
+                                                <View style={styles.cartIconWrap}>
+                                                    <Feather name="shopping-cart" size={20} color="#111" />
+                                                </View>
+
+                                                <View style={styles.cartSelectInfo}>
+                                                    <Text style={styles.cartSelectName}>{cart.name}</Text>
+
+                                                    <Text style={styles.cartSelectSub}>
+                                                        Budget: €{cart.budget} · {cart.products.length} items
+                                                    </Text>
+
+                                                    <Text
+                                                        style={[
+                                                            styles.cartRemainingText,
+                                                            isOver ? styles.cartRemainingOver : styles.cartRemainingOk,
+                                                        ]}
+                                                    >
+                                                        {isOver
+                                                            ? `Over budget: €${Math.abs(difference).toFixed(2)}`
+                                                            : `Remaining: €${difference.toFixed(2)}`}
+                                                    </Text>
+                                                </View>
+
+                                                <Feather name="chevron-right" size={18} color="#8a8a8a" />
+                                            </TouchableOpacity>
+                                        </Swipeable>
+                                    );
+                                })
                             )}
                         </ScrollView>
                     </View>
@@ -1287,4 +1406,63 @@ const styles = StyleSheet.create({
     cartSelectName: { fontSize: 15, fontWeight: '700', color: '#111' },
     cartSelectSub: { fontSize: 12, color: '#6a6a6a', marginTop: 2 },
     noCartsText: { textAlign: 'center', color: '#999', fontSize: 14, marginTop: 20 },
+
+    cartSwipeActions: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        marginBottom: 10,
+    },
+
+    cartSwipeButton: {
+        width: 86,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 8,
+    },
+
+    cartEditSwipeButton: {
+        backgroundColor: '#dedede',
+    },
+
+    cartDeleteSwipeButton: {
+        backgroundColor: '#111',
+    },
+
+    cartSwipeButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    cartDeleteSwipeButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#fff',
+    },
+
+    cartRemainingText: {
+        marginTop: 6,
+        fontSize: 13,
+        fontWeight: '700',
+    },
+
+    cartRemainingOk: {
+        color: '#006958',
+    },
+
+    cartRemainingOver: {
+        color: '#df2518',
+    },
+
+    cartIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 19,
+        backgroundColor: '#dedede',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
 });

@@ -29,7 +29,7 @@ const { width } = Dimensions.get('window');
 
 const IMAGE_HEIGHT = 420;
 const RECOMMEND_CARD_WIDTH = 158;
-const DRAWER_WIDTH = 220;
+
 
 const COLORS = {
     bg: '#f2f2f2',
@@ -198,10 +198,15 @@ export default function ProductDetailScreen() {
     const [showEcoModal, setShowEcoModal] = React.useState(false);
     const [ecoAlternativeIndex, setEcoAlternativeIndex] = React.useState(0);
     const [showDuplicateModal, setShowDuplicateModal] = React.useState(false);
+    const openCartPicker = () => setShowCartPicker(true);
+    const closeCartPicker = () => setShowCartPicker(false);
 
     const fullscreenScrollRef = React.useRef<ScrollView>(null);
     const scrollX = React.useRef(new Animated.Value(0)).current;
-    const slideAnim = React.useRef(new Animated.Value(0)).current;
+
+    const getCartItemsCount = (cart: { products: CartProduct[] }) =>
+        cart.products.reduce((sum, product) => sum + product.quantity, 0);
+
 
     const [openPanels, setOpenPanels] = React.useState({ delivery: true, sizeFit: false, productDetails: false });
 
@@ -277,9 +282,6 @@ export default function ProductDetailScreen() {
     const currentEcoAlternative = ecoAlternatives[ecoAlternativeIndex];
     const showEcoAlternatives = ecoData.ecoScore < 60;
 
-    const overlayOpacity = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.34] });
-    const drawerTranslateX = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [DRAWER_WIDTH + 30, 0] });
-
     const openImageViewer = (index: number) => {
         setImageIndex(index);
         setShowImageViewer(true);
@@ -295,14 +297,7 @@ export default function ProductDetailScreen() {
         setImageIndex(Math.round(offsetX / width));
     };
 
-    const openCartPicker = () => {
-        setShowCartPicker(true);
-        Animated.timing(slideAnim, { toValue: 1, duration: 260, useNativeDriver: true }).start();
-    };
 
-    const closeCartPicker = () => {
-        Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => setShowCartPicker(false));
-    };
 
     const getCartTotal = (cart: { products: CartProduct[] }) => {
         return cart.products.reduce((sum, cartProduct) => sum + cartProduct.price * cartProduct.quantity, 0);
@@ -316,7 +311,7 @@ export default function ProductDetailScreen() {
 
     const handleEditCart = (cartId: string) => {
         closeCartPicker();
-        router.push({ pathname: '/cart_create', params: { cartId } });
+        router.push({ pathname: '/(tabs)/cart_detail', params: { cartId } });
     };
 
     const handleDeleteCart = (cartId: string) => {
@@ -326,18 +321,27 @@ export default function ProductDetailScreen() {
         ]);
     };
 
-    const renderDrawerRightActions = (cartId: string) => (
-        <View style={styles.drawerSwipeActions}>
-            <TouchableOpacity style={[styles.drawerSwipeButton, styles.drawerEditSwipeButton]} onPress={() => handleEditCart(cartId)}>
-                <Feather name="edit-2" size={15} color="#111" />
-                <Text style={styles.drawerSwipeButtonText}>Edit</Text>
+    const renderCartRightActions = (cartId: string) => (
+        <View style={styles.cartSwipeActions}>
+            <TouchableOpacity
+                style={[styles.cartSwipeButton, styles.cartEditSwipeButton]}
+                onPress={() => handleEditCart(cartId)}
+            >
+                <Feather name="edit-2" size={16} color="#111" />
+                <Text style={styles.cartSwipeButtonText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.drawerSwipeButton, styles.drawerDeleteSwipeButton]} onPress={() => handleDeleteCart(cartId)}>
-                <Feather name="trash-2" size={15} color="#fff" />
-                <Text style={styles.drawerDeleteSwipeButtonText}>Delete</Text>
+
+            <TouchableOpacity
+                style={[styles.cartSwipeButton, styles.cartDeleteSwipeButton]}
+                onPress={() => handleDeleteCart(cartId)}
+            >
+                <Feather name="trash-2" size={16} color="#fff" />
+                <Text style={styles.cartDeleteSwipeButtonText}>Delete</Text>
             </TouchableOpacity>
         </View>
     );
+
+
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -415,7 +419,22 @@ export default function ProductDetailScreen() {
                         <Text style={styles.quickActionText}>Wish</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.quickActionButton} onPress={() => router.push('/builder')}>
+                    <TouchableOpacity
+                        style={styles.quickActionButton}
+                        onPress={() =>
+                            router.push({
+                                pathname: '/(tabs)/builder',
+                                params: {
+                                    preselectedProductId: product.id,
+                                    preselectedProductName: product.name,
+                                    preselectedProductImageKey: selectedColor?.images?.[0]
+                                        ? product.availableColors.find(c => c.name === selectedColor?.name)?.imageKeys?.[0] ?? product.images[0]
+                                        : product.images[0],
+                                    preselectedProductCategory: subcategoryName ?? '',
+                                },
+                            })
+                        }
+                    >
                         <MaterialIcons name="auto-awesome" size={20} color={COLORS.black} />
                         <Text style={styles.quickActionText}>Builder</Text>
                     </TouchableOpacity>
@@ -561,7 +580,7 @@ export default function ProductDetailScreen() {
                 </View>
 
                 <View style={styles.builderSectionCard}>
-                    <Text style={styles.sectionTitleLarge}>Builder style for you</Text>
+                    <Text style={styles.sectionTitleLarge}>Builder styles for you</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         {builderLooks.map((look) => (
                             <View key={look.id} style={styles.builderOutfitCard}>
@@ -672,44 +691,6 @@ export default function ProductDetailScreen() {
                 </Pressable>
             </Modal>
 
-            {showCartPicker && (
-                <View style={styles.drawerRoot} pointerEvents="box-none">
-                    <TouchableWithoutFeedback onPress={closeCartPicker}>
-                        <Animated.View style={[styles.drawerBackdrop, { opacity: overlayOpacity }]} />
-                    </TouchableWithoutFeedback>
-                    <Animated.View style={[styles.cartDrawer, { transform: [{ translateX: drawerTranslateX }] }]}>
-                        <View style={styles.cartDrawerTopSpacer} />
-                        <Text style={styles.cartDrawerTitle}>Carts</Text>
-                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.cartDrawerList}>
-                            {carts.map((cart) => {
-                                const currentTotal = getCartTotal(cart);
-                                const afterAddTotal = currentTotal + product.price;
-                                const difference = cart.budget - afterAddTotal;
-                                const isOver = difference < 0;
-                                return (
-                                    <Swipeable key={cart.id} renderRightActions={() => renderDrawerRightActions(cart.id)} overshootRight={false}>
-                                        <TouchableOpacity style={styles.cartDrawerItem} activeOpacity={0.86} onPress={() => handleAddToSpecificCart(cart.id)}>
-                                            <View style={styles.cartDrawerRowTop}>
-                                                <TouchableOpacity style={styles.cartDrawerMiniIcon} onPress={openCartPicker} activeOpacity={0.7}>
-                                                    <Feather name="shopping-cart" size={18} color={COLORS.black} />
-                                                </TouchableOpacity>
-                                                <Text style={styles.cartDrawerName} numberOfLines={2} ellipsizeMode="tail">{cart.name}</Text>
-                                            </View>
-                                            <Text style={[styles.cartDrawerMeta, isOver ? styles.cartDrawerMetaOver : styles.cartDrawerMetaRemaining]} numberOfLines={1}>
-                                                {isOver ? `Over budget: €${Math.abs(difference).toFixed(2)}` : `Remaining: €${difference.toFixed(2)}`}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </Swipeable>
-                                );
-                            })}
-                            <TouchableOpacity style={styles.cartDrawerAddButton} onPress={() => { closeCartPicker(); router.push('/cart_create'); }}>
-                                <Feather name="plus" size={18} color="#fff" />
-                                <Text style={styles.cartDrawerAddButtonText}>Add</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </Animated.View>
-                </View>
-            )}
 
             <Modal visible={showImageViewer} transparent animationType="fade" onRequestClose={() => setShowImageViewer(false)}>
                 <SafeAreaView style={styles.imageViewerOverlay}>
@@ -852,6 +833,81 @@ export default function ProductDetailScreen() {
                     </View>
                 </View>
             </Modal>
+
+            <Modal visible={showCartPicker} animationType="slide" transparent onRequestClose={closeCartPicker}>
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalBackdrop} onPress={closeCartPicker} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+                        <View style={styles.sheetHeader}>
+                            <Text style={styles.sheetTitle}>Add to which cart?</Text>
+                            <TouchableOpacity onPress={closeCartPicker}>
+                                <Feather name="x" size={22} color="#111" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+                            <TouchableOpacity
+                                style={styles.createNewCartButton}
+                                onPress={() => {
+                                    closeCartPicker();
+                                    router.push('/cart_create');
+                                }}
+                            >
+                                <Feather name="plus" size={16} color="#fff" />
+                                <Text style={styles.createNewCartButtonText}>Create new cart</Text>
+                            </TouchableOpacity>
+
+                            {carts.length === 0 ? (
+                                <Text style={styles.noCartsText}>No carts yet. Create one first!</Text>
+                            ) : (
+                                carts.map((cart) => (
+                                    <Swipeable
+                                        key={cart.id}
+                                        renderRightActions={() => renderCartRightActions(cart.id)}
+                                        overshootRight={false}
+                                    >
+                                        <TouchableOpacity
+                                            style={styles.cartSelectItem}
+                                            activeOpacity={0.86}
+                                            onPress={() => handleAddToSpecificCart(cart.id)}
+                                        >
+                                            <View style={styles.cartIconWrap}>
+                                                <Feather name="shopping-cart" size={25} color="#111" />
+                                            </View>
+
+                                            <View style={styles.cartSelectInfo}>
+                                                <Text style={styles.cartSelectName}>{cart.name}</Text>
+                                                <Text style={styles.cartSelectSub}>
+                                                    Budget: €{cart.budget} · {cart.products.length} items
+                                                </Text>
+                                                <Text
+                                                    style={[
+                                                        styles.cartRemainingText,
+                                                        cart.budget - cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0) < 0
+                                                            ? styles.cartRemainingNegative
+                                                            : styles.cartRemainingPositive,
+                                                    ]}
+                                                >
+                                                    {cart.budget - cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0) < 0
+                                                        ? `Over budget: €${Math.abs(
+                                                            cart.budget - cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
+                                                        ).toFixed(2)}`
+                                                        : `Remaining: €${(
+                                                            cart.budget - cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
+                                                        ).toFixed(2)}`}
+                                                </Text>
+                                            </View>
+
+                                            <Feather name="chevron-right" size={18} color="#8a8a8a" />
+                                        </TouchableOpacity>
+                                    </Swipeable>
+                                ))
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -935,7 +991,7 @@ const styles = StyleSheet.create({
     reviewTrack: { height: 8, backgroundColor: '#d1d1d1', borderRadius: 5, overflow: 'hidden' },
     reviewTrackFill: { height: '100%', backgroundColor: COLORS.black, borderRadius: 5 },
     reviewNote: { marginTop: 10, fontSize: 12, color: COLORS.textMuted, lineHeight: 18 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end' },
     sizeModalCard: { backgroundColor: '#f3f3f3', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 26, minHeight: 380 },
     sizeModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     sizeModalTitle: { fontSize: 18, color: COLORS.text, fontWeight: '800' },
@@ -967,29 +1023,19 @@ const styles = StyleSheet.create({
     saveSheetActionText: { marginLeft: 12, fontSize: 15, color: COLORS.text, fontWeight: '500' },
     imageIndicatorRow: { position: 'absolute', bottom: 14, alignSelf: 'center', flexDirection: 'row', alignItems: 'center' },
     imageIndicatorLine: { height: 4, borderRadius: 999, backgroundColor: COLORS.black, marginHorizontal: 4 },
-    drawerRoot: { ...StyleSheet.absoluteFillObject, zIndex: 999, elevation: 999 },
-    drawerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
-    cartDrawer: { position: 'absolute', top: 0, right: 0, bottom: 0, width: DRAWER_WIDTH, backgroundColor: 'rgba(243, 243, 243, 0.45)', borderTopLeftRadius: 28, borderBottomLeftRadius: 28, borderLeftWidth: 1, borderColor: '#d8d8d8', paddingHorizontal: 6, paddingTop: 12, paddingBottom: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: -4, height: 0 }, elevation: 12 },
-    cartDrawerTopSpacer: { width: 44, height: 4, borderRadius: 999, backgroundColor: '#c8c8c8', alignSelf: 'center', marginBottom: 26, marginTop: 4 },
-    cartDrawerList: { paddingTop: 8, paddingBottom: 6, alignItems: 'stretch', flexGrow: 1 },
-    cartDrawerItem: { width: '100%', minHeight: 94, borderRadius: 16, backgroundColor: '#e7e7e7', marginBottom: 14, paddingHorizontal: 10, paddingVertical: 10, justifyContent: 'space-between' },
-    cartDrawerRowTop: { flexDirection: 'row', alignItems: 'center' },
-    cartDrawerMiniIcon: { width: 52, height: 52, borderRadius: 16, borderWidth: 1, borderColor: '#474d54', backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-    cartDrawerName: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.text, lineHeight: 19 },
-    cartDrawerMeta: { marginTop: 8, fontSize: 14, fontWeight: '700' },
-    cartDrawerMetaRemaining: { color: '#006958' },
-    cartDrawerMetaOver: { color: '#df2518' },
-    cartDrawerAddButton: { width: '100%', minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: '#111', backgroundColor: '#111', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginTop: 'auto', marginBottom: 2 },
-    cartDrawerAddButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-    cartDrawerTitle: { fontSize: 30, fontWeight: '800', color: COLORS.text, marginBottom: 1, paddingHorizontal: 4 },
-    drawerSwipeActions: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 14 },
-    drawerSwipeButton: { width: 72, borderRadius: 16, justifyContent: 'center', alignItems: 'center', gap: 6, marginLeft: 8 },
-    drawerEditSwipeButton: { backgroundColor: '#e4e4e4' },
-    drawerDeleteSwipeButton: { backgroundColor: '#111' },
-    drawerSwipeButtonText: { fontSize: 12, fontWeight: '700', color: '#111' },
-    drawerDeleteSwipeButtonText: { fontSize: 12, fontWeight: '700', color: '#fff' },
     imageViewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)' },
-    imageViewerTopRow: { position: 'absolute', top: 30, left: 16, right: 16, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
+    imageViewerTopRow: {
+        position: 'absolute',
+        top: 30,
+        left: 4,
+        right: 4,
+        zIndex: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        paddingVertical: 10,
+    },
     imageViewerCounter: { color: '#fff', fontSize: 15, fontWeight: '700' },
     imageViewerSlide: { width, height: '100%', justifyContent: 'center', alignItems: 'center' },
     fullscreenImage: { width, height: '82%' },
@@ -1039,4 +1085,155 @@ const styles = StyleSheet.create({
     duplicateAlternativeImage: { width: '100%', height: '100%', position: 'absolute' },
     duplicateAlternativeScore: { position: 'absolute', bottom: 8, fontSize: 14, fontWeight: '800', color: '#fff', backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
     duplicateCloseCenterButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#444', backgroundColor: '#efefef', justifyContent: 'center', alignItems: 'center', alignSelf: 'center' },
+
+
+
+    modalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+
+    bottomSheet: {
+        backgroundColor: '#f3f3f3',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 18,
+        paddingBottom: 34,
+        maxHeight: '85%',
+    },
+
+    sheetHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#ccc',
+        alignSelf: 'center',
+        marginTop: 12,
+        marginBottom: 16,
+    },
+
+    sheetHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+
+    sheetTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    createNewCartButton: {
+        backgroundColor: '#111',
+        paddingVertical: 14,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+
+    createNewCartButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+
+    cartSelectItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#e9e9e9',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 10,
+    },
+
+    cartSelectInfo: {
+        flex: 1,
+    },
+
+    cartSelectName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    cartSelectSub: {
+        fontSize: 12,
+        color: '#6a6a6a',
+        marginTop: 2,
+    },
+
+    noCartsText: {
+        textAlign: 'center',
+        color: '#999',
+        fontSize: 14,
+        marginTop: 20,
+    },
+
+
+    cartSwipeActions: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        marginBottom: 10,
+    },
+
+    cartSwipeButton: {
+        width: 86,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+        marginLeft: 8,
+    },
+
+    cartEditSwipeButton: {
+        backgroundColor: '#dedede',
+    },
+
+    cartDeleteSwipeButton: {
+        backgroundColor: '#111',
+    },
+
+    cartSwipeButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111',
+    },
+
+    cartDeleteSwipeButtonText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#fff',
+    },
+
+    cartRemainingText: {
+        fontSize: 12,
+        fontWeight: '700',
+        marginTop: 4,
+    },
+
+    cartRemainingPositive: {
+        color: '#14805e',
+    },
+
+    cartRemainingNegative: {
+        color: '#df2518',
+    },
+
+    cartIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 19,
+        backgroundColor: '#dedede',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+
+
+
 });
