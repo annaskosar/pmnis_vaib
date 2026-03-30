@@ -1,3 +1,4 @@
+// step2.tsx
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -24,6 +25,11 @@ export default function Step2() {
     router.push('/(dotaznik)/step3');
   };
 
+  const handleSkip = async () => {
+    await AsyncStorage.setItem('skippedOnboarding', 'true');
+    router.replace('/(tabs)/home');
+  };
+
   const canContinue = selectedStyles.length > 0;
 
   return (
@@ -36,7 +42,7 @@ export default function Step2() {
             <View style={[styles.progressDot, styles.progressActive]} />
             <View style={styles.progressDot} />
           </View>
-          <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
+          <TouchableOpacity onPress={handleSkip}>
             <Text style={styles.skip}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -75,40 +81,20 @@ export default function Step2() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
   container: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 40,
-    gap: 12,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, gap: 12 },
   progressRow: { flexDirection: 'row', gap: 8, flex: 1 },
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#e0e0e0' },
   progressActive: { backgroundColor: '#111' },
-  skip: {
-    fontSize: 13,
-    color: '#111',
-    fontWeight: '700',
-    borderWidth: 1.5,
-    borderColor: '#111',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
+  skip: { fontSize: 13, color: '#111', fontWeight: '700', borderWidth: 1.5, borderColor: '#111', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20 },
   title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 8, letterSpacing: -0.7 },
   subtitle: { fontSize: 14, color: '#393939', marginBottom: 24 },
   sectionLabel: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 12, marginTop: 8 },
   optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 32 },
-  chip: {
-    paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20,
-    backgroundColor: '#e9e9e9', borderWidth: 2, borderColor: 'transparent',
-  },
+  chip: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 20, backgroundColor: '#e9e9e9', borderWidth: 2, borderColor: 'transparent' },
   chipSelected: { borderColor: '#111', backgroundColor: '#fff' },
   chipText: { fontSize: 14, color: '#393939', fontWeight: '500' },
   chipTextSelected: { color: '#111', fontWeight: '700' },
-  button: {
-    backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
-    alignItems: 'center', marginBottom: 12,
-  },
+  button: { backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center', marginBottom: 12 },
   buttonDisabled: { backgroundColor: '#ccc' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });

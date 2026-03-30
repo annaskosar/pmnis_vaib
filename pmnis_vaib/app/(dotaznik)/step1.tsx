@@ -1,3 +1,4 @@
+// step1.tsx
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -16,6 +17,11 @@ export default function Step1() {
     router.push('/(dotaznik)/step2');
   };
 
+  const handleSkip = async () => {
+    await AsyncStorage.setItem('skippedOnboarding', 'true');
+    router.replace('/(tabs)/home');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -26,7 +32,7 @@ export default function Step1() {
             <View style={styles.progressDot} />
             <View style={styles.progressDot} />
           </View>
-          <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
+          <TouchableOpacity onPress={handleSkip}>
             <Text style={styles.skip}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -70,39 +76,19 @@ export default function Step1() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 40,
-    gap: 12,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, gap: 12 },
   progressRow: { flexDirection: 'row', gap: 8, flex: 1 },
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#e0e0e0' },
   progressActive: { backgroundColor: '#111' },
-  skip: {
-    fontSize: 13,
-    color: '#111',
-    fontWeight: '700',
-    borderWidth: 1.5,
-    borderColor: '#111',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
+  skip: { fontSize: 13, color: '#111', fontWeight: '700', borderWidth: 1.5, borderColor: '#111', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20 },
   title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 8, letterSpacing: -0.7 },
   subtitle: { fontSize: 14, color: '#393939', marginBottom: 36 },
   mainOptions: { flexDirection: 'row', gap: 14 },
-  mainOption: {
-    flex: 1, backgroundColor: '#e9e9e9', borderRadius: 16,
-    paddingVertical: 60, alignItems: 'center', borderWidth: 2, borderColor: 'transparent',
-  },
+  mainOption: { flex: 1, backgroundColor: '#e9e9e9', borderRadius: 16, paddingVertical: 60, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   mainOptionSelected: { borderColor: '#111', backgroundColor: '#fff' },
   mainOptionText: { fontSize: 18, fontWeight: '600', color: '#393939' },
   mainOptionTextSelected: { color: '#111', fontWeight: '700' },
-  button: {
-    backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
-    alignItems: 'center', marginTop: 'auto', marginBottom: 20,
-  },
+  button: { backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center', marginTop: 'auto', marginBottom: 20 },
   buttonDisabled: { backgroundColor: '#ccc' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });

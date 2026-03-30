@@ -1,3 +1,4 @@
+// step3.tsx
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -20,6 +21,12 @@ export default function Step3() {
     const profile = existing ? JSON.parse(existing) : {};
     profile.budget = selected;
     await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+    await AsyncStorage.removeItem('skippedOnboarding'); // dokoncil dotaznik = nie je skip
+    router.replace('/(tabs)/home');
+  };
+
+  const handleSkip = async () => {
+    await AsyncStorage.setItem('skippedOnboarding', 'true');
     router.replace('/(tabs)/home');
   };
 
@@ -33,7 +40,7 @@ export default function Step3() {
             <View style={[styles.progressDot, styles.progressActive]} />
             <View style={[styles.progressDot, styles.progressActive]} />
           </View>
-          <TouchableOpacity onPress={() => router.replace('/(tabs)/home')}>
+          <TouchableOpacity onPress={handleSkip}>
             <Text style={styles.skip}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -71,39 +78,19 @@ export default function Step3() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f3f3f3' },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 40,
-    gap: 12,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, gap: 12 },
   progressRow: { flexDirection: 'row', gap: 8, flex: 1 },
   progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#e0e0e0' },
   progressActive: { backgroundColor: '#111' },
-  skip: {
-    fontSize: 13,
-    color: '#111',
-    fontWeight: '700',
-    borderWidth: 1.5,
-    borderColor: '#111',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
+  skip: { fontSize: 13, color: '#111', fontWeight: '700', borderWidth: 1.5, borderColor: '#111', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20 },
   title: { fontSize: 32, fontWeight: '700', color: '#111', marginBottom: 8, letterSpacing: -0.7 },
   subtitle: { fontSize: 14, color: '#393939', marginBottom: 36 },
   optionsGrid: { gap: 12 },
-  option: {
-    backgroundColor: '#e9e9e9', borderRadius: 12, padding: 20,
-    alignItems: 'center', borderWidth: 2, borderColor: 'transparent',
-  },
+  option: { backgroundColor: '#e9e9e9', borderRadius: 12, padding: 20, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   optionSelected: { borderColor: '#111', backgroundColor: '#fff' },
   optionText: { fontSize: 18, color: '#393939', fontWeight: '500' },
   optionTextSelected: { color: '#111', fontWeight: '700' },
-  button: {
-    backgroundColor: '#111', paddingVertical: 16, borderRadius: 20,
-    alignItems: 'center', marginTop: 'auto', marginBottom: 20,
-  },
+  button: { backgroundColor: '#111', paddingVertical: 16, borderRadius: 20, alignItems: 'center', marginTop: 'auto', marginBottom: 20 },
   buttonDisabled: { backgroundColor: '#ccc' },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });
