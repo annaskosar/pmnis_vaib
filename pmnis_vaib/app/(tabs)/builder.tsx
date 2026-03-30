@@ -82,7 +82,7 @@ export default function BuilderScreen() {
     const router = useRouter();
     const { returnToBuilder } = useLocalSearchParams();
     const { wardrobeItems } = useWardrobe();
-    const { carts, addProductToCart } = useCart();
+    const { carts, addProductToCart, addBuilderFeedback, isUnlimitedUnlocked } = useCart();
     const { wishlistItems } = useWishlist();
 
     const [prompt, setPrompt] = useState('');
@@ -460,8 +460,13 @@ export default function BuilderScreen() {
                     if (isMounted.current) setFeedbackVisible(true);
                 }, 3000);
             } else {
-                const shown = await AsyncStorage.getItem(`builder_feedback_shown_${email}`);
-                if (!shown) {
+                const countStr = await AsyncStorage.getItem(`builder_generate_count_${email}`);
+                let count = parseInt(countStr ?? '0', 10);
+
+                count += 1;
+                await AsyncStorage.setItem(`builder_generate_count_${email}`, String(count));
+
+                if (count % 2 === 0) {
                     setTimeout(() => {
                         if (isMounted.current) setFeedbackVisible(true);
                     }, 3000);
@@ -473,12 +478,12 @@ export default function BuilderScreen() {
     const saveFeedbackToStorage = async () => {
         const userData = await AsyncStorage.getItem('currentUser');
         const email = userData ? JSON.parse(userData).email : 'unknown';
+
         if (email !== 'test@test.com') {
             await AsyncStorage.setItem(`builder_feedback_shown_${email}`, 'true');
         }
-        const countStr = await AsyncStorage.getItem(`feedback_count_${email}`);
-        const newCount = parseInt(countStr ?? '0') + 1;
-        await AsyncStorage.setItem(`feedback_count_${email}`, String(newCount));
+
+        addBuilderFeedback();
     };
 
     const handleSubmitFeedback = async () => {

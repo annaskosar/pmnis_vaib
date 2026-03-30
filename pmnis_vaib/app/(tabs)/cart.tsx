@@ -13,33 +13,22 @@ import { useFocusEffect } from 'expo-router';
 
 export default function CartScreen() {
     const router = useRouter();
-    const { carts, deleteCart } = useCart();
     const swipeableRefs = React.useRef<Record<string, Swipeable | null>>({});
     const isSwipingRef = React.useRef(false);
 
-    const [feedbackCount, setFeedbackCount] = React.useState(0);
+    const { carts, deleteCart, builderFeedbackCount, isUnlimitedUnlocked } = useCart();
 
     const pointsPerFeedback = 5;
-    const totalPoints = feedbackCount * pointsPerFeedback;
     const maxPoints = 30;
+    const totalPoints = builderFeedbackCount * pointsPerFeedback;
     const progressPercent = Math.min((totalPoints / maxPoints) * 100, 100);
-    const isUnlocked = totalPoints >= maxPoints;
-    const cartLimit = isUnlocked ? 999 : 5;
+    const cartLimit = isUnlimitedUnlocked ? 999 : 5;
     const feedbackRemaining = Math.max(maxPoints - totalPoints, 0);
 
     useFocusEffect(
         React.useCallback(() => {
             Object.values(swipeableRefs.current).forEach((ref) => ref?.close());
             isSwipingRef.current = false;
-
-            const loadCount = async () => {
-                const userData = await AsyncStorage.getItem('currentUser');
-                if (!userData) return;
-                const email = JSON.parse(userData).email;
-                const count = await AsyncStorage.getItem(`feedback_count_${email}`);
-                setFeedbackCount(parseInt(count ?? '0'));
-            };
-            loadCount();
         }, [])
     );
 
@@ -59,7 +48,7 @@ export default function CartScreen() {
     };
 
     const handleUnlockPress = () => {
-        if (isUnlocked) {
+        if (isUnlimitedUnlocked) {
             Alert.alert('Unlocked!', 'Unlimited carts are now available for your account.');
             return;
         }
@@ -118,7 +107,7 @@ export default function CartScreen() {
                 </TouchableOpacity>
 
                 <Text style={styles.counterText}>
-                    Created carts: {carts.length}/{isUnlocked ? '∞' : cartLimit}
+                    Created carts: {carts.length}/{isUnlimitedUnlocked ? '∞' : cartLimit}
                 </Text>
 
                 <ImageBackground
@@ -129,26 +118,26 @@ export default function CartScreen() {
                     <View style={styles.upgradeTopRow}>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.upgradeTitle}>
-                                {isUnlocked ? '✓ UNLOCKED' : '☆ UPGRADE ☆'}
+                                {isUnlimitedUnlocked ? '✓ UNLOCKED' : '☆ UPGRADE ☆'}
                             </Text>
                             <Text style={styles.upgradeText}>
-                                {isUnlocked
+                                {isUnlimitedUnlocked
                                     ? 'You have unlocked unlimited carts!'
                                     : 'Give feedback in Builder and earn 5 points per feedback. Reach 30 points to unlock unlimited carts!'}
                             </Text>
                         </View>
                         <TouchableOpacity
-                            style={[styles.upgradeButton, isUnlocked && styles.upgradeButtonUnlocked]}
+                            style={[styles.upgradeButton, isUnlimitedUnlocked && styles.upgradeButtonUnlocked]}
                             onPress={handleUnlockPress}
                         >
-                            <Feather name={isUnlocked ? 'unlock' : 'lock'} size={14} color="#fff" />
+                            <Feather name={isUnlimitedUnlocked ? 'unlock' : 'lock'} size={14} color="#fff" />
                             <Text style={styles.upgradeButtonText}>
-                                {isUnlocked ? 'Unlocked!' : 'Unlock'}
+                                {isUnlimitedUnlocked ? 'Unlocked!' : 'Unlock'}
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    {!isUnlocked && (
+                    {!isUnlimitedUnlocked && (
                         <View style={styles.progressSection}>
                             <View style={styles.progressLabelsRow}>
                                 <Text style={[styles.progressLabel, styles.progressLabelStart, { fontWeight: '900' }]}>0</Text>
