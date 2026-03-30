@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView, ScrollView,
     TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform,
@@ -10,7 +10,7 @@ import { useCart } from '../context/cart_context';
 export default function PaymentScreen() {
     const router = useRouter();
     const { cartId } = useLocalSearchParams();
-    const { carts, getCartById, deleteCart, isCartLoading } = useCart();
+    const { getCartById, deleteCart, isCartLoading } = useCart();
 
     const parsedCartId =
         typeof cartId === 'string'
@@ -19,14 +19,11 @@ export default function PaymentScreen() {
                 ? cartId[0]
                 : '';
 
-    const cart = getCartById(parsedCartId);
-
     const [cardNumber, setCardNumber] = useState('');
     const [cardName, setCardName] = useState('');
     const [expiry, setExpiry] = useState('');
     const [cvv, setCvv] = useState('');
     const [showCvv, setShowCvv] = useState(false);
-
     const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'express' | 'pickup'>('standard');
     const [street, setStreet] = useState('');
     const [city, setCity] = useState('');
@@ -50,6 +47,9 @@ export default function PaymentScreen() {
         return cleaned;
     };
 
+    // Získaj cart po načítaní
+    const cart = getCartById(parsedCartId);
+
     const selectedDelivery = deliveryOptions.find(d => d.id === deliveryMethod)!;
     const itemsTotal = cart?.products.reduce((sum, p) => sum + p.price * p.quantity, 0) ?? 0;
     const deliveryPrice = selectedDelivery.price;
@@ -65,42 +65,38 @@ export default function PaymentScreen() {
             Alert.alert('Error', 'Please fill in your delivery address.');
             return;
         }
-
         Alert.alert(
             'Order confirmed! 🎉',
             `Your order has been placed successfully.\nTotal: €${total.toFixed(2)}`,
-            [
-                {
-                    text: 'OK',
-                    onPress: () => {
-                        deleteCart(parsedCartId);
-                        router.replace('/(tabs)/home');
-                    },
+            [{
+                text: 'OK',
+                onPress: () => {
+                    deleteCart(parsedCartId);
+                    router.replace('/(tabs)/home');
                 },
-            ]
+            }]
         );
     };
 
-    // ✅ Kým sa načítava context, zobraz loading
+    // Loading state
     if (isCartLoading) {
         return (
             <SafeAreaView style={styles.safeArea}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ fontSize: 18, fontWeight: '600', color: '#111' }}>
-                        Loading cart...
+                        Loading...
                     </Text>
                 </View>
             </SafeAreaView>
         );
     }
 
-    // ✅ Cart nenájdený až PO načítaní — nie počas
+    // Cart not found — až PO načítaní
     if (!cart) {
         return (
             <SafeAreaView style={styles.safeArea}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 }}>
                     <Text style={{ fontSize: 18, fontWeight: '600', color: '#111' }}>Cart not found</Text>
-                    <Text style={{ fontSize: 13, color: '#8a8a8a' }}>ID: {parsedCartId}</Text>
                     <TouchableOpacity style={styles.payButton} onPress={() => router.back()}>
                         <Text style={styles.payButtonText}>Go back</Text>
                     </TouchableOpacity>
@@ -133,13 +129,9 @@ export default function PaymentScreen() {
                         <View style={styles.card}>
                             {cart.products.map(product => (
                                 <View key={product.id} style={styles.summaryRow}>
-                                    <Text style={styles.summaryName} numberOfLines={1}>
-                                        {product.name}
-                                    </Text>
+                                    <Text style={styles.summaryName} numberOfLines={1}>{product.name}</Text>
                                     <Text style={styles.summaryQty}>x{product.quantity}</Text>
-                                    <Text style={styles.summaryPrice}>
-                                        €{(product.price * product.quantity).toFixed(2)}
-                                    </Text>
+                                    <Text style={styles.summaryPrice}>€{(product.price * product.quantity).toFixed(2)}</Text>
                                 </View>
                             ))}
                             <View style={styles.divider} />
@@ -169,13 +161,8 @@ export default function PaymentScreen() {
                                     onPress={() => setDeliveryMethod(option.id as any)}
                                 >
                                     <View style={styles.deliveryLeft}>
-                                        <View style={[
-                                            styles.radioOuter,
-                                            deliveryMethod === option.id && styles.radioOuterActive,
-                                        ]}>
-                                            {deliveryMethod === option.id && (
-                                                <View style={styles.radioInner} />
-                                            )}
+                                        <View style={[styles.radioOuter, deliveryMethod === option.id && styles.radioOuterActive]}>
+                                            {deliveryMethod === option.id && <View style={styles.radioInner} />}
                                         </View>
                                         <View>
                                             <Text style={styles.deliveryLabel}>{option.label}</Text>
@@ -329,8 +316,7 @@ const styles = StyleSheet.create({
         padding: 14, borderWidth: 1, borderColor: '#d6d6d6', gap: 10,
     },
     summaryRow: {
-        flexDirection: 'row', alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
     summaryName: { flex: 1, fontSize: 14, color: '#111', fontWeight: '500' },
     summaryQty: { fontSize: 13, color: '#8a8a8a', marginHorizontal: 8 },
