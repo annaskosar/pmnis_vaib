@@ -208,7 +208,7 @@ export default function CartScreen() {
                                         }}
                                     >
                                         <View style={styles.cartIconWrapper}>
-                                            <MaterialCommunityIcons name="cart-outline" size={25} color="#111" />
+                                            <Feather name="shopping-cart" size={50} color="#111" />
                                         </View>
                                         <View style={styles.cartInfo}>
                                             <Text style={styles.cartName}>{cart.name}</Text>
@@ -305,14 +305,17 @@ const styles = StyleSheet.create({
         borderRadius: 18, padding: 14, borderWidth: 1, borderColor: '#d6d6d6', marginBottom: 12,
     },
     cartIconWrapper: {
-        width: 44, height: 44, borderRadius: 12, backgroundColor: '#e4e4e4',
-        borderWidth: 1, borderColor: '#111', justifyContent: 'center',
-        alignItems: 'center', marginRight: 14,
+        width: 55,
+        height: 55,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+        backgroundColor: 'transparent',
     },
     cartInfo: { flex: 1 },
     cartName: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 4 },
     subText: { fontSize: 13, color: '#6a6a6a', lineHeight: 18 },
-    remainingText: { marginTop: 10, fontSize: 13, fontWeight: '700', color: '#006958' },
+    remainingText: { marginTop: 10, fontSize: 15, fontWeight: '800', color: '#006958' },
     overBudgetText: { color: '#df2518' },
     swipeActions: { flexDirection: 'row', alignItems: 'stretch', marginBottom: 12 },
     swipeButton: {
