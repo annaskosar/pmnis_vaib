@@ -19,7 +19,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
-import { useProducts, sizeOptions } from '../../context/product_context';
+import { useProducts, sizeOptions, PlaygroundStyleKey } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 import { useFocusEffect } from 'expo-router';
 import { Animated, TouchableWithoutFeedback } from 'react-native';
@@ -36,7 +36,7 @@ const IMAGE_HEIGHT = 245;
 export default function SearchItemsScreen() {
     const router = useRouter();
     const { products } = useProducts();
-    const { category, subcategory, gender, query } = useLocalSearchParams();
+    const { category, subcategory, gender, query, style, fromPlayground } = useLocalSearchParams();
     const queryText = Array.isArray(query) ? query[0] : query;
     const { toggleWishlist, isInWishlist } = useWishlist();
     const [loadingImages, setLoadingImages] = React.useState<Record<string, boolean>>({});
@@ -46,21 +46,47 @@ export default function SearchItemsScreen() {
     const [isSearchFocused, setIsSearchFocused] = React.useState(false);
     const searchInputRef = React.useRef<TextInput>(null);
 
+    const styleParam = Array.isArray(style) ? style[0] : style;
+    const fromPlaygroundParam = Array.isArray(fromPlayground) ? fromPlayground[0] : fromPlayground;
+    const isFromPlayground = fromPlaygroundParam === '1';
+    const NORMAL_SEARCHES_KEY = 'recentSearches';
+    const PLAYGROUND_SEARCHES_KEY = 'recentSearchesPlayground';
+
+
     const closeSearchPanel = () => {
         setIsSearchFocused(false);
         searchInputRef.current?.blur();
     };
 
     const loadRecentSearches = async () => {
-        const stored = await AsyncStorage.getItem('recentSearches');
+        const storageKey = isFromPlayground
+            ? PLAYGROUND_SEARCHES_KEY
+            : NORMAL_SEARCHES_KEY;
+
+        const stored = await AsyncStorage.getItem(storageKey);
         setRecentSearches(stored ? JSON.parse(stored) : []);
+    };
+
+    const styleTitleMap: Record<string, string> = {
+        goth: 'Goth',
+        grunge_rebel: 'Grunge Rebel',
+        y2k_glam: 'Y2K Glam',
+        street_cool: 'Street Cool',
+        clean_girl: 'Clean Girl',
+        old_money: 'Old Money',
+        dark_academia: 'Dark Academia',
+        coquette_soft: 'Coquette Soft',
     };
 
     const saveSearch = async (value: string) => {
         const trimmed = value.trim();
         if (!trimmed) return;
 
-        const stored = await AsyncStorage.getItem('recentSearches');
+        const storageKey = isFromPlayground
+            ? PLAYGROUND_SEARCHES_KEY
+            : NORMAL_SEARCHES_KEY;
+
+        const stored = await AsyncStorage.getItem(storageKey);
         const existing: string[] = stored ? JSON.parse(stored) : [];
 
         const updated = [
@@ -69,16 +95,21 @@ export default function SearchItemsScreen() {
         ].slice(0, 10);
 
         setRecentSearches(updated);
-        await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updated));
     };
 
 
     useFocusEffect(
         React.useCallback(() => {
             loadRecentSearches();
-            setSearchText('');
-            setIsSearchFocused(false);
-        }, [queryText])
+
+            if (isFromPlayground) {
+                setSearchText('');
+                setIsSearchFocused(false);
+            }
+
+            return () => {};
+        }, [queryText, isFromPlayground])
     );
 
     const handleSearchSubmit = async () => {
@@ -93,12 +124,17 @@ export default function SearchItemsScreen() {
             params: {
                 query: trimmed,
                 gender: selectedGenderParam ?? 'WOMAN',
+                ...(isFromPlayground ? { fromPlayground: '1', style: styleParam } : {}),
             },
         });
     };
 
     const clearRecentSearches = async () => {
-        await AsyncStorage.removeItem('recentSearches');
+        const storageKey = isFromPlayground
+            ? PLAYGROUND_SEARCHES_KEY
+            : NORMAL_SEARCHES_KEY;
+
+        await AsyncStorage.removeItem(storageKey);
         setRecentSearches([]);
     };
 
@@ -342,6 +378,12 @@ export default function SearchItemsScreen() {
             });
         }
 
+        if (isFromPlayground && styleParam) {
+            result = result.filter((item) =>
+                item.playgroundStyles?.includes(styleParam as PlaygroundStyleKey)
+            );
+        }
+
         if (selectedFilters.brand !== 'All') {
             result = result.filter((item) => item.brand === selectedFilters.brand);
         }
@@ -375,6 +417,8 @@ export default function SearchItemsScreen() {
         subcategoryName,
         queryText,
         genderValue,
+        isFromPlayground,
+        styleParam,
         selectedFilters.brand,
         selectedFilters.colour,
         selectedSizes,
@@ -461,6 +505,7 @@ export default function SearchItemsScreen() {
                                                 params: {
                                                     query: item,
                                                     gender: selectedGenderParam ?? 'WOMAN',
+                                                    ...(isFromPlayground ? { fromPlayground: '1', style: styleParam } : {}),
                                                 },
                                             });
                                         }}
@@ -488,7 +533,11 @@ export default function SearchItemsScreen() {
                 >
 
                     <Text style={styles.title}>
-                        {queryText ? `Results for "${queryText}"` : `${categoryName}: ${subcategoryName}`}
+                        {isFromPlayground && styleParam
+                            ? `For your new style: ${styleTitleMap[styleParam] ?? styleParam}`
+                            : queryText
+                                ? `Results for "${queryText}"`
+                                : `${categoryName}: ${subcategoryName}`}
                     </Text>
 
                     <View style={styles.filterTabsWrapper}>

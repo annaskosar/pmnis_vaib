@@ -8,10 +8,26 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ProductProvider } from '../../context/product_context';
 import { WardrobeProvider } from '../../context/wardrobe_context';
 import { CartProvider } from '../../context/cart_context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function CustomTabBar({ state, navigation }: any) {
     const insets = useSafeAreaInsets();
     const pathname = usePathname();
+
+    const clearPlaygroundSearches = async () => {
+        try {
+            await AsyncStorage.removeItem('recentSearchesPlayground');
+        } catch (error) {
+            console.log('Failed to clear playground searches', error);
+        }
+    };
+
+    const handleTabPress = async (routeName: string) => {
+        if (routeName !== 'search') {
+            await clearPlaygroundSearches();
+        }
+        navigation.navigate(routeName);
+    };
     const isSearchActive = pathname.startsWith('/search');
     const isCartActive = pathname.startsWith('/cart');
     const isWardrobeActive = pathname.startsWith('/wardrobe');
@@ -20,31 +36,31 @@ function CustomTabBar({ state, navigation }: any) {
         <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 14) }]}>
             <TouchableOpacity
                 style={[styles.navItem, state.index === 0 && styles.activeNavItem]}
-                onPress={() => navigation.navigate('home')}
+                onPress={() => handleTabPress('home')}
             >
                 <Ionicons name="home-outline" size={26} color="#5f5f5f" />
             </TouchableOpacity>
             <TouchableOpacity
                 style={[styles.navItem, isSearchActive && styles.activeNavItem]}
-                onPress={() => navigation.navigate('search')}
+                onPress={() => handleTabPress('search')}
             >
                 <Feather name="search" size={25} color="#5f5f5f" />
             </TouchableOpacity>
             <TouchableOpacity
                 style={[styles.navItem, state.index === 2 && styles.activeNavItem]}
-                onPress={() => navigation.navigate('builder')}
+                onPress={() => handleTabPress('builder')}
             >
                 <Feather name="star" size={24} color="#5f5f5f" />
             </TouchableOpacity>
             <TouchableOpacity
                 style={[styles.navItem, isCartActive && styles.activeNavItem]}
-                onPress={() => navigation.navigate('cart')}
+                onPress={() => handleTabPress('cart')}
             >
                 <Feather name="shopping-cart" size={25} color="#5f5f5f" />
             </TouchableOpacity>
             <TouchableOpacity
                 style={[styles.navItem, isWardrobeActive && styles.activeNavItem]}
-                onPress={() => navigation.navigate('wardrobe')}
+                onPress={() => handleTabPress('wardrobe')}
             >
                 <MaterialCommunityIcons name="hanger" size={26} color="#5f5f5f" />
             </TouchableOpacity>
@@ -77,6 +93,7 @@ export default function TabLayout() {
                             <Tabs.Screen name="reviews" options={{ href: null }} />
                             <Tabs.Screen name="explore" options={{ href: null }} />
                             <Tabs.Screen name="wishlist" options={{ href: null }} />
+                            <Tabs.Screen name="playground" options={{ href: null }} />
                         </Tabs>
                     </CartProvider>
                 </WardrobeProvider>

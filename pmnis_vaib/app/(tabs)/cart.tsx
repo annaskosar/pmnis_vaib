@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     tick20: { left: '66.66%' },
     tick30: { left: '100%' },
     feedbackCountText: {
-        textAlign: 'center', fontSize: 12, color: '#555',
+        textAlign: 'center', fontSize: 12, color: '#111',
         fontWeight: '600', marginTop: 10,
     },
     scrollContent: { paddingBottom: 24, gap: 12 },

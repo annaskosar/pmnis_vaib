@@ -98,6 +98,16 @@ export type ProductColor = {
     imageKeys: string[];
 };
 
+export type PlaygroundStyleKey =
+    | 'goth'
+    | 'grunge_rebel'
+    | 'y2k_glam'
+    | 'street_cool'
+    | 'clean_girl'
+    | 'old_money'
+    | 'dark_academia'
+    | 'coquette_soft';
+
 export type Product = {
     id: string;
     name: string;
@@ -128,6 +138,7 @@ export type Product = {
     awards: ProductAward[];
 
     eco: ProductEco;
+    playgroundStyles?: PlaygroundStyleKey[];
 };
 
 export const categoryMap: Record<MainCategory, string[]> = {
@@ -277,6 +288,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         isBestSeller: true,
         isDesignerPick: true,
         images: ['coat1_0'],
+        playgroundStyles: ['goth', 'grunge_rebel', 'dark_academia'],
     },
     {
         id: 'coat2',
@@ -296,6 +308,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Trending deals', 'Trend hits'],
         isTrending: true,
         images: ['coat2_0'],
+        playgroundStyles: ['goth', 'old_money', 'dark_academia'],
     },
     {
         id: 'coat3',
@@ -315,6 +328,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['New markdowns', 'Runway mood'],
         isNewMarkdown: true,
         images: ['coat3_0'],
+        playgroundStyles: ['goth', 'street_cool', 'grunge_rebel'],
     },
     {
         id: 'coat5',
@@ -332,6 +346,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Coats',
         tags: ['Trend hits', 'New brands'],
         images: ['coat5_0'],
+        playgroundStyles: ['goth', 'coquette_soft', 'dark_academia'],
     },
     {
         id: 'coat6',
@@ -351,6 +366,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Best sellers', 'Trending deals'],
         isBestSeller: true,
         images: ['coat6_0'],
+        playgroundStyles: ['grunge_rebel', 'street_cool', 'y2k_glam'],
     },
     {
         id: 'coat7',
@@ -369,6 +385,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Best sellers', 'Casual'],
         isBestSeller: true,
         images: ['coat7_0'],
+        playgroundStyles: ['clean_girl', 'old_money', 'coquette_soft'],
     },
     {
         id: 'coat8',
@@ -391,6 +408,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         isBestSeller: true,
         isNewMarkdown: true,
         images: ['coat8_0', 'coat8_1', 'coat8_2', 'coat8_3'],
+        playgroundStyles: ['goth', 'grunge_rebel', 'street_cool'],
     },
     {
         id: 'coat9',
@@ -410,6 +428,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Runway mood', 'Luxury picks'],
         isDesignerPick: true,
         images: ['coat9_0'],
+        playgroundStyles: ['old_money', 'dark_academia', 'clean_girl'],
     },
     {
         id: 'coat10',
@@ -427,6 +446,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jackets',
         tags: ['Trending deals', 'Best sellers'],
         images: ['coat10_0'],
+        playgroundStyles: ['clean_girl', 'street_cool', 'coquette_soft'],
     },
     {
         id: 'coat11',
@@ -446,6 +466,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['New markdowns', 'Trending deals'],
         isNewMarkdown: true,
         images: ['coat11_0'],
+        playgroundStyles: ['clean_girl', 'street_cool', 'old_money'],
     },
     {
         id: 'coat12',
@@ -463,6 +484,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Hoodies',
         tags: ['Sports brands', 'Trending brands'],
         images: ['coat12_0'],
+        playgroundStyles: ['street_cool', 'grunge_rebel', 'y2k_glam'],
     },
     {
         id: 'coat13',
@@ -481,6 +503,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jackets',
         tags: ['Sports brands', 'Trending deals'],
         images: ['coat13_0'],
+        playgroundStyles: ['street_cool', 'grunge_rebel', 'dark_academia'],
     },
     {
         id: 'coat13b',
@@ -498,6 +521,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jackets',
         tags: ['Best sellers', 'Trend hits'],
         images: ['coat13b_0'],
+        playgroundStyles: ['goth', 'street_cool', 'grunge_rebel'],
     },
     {
         id: 'coat14',
@@ -517,6 +541,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Luxury picks', 'Best sellers'],
         isDesignerPick: true,
         images: ['coat14_0'],
+        playgroundStyles: ['goth', 'old_money', 'dark_academia'],
     },
 
     {
@@ -535,6 +560,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['Best sellers', 'Trending brands'],
         images: ['jeans1_0'],
+        playgroundStyles: ['street_cool', 'clean_girl', 'y2k_glam'],
     },
     {
         id: 'jeans2',
@@ -553,6 +579,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['Up to 50% off', 'Trending deals'],
         images: ['jeans2_0'],
+        playgroundStyles: ['street_cool', 'grunge_rebel', 'y2k_glam'],
     },
     {
         id: 'jeans3',
@@ -570,6 +597,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['Trend hits'],
         images: ['jeans3_0'],
+        playgroundStyles: ['old_money', 'clean_girl', 'street_cool'],
     },
     {
         id: 'jeans4',
@@ -587,6 +615,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['Best sellers'],
         images: ['jeans4_0'],
+        playgroundStyles: ['goth', 'dark_academia', 'old_money'],
     },
     {
         id: 'jeans5',
@@ -605,6 +634,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['New markdowns', 'Best sellers'],
         images: ['jeans5_0'],
+        playgroundStyles: ['goth', 'grunge_rebel', 'street_cool'],
     },
     {
         id: 'jeans6',
@@ -622,6 +652,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Jeans',
         tags: ['Trending brands'],
         images: ['jeans6_0'],
+        playgroundStyles: ['clean_girl', 'street_cool', 'y2k_glam'],
     },
 
     {
@@ -642,6 +673,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Party dresses', 'Trend hits', 'Best sellers'],
         isBestSeller: true,
         images: ['top1_0', 'top1_1', 'top1_2', 'top1_3', 'top1_4'],
+        playgroundStyles: ['goth', 'y2k_glam', 'grunge_rebel'],
     },
     {
         id: 'top2',
@@ -659,6 +691,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['Best sellers', 'Casual dresses'],
         images: ['top2_0', 'top2_1', 'top2_2', 'top2_3'],
+        playgroundStyles: ['coquette_soft', 'clean_girl', 'y2k_glam'],
     },
     {
         id: 'top3',
@@ -677,6 +710,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['Up to 50% off', 'Best sellers'],
         images: ['top3_0'],
+        playgroundStyles: ['street_cool', 'clean_girl', 'y2k_glam'],
     },
     {
         id: 'top4',
@@ -694,6 +728,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['Best sellers'],
         images: ['top4_0'],
+        playgroundStyles: ['clean_girl', 'old_money', 'street_cool'],
     },
     {
         id: 'top5',
@@ -712,6 +747,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['New markdowns', 'Evening dresses'],
         images: ['top5_0'],
+        playgroundStyles: ['goth', 'coquette_soft', 'y2k_glam'],
     },
     {
         id: 'top6',
@@ -729,6 +765,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['Trend hits', 'Runway mood'],
         images: ['top6_0'],
+        playgroundStyles: ['goth', 'grunge_rebel', 'y2k_glam'],
     },
     {
         id: 'top7',
@@ -746,6 +783,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['Best sellers'],
         images: ['top7_0'],
+        playgroundStyles: ['clean_girl', 'old_money', 'coquette_soft'],
     },
     {
         id: 'top8',
@@ -764,6 +802,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Tops',
         tags: ['Trend hits', 'New markdowns'],
         images: ['top8_0'],
+        playgroundStyles: ['y2k_glam', 'street_cool', 'clean_girl'],
     },
 
     {
@@ -782,6 +821,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Trousers',
         tags: ['Trend hits', 'Runway mood'],
         images: ['trousers1_0'],
+        playgroundStyles: ['coquette_soft', 'old_money', 'clean_girl'],
     },
     {
         id: 'trousers2',
@@ -800,6 +840,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Trousers',
         tags: ['Best sellers', 'New markdowns'],
         images: ['trousers2_0'],
+        playgroundStyles: ['old_money', 'dark_academia', 'clean_girl'],
     },
     {
         id: 'trousers3',
@@ -817,6 +858,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Trousers',
         tags: ['Best sellers'],
         images: ['trousers3_0'],
+        playgroundStyles: ['clean_girl', 'old_money', 'street_cool'],
     },
     {
         id: 'trousers4',
@@ -834,6 +876,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Trousers',
         tags: ['Runway mood', 'New brands'],
         images: ['trousers4_0'],
+        playgroundStyles: ['street_cool', 'grunge_rebel', 'dark_academia'],
     },
     {
         id: 'trousers5',
@@ -853,6 +896,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         tags: ['Luxury picks', 'Designer brands', 'Runway mood'],
         isDesignerPick: true,
         images: ['trousers5_0'],
+        playgroundStyles: ['old_money', 'goth', 'dark_academia'],
     },
 
     {
@@ -872,6 +916,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['Trending deals', 'Best sellers'],
         images: ['shirt1_0'],
+        playgroundStyles: ['old_money', 'clean_girl', 'street_cool'],
     },
     {
         id: 'shirt2',
@@ -889,6 +934,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['Best sellers'],
         images: ['shirt2_0'],
+        playgroundStyles: ['clean_girl', 'old_money', 'street_cool'],
     },
     {
         id: 'shirt3',
@@ -907,6 +953,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['New markdowns'],
         images: ['shirt3_0'],
+        playgroundStyles: ['dark_academia', 'old_money', 'clean_girl'],
     },
     {
         id: 'shirt4',
@@ -924,6 +971,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['Trend hits'],
         images: ['shirt4_0'],
+        playgroundStyles: ['coquette_soft', 'clean_girl', 'old_money'],
     },
     {
         id: 'shirt5',
@@ -942,6 +990,7 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['Trending deals', 'New markdowns'],
         images: ['shirt5_0'],
+        playgroundStyles: ['coquette_soft', 'y2k_glam', 'clean_girl'],
     },
     {
         id: 'shirt6',
@@ -959,10 +1008,8 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         subCategory: 'Shirts',
         tags: ['New brands', 'Trending brands'],
         images: ['shirt6_0'],
+        playgroundStyles: ['dark_academia', 'street_cool', 'old_money'],
     },
-
-
-
 ];
 
 export const productMeta: Record<string, ProductMeta> = {

@@ -22,6 +22,15 @@ import { useProducts } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useWishlist } from '../../context/wishlist_context';
+import { Svg, Path, Text as SvgText } from 'react-native-svg';
+
+
+type FavoriteCategoryCard = {
+    label: string;
+    category: string;
+    subcategory: string;
+    imageKey?: string;
+};
 
 export default function HomeScreen() {
     const [userName, setUserName] = useState('');
@@ -34,7 +43,83 @@ export default function HomeScreen() {
     const searchInputRef = useRef<TextInput>(null);
 
     const [showTrackBanner, setShowTrackBanner] = useState(false);
+    const [showTrackingReminder, setShowTrackingReminder] = useState(false);
     const [trackingEnabled, setTrackingEnabled] = useState(true);
+
+
+    const styleToSubcategories: Record<string, string[]> = {
+        Casual: ['Tops', 'Jeans', 'Coats'],
+        Formal: ['Shirts', 'Trousers', 'Coats'],
+        Streetwear: ['Hoodies', 'Jeans', 'Trousers'],
+        Minimalist: ['Tops', 'Shirts', 'Trousers'],
+        Boho: ['Tops', 'Jackets', 'Shirts'],
+        Sporty: ['Trousers', 'Tops', 'Jeans'],
+        Vintage: ['Jeans', 'Jackets', 'Shirts'],
+        Elegant: ['Coats', 'Tops', 'Shirts'],
+    };
+
+    const subcategoryToCategoryMap: Record<string, string> = {
+        Tops: 'CLOTHING',
+        Jeans: 'CLOTHING',
+        Hoodies: 'CLOTHING',
+        Shirts: 'CLOTHING',
+        Trousers: 'CLOTHING',
+        Coats: 'CLOTHING',
+        Jackets: 'CLOTHING',
+
+        Sneakers: 'SHOES',
+        Heels: 'SHOES',
+
+        'Floral dresses': 'DRESSES',
+        'Maxi dresses': 'DRESSES',
+        'Evening dresses': 'DRESSES',
+
+        Bags: 'ACCESSORIES',
+
+        Joggers: 'ACTIVEWEAR',
+        Leggings: 'ACTIVEWEAR',
+        'Workout tops': 'ACTIVEWEAR',
+    };
+
+    const buildFavoriteCategories = (
+        selectedStyles: string[] = [],
+        gender: 'women' | 'men'
+    ): FavoriteCategoryCard[] => {
+        const collectedSubcategories: string[] = [];
+
+        selectedStyles.forEach((style) => {
+            const mappedSubcategories = styleToSubcategories[style] ?? [];
+
+            mappedSubcategories.forEach((subcategory) => {
+                if (!collectedSubcategories.includes(subcategory)) {
+                    collectedSubcategories.push(subcategory);
+                }
+            });
+        });
+
+        return collectedSubcategories
+            .map((subcategory) => {
+                const matchedProduct = products.find(
+                    (product) =>
+                        product.gender === gender &&
+                        product.subCategory === subcategory &&
+                        product.images?.length > 0
+                );
+
+                return {
+                    label: subcategory.toLowerCase(),
+                    category: subcategoryToCategoryMap[subcategory],
+                    subcategory,
+                    imageKey: matchedProduct?.images?.[0],
+                };
+            })
+            .filter((item) => item.category && item.imageKey)
+            .slice(0, 6);
+    };
+
+    const [favoriteCategoryCards, setFavoriteCategoryCards] = useState<FavoriteCategoryCard[]>([]);
+
+
 
     const closeSearchPanel = () => {
         setIsFocused(false);
@@ -56,26 +141,83 @@ export default function HomeScreen() {
     const checkTrackBanner = async () => {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
+
         const email = JSON.parse(userData).email;
+
         const seen = await AsyncStorage.getItem(`track_banner_shown_${email}`);
+        const savedPreferences = await AsyncStorage.getItem(`tracking_preferences_${email}`);
+
+        if (savedPreferences) {
+            try {
+                const parsed = JSON.parse(savedPreferences);
+                const enabled = !!parsed?.enabled;
+
+                setTrackingEnabled(enabled);
+                setShowTrackingReminder(!enabled);
+
+                if (!seen) {
+                    setTimeout(() => setShowTrackBanner(true), 800);
+                }
+
+                return;
+            } catch {
+                setTrackingEnabled(false);
+                setShowTrackingReminder(true);
+                return;
+            }
+        }
+
+        setTrackingEnabled(false);
+
         if (!seen) {
-            // Malý delay aby sa home page stihla načítať
             setTimeout(() => setShowTrackBanner(true), 800);
+            setShowTrackingReminder(false);
+        } else {
+            setShowTrackingReminder(true);
         }
     };
 
     const dismissTrackBanner = async (save = false) => {
         const userData = await AsyncStorage.getItem('currentUser');
         if (!userData) return;
+
         const email = JSON.parse(userData).email;
+
         await AsyncStorage.setItem(`track_banner_shown_${email}`, 'true');
+
         if (save) {
             await AsyncStorage.setItem(
                 `tracking_preferences_${email}`,
                 JSON.stringify({ enabled: trackingEnabled })
             );
+
+            setShowTrackingReminder(!trackingEnabled);
+        } else {
+            setShowTrackingReminder(true);
         }
+
         setShowTrackBanner(false);
+    };
+
+    const handleReminderSwitchChange = async (value: boolean) => {
+        setTrackingEnabled(value);
+
+        const userData = await AsyncStorage.getItem('currentUser');
+        if (!userData) return;
+
+        const email = JSON.parse(userData).email;
+
+        await AsyncStorage.setItem(`track_banner_shown_${email}`, 'true');
+        await AsyncStorage.setItem(
+            `tracking_preferences_${email}`,
+            JSON.stringify({ enabled: value })
+        );
+
+        setShowTrackingReminder(!value);
+    };
+
+    const openTrackingPopupAgain = () => {
+        setShowTrackBanner(true);
     };
 
     const loadRecentSearches = async () => {
@@ -112,6 +254,32 @@ export default function HomeScreen() {
         closeSearchPanel();
     };
 
+    const matchesBudget = (price: number, budget: string) => {
+        switch (budget) {
+            case 'low':
+                return price <= 30;
+            case 'mid':
+                return price > 30 && price <= 80;
+            case 'high':
+                return price > 80 && price <= 150;
+            case 'luxury':
+                return price > 150;
+            default:
+                return true;
+        }
+    };
+
+    const matchesStyles = (productTags: string[] = [], selectedStyles: string[] = []) => {
+        if (!selectedStyles.length) return true;
+
+        const normalizedProductTags = productTags.map(tag => tag.toLowerCase());
+        const normalizedSelectedStyles = selectedStyles.map(style => style.toLowerCase());
+
+        return normalizedSelectedStyles.some(style =>
+            normalizedProductTags.includes(style)
+        );
+    };
+
     useEffect(() => {
         const loadData = async () => {
             const userData = await AsyncStorage.getItem('currentUser');
@@ -119,27 +287,104 @@ export default function HomeScreen() {
                 const user = JSON.parse(userData);
                 setUserName(user.name);
             }
+
             const profileData = await AsyncStorage.getItem('userProfile');
+
             if (profileData) {
                 const profile = JSON.parse(profileData);
+
+                const selectedGender = profile.gender === 'Man' ? 'men' : 'women';
+                const genderParam = profile.gender === 'Man' ? 'MAN' : 'WOMAN';
+
                 const filtered = products.filter((product) => {
-                    const genderMatch = profile.gender === 'Muž' ? product.gender === 'men' : product.gender === 'women';
+                    const genderMatch =
+                        profile.gender === 'Man'
+                            ? product.gender === 'men'
+                            : product.gender === 'women';
+
                     const budgetMatch = profile.budget
-                        ? profile.budget === 'low' ? product.price <= 40
-                            : profile.budget === 'mid' ? product.price > 40 && product.price <= 100
-                                : product.price > 100
+                        ? matchesBudget(product.price, profile.budget)
                         : true;
-                    const styleMatch = profile.styles?.length
-                        ? product.tags?.some((tag: string) => profile.styles.includes(tag)) : true;
-                    const colorMatch = profile.colors?.length
-                        ? product.availableColors?.some((color) => profile.colors.includes(color.name)) : true;
-                    return genderMatch && (budgetMatch || styleMatch || colorMatch);
+
+                    const styleMatch = matchesStyles(product.tags ?? [], profile.styles ?? []);
+
+                    return genderMatch && budgetMatch && styleMatch;
                 });
-                setFilteredProducts(filtered.length > 0 ? filtered.slice(0, 6) : products.filter(p => p.gender === 'women').slice(0, 6));
+
+                const fallback = products.filter((product) => {
+                    const genderMatch =
+                        profile.gender === 'Man'
+                            ? product.gender === 'men'
+                            : product.gender === 'women';
+
+                    const budgetMatch = profile.budget
+                        ? matchesBudget(product.price, profile.budget)
+                        : true;
+
+                    return genderMatch && budgetMatch;
+                });
+
+                setFilteredProducts(
+                    filtered.length > 0 ? filtered.slice(0, 6) : fallback.slice(0, 6)
+                );
+
+                const dynamicFavoriteCategories = buildFavoriteCategories(
+                    profile.styles ?? [],
+                    selectedGender
+                );
+
+                if (dynamicFavoriteCategories.length > 0) {
+                    setFavoriteCategoryCards(dynamicFavoriteCategories);
+                } else {
+                    const fallbackSubcategories = ['Jeans', 'Tops', 'Jackets'];
+
+                    const fallbackCards = fallbackSubcategories
+                        .map((subcategory) => {
+                            const matchedProduct = products.find(
+                                (product) =>
+                                    product.gender === selectedGender &&
+                                    product.subCategory === subcategory &&
+                                    product.images?.length > 0
+                            );
+
+                            return {
+                                label: subcategory.toLowerCase(),
+                                category: subcategoryToCategoryMap[subcategory],
+                                subcategory,
+                                imageKey: matchedProduct?.images?.[0],
+                            };
+                        })
+                        .filter((item) => item.category && item.imageKey);
+
+                    setFavoriteCategoryCards(fallbackCards);
+                }
             } else {
                 setFilteredProducts(products.filter(p => p.gender === 'women').slice(0, 6));
+
+                const fallbackSubcategories = ['Jeans', 'Tops', 'Jackets'];
+
+                const fallbackCards = fallbackSubcategories
+                    .map((subcategory) => {
+                        const matchedProduct = products.find(
+                            (product) =>
+                                product.gender === 'women' &&
+                                product.subCategory === subcategory &&
+                                product.images?.length > 0
+                        );
+
+                        return {
+                            label: subcategory.toLowerCase(),
+                            category: subcategoryToCategoryMap[subcategory],
+                            subcategory,
+                            imageKey: matchedProduct?.images?.[0],
+                        };
+                    })
+                    .filter((item) => item.category && item.imageKey);
+
+                setFavoriteCategoryCards(fallbackCards);
             }
         };
+
         if (products.length > 0) loadData();
     }, [products]);
 
@@ -190,6 +435,8 @@ export default function HomeScreen() {
         }
     };
 
+
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
@@ -226,6 +473,7 @@ export default function HomeScreen() {
                                         onValueChange={setTrackingEnabled}
                                         trackColor={{ false: '#dedede', true: '#111' }}
                                         thumbColor="#fff"
+                                        ios_backgroundColor="#b8b8b8"
                                     />
                                 </View>
 
@@ -277,6 +525,36 @@ export default function HomeScreen() {
                             <Feather name="user" size={22} color="#393939" />
                         </TouchableOpacity>
                     </View>
+                    {showTrackingReminder && !isFocused && (
+                        <View style={styles.trackingReminderCard}>
+                            <TouchableOpacity
+                                style={styles.trackingReminderPressArea}
+                                activeOpacity={0.9}
+                                onPress={openTrackingPopupAgain}
+                            >
+                                <View style={styles.trackingReminderLeft}>
+                                    <View style={styles.trackingReminderIconWrap}>
+                                        <Feather name="star" size={15} color="#111" />
+                                    </View>
+
+                                    <View style={styles.trackingReminderTextWrap}>
+                                        <Text style={styles.trackingReminderTitle}>Enable personalization</Text>
+                                        <Text style={styles.trackingReminderSubtitle} numberOfLines={2}>
+                                            Turn on shopping your activity.
+                                        </Text>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+
+                            <Switch
+                                value={trackingEnabled}
+                                onValueChange={handleReminderSwitchChange}
+                                trackColor={{ false: '#c2c2c2', true: '#111' }}
+                                thumbColor="#fff"
+                                ios_backgroundColor="#b8b8b8"
+                            />
+                        </View>
+                    )}
 
                     {isFocused && (
                         <View style={styles.recentContainer}>
@@ -363,14 +641,41 @@ export default function HomeScreen() {
                     <View style={styles.favoritesSection}>
                         <Text style={styles.favoritesTitle}>Your favorite categories</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.favoritesScroll}>
-                            {cards.map((item, index) => (
-                                <TouchableOpacity key={index} style={styles.favoriteCard} onPress={() => handleHomeCategoryPress(item.label)}>
-                                    <ImageBackground source={item.image} style={styles.favoriteCardImage} imageStyle={{ borderRadius: 14 }} resizeMode="cover">
-                                        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.favoriteCardGradient} />
-                                        <Text style={styles.favoriteCardLabel}>{item.label}</Text>
-                                    </ImageBackground>
-                                </TouchableOpacity>
-                            ))}
+                            {favoriteCategoryCards.map((item, index) => {
+                                const imageSource = item.imageKey ? productImages[item.imageKey] : null;
+
+                                if (!imageSource) return null;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.favoriteCard}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/search_items',
+                                                params: {
+                                                    category: item.category,
+                                                    subcategory: item.subcategory,
+                                                    gender: 'WOMAN',
+                                                },
+                                            })
+                                        }
+                                    >
+                                        <ImageBackground
+                                            source={imageSource}
+                                            style={styles.favoriteCardImage}
+                                            imageStyle={{ borderRadius: 14 }}
+                                            resizeMode="cover"
+                                        >
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(0,0,0,0.65)']}
+                                                style={styles.favoriteCardGradient}
+                                            />
+                                            <Text style={styles.favoriteCardLabel}>{item.label}</Text>
+                                        </ImageBackground>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                     </View>
 
@@ -421,6 +726,37 @@ export default function HomeScreen() {
                             onPress={() => router.push({ pathname: '/search_items', params: { category: 'CLOTHING', subcategory: 'All', gender: 'WOMAN' } })}
                         >
                             <Text style={styles.showAllText}>SHOW ALL</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.playgroundCard}>
+                        <View style={styles.playgroundTextWrap}>
+                            <Text style={styles.playgroundTitle}>Bored of your style?</Text>
+                            <Text style={styles.playgroundSubtitle}>
+                                Explore new outfit vibes and try fresh visual directions without affecting your personalization.
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity onPress={() => router.push('/playground')}>
+                            <Svg width={100} height={100} viewBox="0 0 100 100">
+                                <Path
+                                    d="M50 5 L61 35 L95 35 L67 57 L78 90 L50 70 L22 90 L33 57 L5 35 L39 35 Z"
+                                    fill="#111"
+                                    stroke="#111"
+                                    strokeWidth={4}
+                                    strokeLinejoin="round"
+                                />
+                                <SvgText
+                                    x="50"
+                                    y="55"
+                                    fontSize="14"
+                                    fill="#fff"
+                                    fontWeight="800"
+                                    textAnchor="middle"
+                                >
+                                    PLAY
+                                </SvgText>
+                            </Svg>
                         </TouchableOpacity>
                     </View>
 
@@ -549,4 +885,99 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24, borderRadius: 16,
     },
     modalButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+    trackingReminderCard: {
+        marginTop: -4,
+        marginBottom: 12,
+        borderRadius: 14,
+        backgroundColor: '#e7e7e7',
+        borderWidth: 1,
+        borderColor: '#d8d8d8',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+
+    trackingReminderPressArea: {
+        flex: 1,
+    },
+
+    trackingReminderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+
+    trackingReminderIconWrap: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#f3f3f3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+
+    trackingReminderTextWrap: {
+        flex: 1,
+        paddingRight: 8,
+        marginTop: 2,
+    },
+
+    trackingReminderTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 2,
+    },
+
+    trackingReminderSubtitle: {
+        fontSize: 12,
+        lineHeight: 16,
+        color: '#6a6a6a',
+    },
+
+    playgroundCard: {
+        marginTop: 22,
+        backgroundColor: '#dedede',
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#d8d8d8',
+        alignItems: 'center',
+    },
+
+    playgroundTextWrap: {
+        marginBottom: 14,
+    },
+
+    playgroundTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#111',
+        marginBottom: 6,
+    },
+
+    playgroundSubtitle: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: '#111',
+    },
+
+    playgroundButton: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#fff',
+        paddingVertical: 10,
+        paddingHorizontal: 18,
+        borderRadius: 18,
+    },
+
+    playgroundButtonText: {
+        color: '#111',
+        fontSize: 13,
+        fontWeight: '700',
+    },
 });

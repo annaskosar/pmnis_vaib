@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, SafeAreaView,
     TouchableOpacity, Alert, TextInput, Modal, ScrollView,
-    KeyboardAvoidingView, Platform,
+    KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AccountScreen() {
@@ -20,22 +20,40 @@ export default function AccountScreen() {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [trackingEnabled, setTrackingEnabled] = useState(false);
 
     const [showCurrentPw, setShowCurrentPw] = useState(false);
     const [showNewPw, setShowNewPw] = useState(false);
     const [showConfirmPw, setShowConfirmPw] = useState(false);
 
-    useEffect(() => {
-        const loadUser = async () => {
-            const userData = await AsyncStorage.getItem('currentUser');
-            if (userData) {
-                const user = JSON.parse(userData);
-                setUserName(user.name);
-                setUserEmail(user.email);
+    const loadUser = async () => {
+        const userData = await AsyncStorage.getItem('currentUser');
+
+        if (!userData) return;
+
+        const user = JSON.parse(userData);
+        setUserName(user.name);
+        setUserEmail(user.email);
+
+        const savedTracking = await AsyncStorage.getItem(`tracking_preferences_${user.email}`);
+
+        if (savedTracking) {
+            try {
+                const parsed = JSON.parse(savedTracking);
+                setTrackingEnabled(!!parsed?.enabled);
+            } catch {
+                setTrackingEnabled(false);
             }
-        };
-        loadUser();
-    }, []);
+        } else {
+            setTrackingEnabled(false);
+        }
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadUser();
+        }, [])
+    );
 
     const handleLogout = () => {
         Alert.alert(
@@ -120,6 +138,21 @@ export default function AccountScreen() {
         }
     };
 
+    const handleTrackingToggle = async (value: boolean) => {
+        try {
+            setTrackingEnabled(value);
+
+            await AsyncStorage.setItem(
+                `tracking_preferences_${userEmail}`,
+                JSON.stringify({ enabled: value })
+            );
+
+            await AsyncStorage.setItem(`track_banner_shown_${userEmail}`, 'true');
+        } catch (e) {
+            Alert.alert('Error', 'Something went wrong.');
+        }
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -186,6 +219,35 @@ export default function AccountScreen() {
                             </View>
                             <Feather name="chevron-right" size={18} color="#aaa" />
                         </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.personalizationCard}>
+                        <View style={styles.personalizationTopRow}>
+                            <View style={styles.personalizationIconWrap}>
+                                <Feather name="star" size={18} color="#111" />
+                            </View>
+
+                            <View style={styles.personalizationTextWrap}>
+                                <Text style={styles.personalizationTitle}>Personalization</Text>
+                                <Text style={styles.personalizationSubtitle}>
+                                    Share your shopping activity to get more relevant recommendations, searches and picks.
+                                </Text>
+                            </View>
+
+                            <Switch
+                                value={trackingEnabled}
+                                onValueChange={handleTrackingToggle}
+                                trackColor={{ false: '#b8b8b8', true: '#111' }}
+                                thumbColor="#fff"
+                                ios_backgroundColor="#b8b8b8"
+                            />
+                        </View>
+
+                        <Text style={styles.personalizationStatus}>
+                            {trackingEnabled
+                                ? 'Your personalized shopping experience is currently on.'
+                                : 'Personalization is currently off. You can turn it on anytime.'}
+                        </Text>
                     </View>
 
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -420,4 +482,51 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     saveButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+    personalizationCard: {
+        backgroundColor: '#e9e9e9',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+    },
+
+    personalizationTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+
+    personalizationIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: '#d4d4d4',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+
+    personalizationTextWrap: {
+        flex: 1,
+        paddingRight: 10,
+    },
+
+    personalizationTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#111',
+        marginBottom: 3,
+    },
+
+    personalizationSubtitle: {
+        fontSize: 12,
+        lineHeight: 17,
+        color: '#6a6a6a',
+    },
+
+    personalizationStatus: {
+        marginTop: 12,
+        fontSize: 12,
+        lineHeight: 17,
+        color: '#5f5f5f',
+    },
 });
