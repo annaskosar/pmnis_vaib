@@ -614,7 +614,7 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.newSection}>
-                        <Text style={styles.newTitle}>New for you</Text>
+                        <Text style={styles.newTitle}>New items</Text>
                         <Text style={styles.newSubtitle}>News from the world of fashion designed for enthusiasts</Text>
                     </View>
 
