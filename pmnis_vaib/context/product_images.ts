@@ -52,4 +52,10 @@ export const productImages: Record<string, any> = {
     shirt4_0: require('../assets/products/clothing/tshirts/shirt4_0.jpg'),
     shirt5_0: require('../assets/products/clothing/tshirts/shirt5_0.jpg'),
     shirt6_0: require('../assets/products/clothing/tshirts/shirt6_0.jpg'),
-};
+
+
+    heels1_0: require('../assets/products/clothing/heels/heels1_0.png'),
+    heels2_0: require('../assets/products/clothing/heels/heels2_0.png'),
+    sneakers1_0: require('../assets/products/clothing/sneakers/sneakers1_0.png'),
+    sneakers2_0: require('../assets/products/clothing/sneakers/sneakers2_0.png'),
+    };

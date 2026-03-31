@@ -14,10 +14,10 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useProducts } from '../../context/product_context';
 
 const PRESET_PROMPTS = [
-    { label: '🌙 Elegant evening', value: 'elegant evening dress formal night' },
-    { label: '🌸 Spring cozy', value: 'spring casual cozy jacket everyday' },
-    { label: '💼 Office', value: 'office formal elegant blazer smart work' },
-    { label: '🎉 Party', value: 'party night dress dressy fun' },
+    { label: '🌙 Elegant evening', value: 'elegant evening formal night' },
+    { label: '🌸 Spring casual', value: 'spring casual cozy jacket everyday' },
+    { label: '💼 Office', value: 'office formal elegant smart work' },
+    { label: '🎉 Party', value: 'party night dressy fun' },
 ];
 
 const FEEDBACK_CHIPS = [
@@ -520,14 +520,69 @@ export default function BuilderScreen() {
             const bestForCategory = (cat: string): ScoredItem | undefined =>
                 pinnedByCategory(cat) ?? shopByCategory(cat);
 
+            // Heels = elegant shoes, sneakers = casual shoes
             const bestShoes = (style: 'elegant' | 'casual' | 'sport' | 'boots'): ScoredItem | undefined => {
                 const pinned = pinnedByCategory('shoes');
                 if (pinned) return pinned;
-                if (style === 'elegant') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('heels') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening') || i.tags.includes('night')));
-                if (style === 'casual') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sneakers') || i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('spring')));
-                if (style === 'sport') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sport') || i.tags.includes('active') || i.tags.includes('running')));
-                if (style === 'boots') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('boots') || i.tags.includes('autumn') || i.tags.includes('winter')));
+                if (style === 'elegant') {
+                    return scoredShop.find(i => i.category === 'shoes' && (
+                        i.tags.includes('heels') || i.tags.includes('elegant') ||
+                        i.tags.includes('dressy') || i.tags.includes('evening') || i.tags.includes('night')
+                    ));
+                }
+                if (style === 'casual') {
+                    return scoredShop.find(i => i.category === 'shoes' && (
+                        i.tags.includes('sneakers') || i.tags.includes('casual') ||
+                        i.tags.includes('everyday') || i.tags.includes('spring')
+                    ));
+                }
+                if (style === 'sport') {
+                    return scoredShop.find(i => i.category === 'shoes' && (
+                        i.tags.includes('sport') || i.tags.includes('active') || i.tags.includes('running')
+                    ));
+                }
+                if (style === 'boots') {
+                    // Nemáš boots — fallback na heels alebo sneakers
+                    return scoredShop.find(i => i.category === 'shoes' && i.tags.includes('boots'))
+                        ?? scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('elegant') || i.tags.includes('heels')))
+                        ?? shopByCategory('shoes');
+                }
                 return shopByCategory('shoes');
+            };
+
+            // Najlepší elegantný top — lace, asymmetric, elegant, evening
+            const bestElegantTop = (): ScoredItem | undefined =>
+                scoredPinned.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('dressy') || i.tags.includes('lace') || i.tags.includes('night')))
+                ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('lace') || i.tags.includes('evening') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('night')))
+                ?? bestForCategory('top');
+
+            // Najlepší elegantný spodok — trousers preferred over jeans
+            const bestElegantPants = (): ScoredItem | undefined =>
+                scoredPinned.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart') || i.tags.includes('trousers')))
+                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart')))
+                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('black') || i.tags.includes('dark')))
+                ?? bestForCategory('pants');
+
+            // Najlepší casual top — stripe, basic, everyday
+            const bestCasualTop = (): ScoredItem | undefined =>
+                scoredPinned.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic')))
+                ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic') || i.tags.includes('stripe')))
+                ?? bestForCategory('top');
+
+            // Najlepší casual spodok — jeans preferred
+            const bestCasualPants = (): ScoredItem | undefined =>
+                scoredPinned.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim')))
+                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('denim') || i.tags.includes('casual') || i.tags.includes('relaxed')))
+                ?? bestForCategory('pants');
+
+            // Najlepší jacket pre daný štýl
+            const bestJacket = (style: 'elegant' | 'casual'): ScoredItem | undefined => {
+                if (style === 'elegant') {
+                    return pinnedByCategory('jacket')
+                        ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic')));
+                }
+                return pinnedByCategory('jacket')
+                    ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering') || i.tags.includes('cropped')));
             };
 
             let result: (OutfitItem | undefined)[] = [];
@@ -537,94 +592,86 @@ export default function BuilderScreen() {
                 if (sets.length > 0) {
                     result = [
                         pinnedByCategory('set') ?? sets[0],
-                        bestShoes('sport'),
+                        bestShoes('sport') ?? bestShoes('casual'),
                         bestForCategory('top'),
                         bestForCategory('pants'),
                     ];
                 } else {
                     result = [
-                        bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('sport') || i.tags.includes('active'))),
-                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('sport') || i.tags.includes('active'))),
-                        bestShoes('sport'),
-                        bestForCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && i.tags.includes('casual')),
+                        scoredShop.find(i => i.category === 'top' && (i.tags.includes('sport') || i.tags.includes('active'))) ?? bestForCategory('top'),
+                        scoredShop.find(i => i.category === 'pants' && (i.tags.includes('sport') || i.tags.includes('active'))) ?? bestForCategory('pants'),
+                        bestShoes('sport') ?? bestShoes('casual'),
+                        scoredShop.find(i => i.category === 'jacket' && i.tags.includes('casual')) ?? bestForCategory('jacket'),
                     ];
                 }
 
             } else if (wantsOffice) {
+                // jacket/coat + trousers + elegant shirt/top + heels
                 result = [
-                    pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic') || i.tags.includes('office'))),
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('smart') || i.tags.includes('formal') || i.tags.includes('office'))),
-                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic'))),
+                    pinnedByCategory('jacket') ?? pinnedByCategory('coat')
+                        ?? scoredShop.find(i => (i.category === 'jacket' || i.category === 'coat') && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic') || i.tags.includes('office'))),
+                    bestElegantPants(),
+                    scoredShop.find(i => i.category === 'top' && (i.tags.includes('shirt') || i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic')))
+                        ?? bestElegantTop(),
                     bestShoes('elegant'),
                 ];
 
             } else if (wantsEvening && !wantsParty) {
-                // Elegant evening — evening dress + heels + elegant jacket + bag
-                const hasEveningDress = allScored.some(i => i.category === 'dress' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('formal') || i.tags.includes('dressy')));
-                if (hasEveningDress) {
-                    result = [
-                        scoredPinned.find(i => i.category === 'dress') ??
-                        scoredShop.find(i => i.category === 'dress' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('formal'))),
-                        bestShoes('elegant'),
-                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
-                        bestForCategory('bag') ?? scoredShop.find(i => i.category === 'bag'),
-                    ];
-                } else {
-                    result = [
-                        bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('dressy'))),
-                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart'))),
-                        bestShoes('elegant'),
-                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
-                    ];
-                }
+                // Elegant evening: lace/evening top + dark trousers + heels + elegant jacket/coat
+                result = [
+                    bestElegantTop(),
+                    bestElegantPants(),
+                    bestShoes('elegant'),
+                    bestJacket('elegant')
+                        ?? pinnedByCategory('coat')
+                        ?? scoredShop.find(i => i.category === 'coat' && (i.tags.includes('elegant') || i.tags.includes('classic'))),
+                ];
 
             } else if (wantsParty) {
-                // Party — party/mini dress + heels + jacket + bag
-                const hasPartyDress = allScored.some(i => i.category === 'dress' && (i.tags.includes('party') || i.tags.includes('fun') || i.tags.includes('night') || i.tags.includes('dressy')));
-                if (hasPartyDress) {
-                    result = [
-                        scoredPinned.find(i => i.category === 'dress') ??
-                        scoredShop.find(i => i.category === 'dress' && (i.tags.includes('party') || i.tags.includes('fun') || i.tags.includes('night') || i.tags.includes('dressy'))),
-                        bestShoes('elegant'),
-                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('formal'))),
-                        bestForCategory('bag') ?? scoredShop.find(i => i.category === 'bag'),
-                    ];
-                } else {
-                    result = [
-                        bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening'))),
-                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
-                        bestShoes('elegant'),
-                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('dressy'))),
-                    ];
-                }
+                // Party: dressy top + dark jeans/trousers + heels + jacket
+                result = [
+                    scoredShop.find(i => i.category === 'top' && (i.tags.includes('party') || i.tags.includes('dressy') || i.tags.includes('night') || i.tags.includes('elegant') || i.tags.includes('lace')))
+                        ?? bestElegantTop(),
+                    scoredShop.find(i => i.category === 'pants' && (i.tags.includes('black') || i.tags.includes('dark') || i.tags.includes('elegant')))
+                        ?? bestElegantPants(),
+                    bestShoes('elegant'),
+                    bestJacket('elegant'),
+                ];
 
             } else if (wantsSpring) {
-                // Spring cozy — jeans + casual top + jacket + sneakers/flats
+                // Spring casual: light jeans + casual top/shirt + casual jacket + sneakers
                 result = [
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim'))),
-                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic') || i.tags.includes('spring'))),
-                    pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering'))),
+                    scoredShop.find(i => i.category === 'pants' && (i.tags.includes('light') || i.tags.includes('relaxed') || i.tags.includes('denim') || i.tags.includes('jeans')))
+                        ?? bestCasualPants(),
+                    scoredShop.find(i => i.category === 'top' && (i.tags.includes('spring') || i.tags.includes('casual') || i.tags.includes('stripe') || i.tags.includes('basic')))
+                        ?? bestCasualTop(),
+                    bestJacket('casual')
+                        ?? scoredShop.find(i => (i.category === 'jacket') && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering'))),
                     bestShoes('casual'),
                 ];
 
             } else if (wantsAutumn) {
+                // Autumn: coat + jeans/trousers + top + heels (no boots in stock)
                 result = [
-                    pinnedByCategory('coat') ?? pinnedByCategory('jacket') ??
-                    scoredShop.find(i => (i.category === 'coat' || i.category === 'jacket') && (i.tags.includes('autumn') || i.tags.includes('warm') || i.tags.includes('outerwear'))),
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants'),
+                    pinnedByCategory('coat') ?? pinnedByCategory('jacket')
+                        ?? scoredShop.find(i => (i.category === 'coat' || i.category === 'jacket') && (i.tags.includes('autumn') || i.tags.includes('warm') || i.tags.includes('outerwear') || i.tags.includes('classic'))),
+                    scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('denim') || i.tags.includes('dark')))
+                        ?? bestForCategory('pants'),
                     bestForCategory('top') ?? scoredShop.find(i => i.category === 'top'),
                     bestShoes('boots'),
                 ];
 
             } else if (wantsCasual) {
+                // Casual: jeans + basic top + sneakers + casual jacket
                 result = [
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim'))),
-                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic'))),
+                    bestCasualPants(),
+                    bestCasualTop(),
                     bestShoes('casual'),
-                    pinnedByCategory('jacket') ?? scoredShop.find(i => (i.category === 'jacket' || i.category === 'top') && (i.tags.includes('casual') || i.tags.includes('hoodie') || i.tags.includes('streetwear'))),
+                    bestJacket('casual'),
                 ];
 
             } else {
+                // Default — score-based, max 1 per category
                 const usedCategories = new Set<string>();
                 const defaultResult: OutfitItem[] = [];
                 for (const item of scoredPinned) {
@@ -649,10 +696,25 @@ export default function BuilderScreen() {
                     return true;
                 });
 
+            // Fallback — doplň chýbajúce sloty z allScored (rôzne kategórie)
             const fallback = allScored.filter(i => !seen.has(i.id));
-            while (filtered.length < 4 && fallback.length > 0) {
-                const next = fallback.shift()!;
-                if (!seen.has(next.id)) { filtered.push(next); seen.add(next.id); }
+            const usedFallbackCats = new Set(filtered.map(i => i.category ?? 'other'));
+            for (const item of fallback) {
+                if (filtered.length >= 4) break;
+                const cat = item.category ?? 'other';
+                if (!seen.has(item.id) && !usedFallbackCats.has(cat)) {
+                    filtered.push(item);
+                    seen.add(item.id);
+                    usedFallbackCats.add(cat);
+                }
+            }
+            // Ak stále chýba, doplň bez obmedzenia kategórie
+            for (const item of fallback) {
+                if (filtered.length >= 4) break;
+                if (!seen.has(item.id)) {
+                    filtered.push(item);
+                    seen.add(item.id);
+                }
             }
 
             if (!isMounted.current) return;

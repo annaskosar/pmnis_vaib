@@ -117,7 +117,7 @@ export type Product = {
     oldPrice?: number;
     isOnSale: boolean;
     discountPercent: number;
-    availableSizes: ('EU 32' | 'EU 34' | 'EU 36' | 'EU 38' | 'EU 40' | 'EU 42' | 'EU 44')[];
+    availableSizes: ('EU 32' | 'EU 34' | 'EU 36' | 'EU 38' | 'EU 40' | 'EU 42' | 'EU 44' | 'EU 37'| 'EU 39')[];
     availableColors: ProductColor[];
     mainCategory: MainCategory;
     subCategory: SubCategory;
@@ -216,7 +216,9 @@ export const sizeOptions: SizeOption[] = [
     { label: 'EU 32' },
     { label: 'EU 34' },
     { label: 'EU 36' },
+    { label: 'EU 37' },
     { label: 'EU 38' },
+    { label: 'EU 39' },
     { label: 'EU 40' },
     { label: 'EU 42' },
     { label: 'EU 44' },
@@ -1010,6 +1012,75 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
         images: ['shirt6_0'],
         playgroundStyles: ['dark_academia', 'street_cool', 'old_money'],
     },
+
+    {
+    id: 'heels1',
+    name: 'Crystal Mesh Slingback Heels',
+    brand: 'Zara',
+    gender: 'women',
+    price: 69.99,
+    isOnSale: false,
+    discountPercent: 0,
+    availableSizes: ['EU 36', 'EU 37', 'EU 38', 'EU 39', 'EU 40'],
+    availableColors: [{ name: 'Brown', code: '#3B1F18', imageKeys: ['heels1_0'] }],
+    mainCategory: 'SHOES',
+    subCategory: 'Heels',
+    tags: ['Trending deals', 'Trend hits'],
+    isTrending: true,
+    images: ['heels1_0'],
+    playgroundStyles: ['goth', 'dark_academia', 'old_money'],
+},
+{
+    id: 'heels2',
+    name: 'Cream Ankle Strap Block Heels',
+    brand: 'Mango',
+    gender: 'women',
+    price: 64.99,
+    isOnSale: false,
+    discountPercent: 0,
+    availableSizes: ['EU 36', 'EU 37', 'EU 38', 'EU 39', 'EU 40'],
+    availableColors: [{ name: 'Cream', code: '#EDE8DF', imageKeys: ['heels2_0'] }],
+    mainCategory: 'SHOES',
+    subCategory: 'Heels',
+    tags: ['Best sellers'],
+    isBestSeller: true,
+    images: ['heels2_0'],
+    playgroundStyles: ['clean_girl', 'old_money', 'coquette_soft'],
+},
+{
+    id: 'sneakers1',
+    name: 'Platform Canvas Sneakers',
+    brand: 'Nike',
+    gender: 'women',
+    price: 79.99,
+    isOnSale: false,
+    discountPercent: 0,
+    availableSizes: ['EU 36', 'EU 37', 'EU 38', 'EU 39', 'EU 40'],
+    availableColors: [{ name: 'Beige', code: '#E8E0D4', imageKeys: ['sneakers1_0'] }],
+    mainCategory: 'SHOES',
+    subCategory: 'Sneakers',
+    tags: ['Best sellers', 'Trending brands'],
+    isBestSeller: true,
+    images: ['sneakers1_0'],
+    playgroundStyles: ['street_cool', 'y2k_glam', 'grunge_rebel'],
+},
+{
+    id: 'sneakers2',
+    name: 'Mismatched Leather Sneakers',
+    brand: 'Adidas',
+    gender: 'women',
+    price: 89.99,
+    isOnSale: false,
+    discountPercent: 0,
+    availableSizes: ['EU 36', 'EU 37', 'EU 38', 'EU 39', 'EU 40'],
+    availableColors: [{ name: 'Beige', code: '#D0C9BC', imageKeys: ['sneakers2_0'] }],
+    mainCategory: 'SHOES',
+    subCategory: 'Sneakers',
+    tags: ['Trend hits', 'New designers'],
+    isTrending: true,
+    images: ['sneakers2_0'],
+    playgroundStyles: ['clean_girl', 'street_cool', 'old_money'],
+},
 ];
 
 export const productMeta: Record<string, ProductMeta> = {
@@ -1921,6 +1992,83 @@ export const productMeta: Record<string, ProductMeta> = {
             ],
         },
     },
+
+    heels1: {
+    description: 'Dark crystal mesh slingback heels with rhinestone embellishment and a sculpted kitten heel — perfect for elegant evenings and party looks.',
+    fit: 'Regular',
+    rating: 4.6,
+    reviewCount: 94,
+    reviews: [
+        { id: 'heels1_r1', name: 'Nina', rating: 5, text: 'So glamorous, the crystals catch the light beautifully.', date: '2 days ago' },
+        { id: 'heels1_r2', name: 'Mia', rating: 4, text: 'Surprisingly comfortable for heels, love the dark tone.', date: '1 week ago' },
+        { id: 'heels1_r3', name: 'Lara', rating: 5, text: 'Wore these to a gala and got so many compliments.', date: '2 weeks ago' },
+    ],
+    awards: ['Trending', 'Editor pick'],
+    eco: {
+        ecoScore: 52,
+        ecoDescription: 'Embellished footwear has higher production impact due to crystal application.',
+        material: 'Mesh upper with crystal embellishment, synthetic sole',
+        sustainability: 'Occasion wear, moderate repeat use, medium durability',
+        ecoAlternativeIds: [{ productId: 'heels2', ecoScore: 61 }],
+    },
+},
+heels2: {
+    description: 'Minimalist cream ankle strap heels with a flared block heel — elegant and versatile for office, evening and smart-casual wear.',
+    fit: 'Regular',
+    rating: 4.5,
+    reviewCount: 118,
+    reviews: [
+        { id: 'heels2_r1', name: 'Laura', rating: 5, text: 'These go with absolutely everything, love the cream tone.', date: '1 day ago' },
+        { id: 'heels2_r2', name: 'Zoe', rating: 4, text: 'Very elegant and stable thanks to the block heel.', date: '5 days ago' },
+        { id: 'heels2_r3', name: 'Klara', rating: 5, text: 'Wore them all day for work, surprisingly comfortable.', date: '2 weeks ago' },
+    ],
+    awards: ['Best seller', 'Customer favorite'],
+    eco: {
+        ecoScore: 61,
+        ecoDescription: 'Versatile neutral colorway and classic silhouette support strong repeat wear.',
+        material: 'Faux leather upper, rubber sole',
+        sustainability: 'High repeat wear, timeless design, moderate production impact',
+        ecoAlternativeIds: [{ productId: 'heels1', ecoScore: 52 }],
+    },
+},
+sneakers1: {
+    description: 'Chunky platform canvas sneakers with a bold layered sole and retro street attitude — great for casual and spring outfits.',
+    fit: 'Regular',
+    rating: 4.4,
+    reviewCount: 143,
+    reviews: [
+        { id: 'sneakers1_r1', name: 'Anna', rating: 5, text: 'So cool and comfy, the platform adds great height.', date: '3 days ago' },
+        { id: 'sneakers1_r2', name: 'Kika', rating: 4, text: 'Love the chunky sole, very trendy look.', date: '1 week ago' },
+        { id: 'sneakers1_r3', name: 'Maja', rating: 4, text: 'Great with jeans or a casual dress.', date: '3 weeks ago' },
+    ],
+    awards: ['Best seller', 'Trending'],
+    eco: {
+        ecoScore: 58,
+        ecoDescription: 'Platform construction requires more material but canvas upper is relatively low-impact.',
+        material: 'Canvas upper, thick rubber platform sole',
+        sustainability: 'High wear frequency, medium production impact',
+        ecoAlternativeIds: [{ productId: 'sneakers2', ecoScore: 67 }],
+    },
+},
+sneakers2: {
+    description: 'Mismatched leather sneakers with a clean minimalist shape and playful asymmetric design — versatile for everyday and smart-casual wear.',
+    fit: 'Regular',
+    rating: 4.6,
+    reviewCount: 87,
+    reviews: [
+        { id: 'sneakers2_r1', name: 'Zoe', rating: 5, text: 'Such a unique design, so comfortable and well-made.', date: '2 days ago' },
+        { id: 'sneakers2_r2', name: 'Eli', rating: 4, text: 'The mismatched look is subtle and really cool.', date: '1 week ago' },
+        { id: 'sneakers2_r3', name: 'Tami', rating: 5, text: 'Wear these with everything, incredibly versatile.', date: '2 weeks ago' },
+    ],
+    awards: ['Trending', 'Editor pick'],
+    eco: {
+        ecoScore: 67,
+        ecoDescription: 'Leather construction and timeless silhouette support good longevity and repeat wear.',
+        material: 'Leather upper, rubber sole',
+        sustainability: 'Durable leather construction, high repeat wear, versatile styling',
+        ecoAlternativeIds: [{ productId: 'sneakers1', ecoScore: 58 }],
+    },
+},
 
 
 };
