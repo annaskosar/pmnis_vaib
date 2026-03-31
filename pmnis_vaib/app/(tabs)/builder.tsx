@@ -6,7 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useWardrobe } from '../../context/wardrobe_context';
-import { useCart } from '../../context/cart_context';
+import { useCart, CartProduct } from '../../context/cart_context';
 import { useWishlist } from '../../context/wishlist_context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { productImages } from '../../context/product_images';
@@ -15,9 +15,9 @@ import { useProducts } from '../../context/product_context';
 
 const PRESET_PROMPTS = [
     { label: '🌙 Elegant evening', value: 'elegant evening formal night' },
-    { label: '🌸 Spring casual', value: 'spring casual cozy jacket everyday' },
-    { label: '💼 Office', value: 'office formal elegant smart work' },
-    { label: '🎉 Party', value: 'party night dressy fun' },
+    { label: '☀️ Daily casual',    value: 'casual everyday relaxed basic' },
+    { label: '🌸 Spring casual',   value: 'spring casual cozy jacket everyday' },
+    { label: '💼 Office',          value: 'office formal elegant smart work' },
 ];
 
 const FEEDBACK_CHIPS = [
@@ -87,17 +87,25 @@ const PLAYGROUND_TO_STYLE_TAGS: Record<string, string[]> = {
     'coquette_soft': ['soft', 'feminine', 'casual', 'pink', 'romantic', 'spring'],
 };
 
+const STYLE_GROUPS: Record<string, { tags: string[]; shoeStyle: 'elegant' | 'casual' | 'boots' | 'sport' }> = {
+    elegant: { tags: ['elegant', 'evening', 'formal', 'dressy', 'night', 'lace', 'gala', 'party'], shoeStyle: 'elegant' },
+    office:  { tags: ['office', 'formal', 'smart', 'classic', 'shirt', 'work'], shoeStyle: 'elegant' },
+    casual:  { tags: ['casual', 'everyday', 'basic', 'relaxed', 'denim', 'jeans', 'stripe', 'summer'], shoeStyle: 'casual' },
+    spring:  { tags: ['spring', 'casual', 'cozy', 'layering', 'cropped', 'everyday'], shoeStyle: 'casual' },
+    autumn:  { tags: ['autumn', 'warm', 'winter', 'classic', 'coat', 'outerwear'], shoeStyle: 'boots' },
+    sport:   { tags: ['sport', 'sporty', 'gym', 'workout', 'active'], shoeStyle: 'sport' },
+};
+
 type Source = 'wardrobe' | 'wishlist' | 'shop';
 type OutfitItem = {
     id: string; image: any; name: string; category?: string;
     tags: string[]; fromWardrobe?: boolean; imageKey?: string;
+    price?: number;
 };
-type ScoredItem = OutfitItem & { score: number };
 type OnboardingPhase = 'before' | 'after' | null;
 type SlotCategory = 'shoes' | 'pants' | 'top' | 'jacket';
 const SLOT_CATEGORIES: SlotCategory[] = ['shoes', 'pants', 'top', 'jacket'];
 
-// Gender-aware shop products hook
 function useShopProducts(userGender: 'women' | 'men'): OutfitItem[] {
     const { products } = useProducts();
     return React.useMemo(() => {
@@ -112,7 +120,7 @@ function useShopProducts(userGender: 'women' | 'men'): OutfitItem[] {
                 const playgroundTags = (p.playgroundStyles ?? []).flatMap(s => PLAYGROUND_TO_STYLE_TAGS[s] ?? []);
                 return {
                     id: p.id, name: p.name, image: productImages[imageKey], imageKey,
-                    category: builderCategory,
+                    category: builderCategory, price: p.price,
                     tags: [p.name.toLowerCase(), p.brand?.toLowerCase() ?? '', p.subCategory.toLowerCase(), builderCategory, ...colorTags, ...subCategoryTags, ...playgroundTags],
                     fromWardrobe: false,
                 } as OutfitItem;
@@ -127,12 +135,10 @@ export default function BuilderScreen() {
 
     const { wardrobeItems } = useWardrobe();
     const { getProductById } = useProducts();
-    const { carts, addProductToCart, addBuilderFeedback, isUnlimitedUnlocked, deleteCart } = useCart();
+    const { carts, addProductsToCart, addBuilderFeedback, isUnlimitedUnlocked, deleteCart } = useCart();
     const { wishlistItems } = useWishlist();
 
-    // Gender state — načíta sa z userProfile
     const [userGender, setUserGender] = useState<'women' | 'men'>('women');
-
     const shopProducts = useShopProducts(userGender);
 
     const [prompt, setPrompt] = useState('');
@@ -178,22 +184,15 @@ export default function BuilderScreen() {
     const afterRefs = [firstOutfitCardRef, firstOutfitBadgeRef, firstOutfitRefreshRef];
     const isPromptEmpty = prompt.trim().length === 0;
 
-    // Načítaj gender z userProfile pri mountnutí
     React.useEffect(() => {
         const loadGender = async () => {
             try {
                 const profileStr = await AsyncStorage.getItem('userProfile');
                 if (!profileStr) return;
                 const profile = JSON.parse(profileStr);
-                // userProfile.gender je 'WOMAN' alebo 'MAN' z dotazníka
-                if (profile?.gender === 'MAN') {
-                    setUserGender('men');
-                } else {
-                    setUserGender('women');
-                }
-            } catch (e) {
-                console.log('Failed to load gender', e);
-            }
+                if (profile?.gender === 'MAN') setUserGender('men');
+                else setUserGender('women');
+            } catch (e) { console.log('Failed to load gender', e); }
         };
         loadGender();
     }, []);
@@ -223,7 +222,7 @@ export default function BuilderScreen() {
                     const subCategoryTags = SUBCATEGORY_STYLE_TAGS[product!.subCategory] ?? [];
                     const playgroundTags = (product!.playgroundStyles ?? []).flatMap(s => PLAYGROUND_TO_STYLE_TAGS[s] ?? []);
                     return {
-                        id: product!.id, name: product!.name,
+                        id: product!.id, name: product!.name, price: product!.price,
                         image: firstImageKey ? productImages[firstImageKey] : null,
                         imageKey: firstImageKey, category: builderCategory,
                         tags: [product!.name.toLowerCase(), product!.brand.toLowerCase(), product!.subCategory.toLowerCase(), builderCategory, ...colorTags, ...subCategoryTags, ...playgroundTags],
@@ -319,7 +318,7 @@ export default function BuilderScreen() {
         const subCategoryTags = product ? (SUBCATEGORY_STYLE_TAGS[product.subCategory] ?? []) : [];
         const colorTags = product ? product.availableColors.map(c => c.name.toLowerCase()) : [];
         const playgroundTags = product ? (product.playgroundStyles ?? []).flatMap(s => PLAYGROUND_TO_STYLE_TAGS[s] ?? []) : [];
-        return { id: item.id, image: item.image, name: item.name, category: builderCategory, tags: [item.name.toLowerCase(), ...item.name.toLowerCase().split(' '), ...colorTags, ...subCategoryTags, ...playgroundTags], fromWardrobe: false };
+        return { id: item.id, image: item.image, name: item.name, category: builderCategory, price: product?.price, tags: [item.name.toLowerCase(), ...item.name.toLowerCase().split(' '), ...colorTags, ...subCategoryTags, ...playgroundTags], fromWardrobe: false };
     });
 
     const preselectedBuilderItem: OutfitItem | null =
@@ -369,31 +368,59 @@ export default function BuilderScreen() {
         return items.filter((item, index, self) => self.findIndex(i => i.id === item.id) === index);
     };
 
-    const scoreItem = (item: OutfitItem, keywords: string[]): number => {
-        let score = 0;
-        keywords.forEach(keyword => {
-            if (item.name.toLowerCase() === keyword) score += 5;
-            else if (item.name.toLowerCase().includes(keyword)) score += 3;
-            if (item.tags.includes(keyword)) score += 4;
-            else if (item.tags.some(tag => tag.includes(keyword) || keyword.includes(tag))) score += 2;
-        });
-        return score;
+    const detectStyleGroup = (keywords: string[]): keyof typeof STYLE_GROUPS => {
+        if (keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k))) return 'sport';
+        if (keywords.some(k => ['office', 'work', 'business', 'professional', 'smart'].includes(k))) return 'office';
+        if (keywords.some(k => ['elegant', 'evening', 'formal', 'gala', 'dressy', 'party', 'night', 'club'].includes(k))) return 'elegant';
+        if (keywords.some(k => ['spring', 'cozy'].includes(k))) return 'spring';
+        if (keywords.some(k => ['autumn', 'fall', 'warm', 'winter'].includes(k))) return 'autumn';
+        return 'casual';
+    };
+
+    const pickRandom = (items: OutfitItem[], category: string, styleTags: string[], exclude: Set<string>): OutfitItem | undefined => {
+        const matching = items.filter(i => i.category === category && !exclude.has(i.id) && i.tags.some(t => styleTags.includes(t)));
+        const pool = matching.length > 0 ? matching : items.filter(i => i.category === category && !exclude.has(i.id));
+        if (pool.length === 0) return undefined;
+        return pool[Math.floor(Math.random() * pool.length)];
+    };
+
+    const pickRandomShoe = (items: OutfitItem[], shoeStyle: 'elegant' | 'casual' | 'boots' | 'sport', exclude: Set<string>): OutfitItem | undefined => {
+        const styleTags: Record<string, string[]> = {
+            elegant: ['heels', 'elegant', 'dressy', 'evening', 'night', 'formal'],
+            casual:  ['sneakers', 'casual', 'everyday', 'spring', 'summer'],
+            boots:   ['boots', 'autumn', 'winter', 'classic'],
+            sport:   ['sport', 'active', 'running', 'sporty'],
+        };
+        return pickRandom(items, 'shoes', styleTags[shoeStyle], exclude);
     };
 
     const regenerateItem = (index: number) => {
         const slotCategory = SLOT_CATEGORIES[index];
+        const currentItem = outfits[index];
+        if (currentItem?.fromWardrobe) return;
+
+        const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
+        const styleGroup = detectStyleGroup(keywords);
+        const styleTags = STYLE_GROUPS[styleGroup].tags;
         const sourceItems = getSourceItems();
-        const currentIds = outfits.map(o => o.id);
-        const sameCategory = sourceItems.filter(i => !currentIds.includes(i.id) && i.category === slotCategory);
-        const fallbackItems = sameCategory.length > 0 ? sameCategory : sourceItems.filter(i => !currentIds.includes(i.id));
-        if (fallbackItems.length === 0) return;
-        const newItem = fallbackItems[Math.floor(Math.random() * fallbackItems.length)];
+        const currentIds = new Set(outfits.map(o => o.id));
+        currentIds.delete(currentItem?.id);
+
+        const newItem = slotCategory === 'shoes'
+            ? pickRandomShoe(sourceItems.filter(i => !i.fromWardrobe), STYLE_GROUPS[styleGroup].shoeStyle, currentIds)
+            : pickRandom(sourceItems.filter(i => !i.fromWardrobe), slotCategory, styleTags, currentIds);
+
+        if (!newItem) return;
         setOutfits(prev => { const updated = [...prev]; updated[index] = newItem; return updated; });
     };
 
     const handleGenerate = () => {
         if (isPromptEmpty) return;
-        setGenerateError(false); setLoading(true); setGenerated(false); setAddedToCart(false); setInlineFeedbackRating(0); setInlineFeedbackSubmitted(false);
+        setGenerateError(false);
+        setLoading(true);
+        setAddedToCart(false);
+        setInlineFeedbackRating(0);
+        setInlineFeedbackSubmitted(false);
 
         setTimeout(async () => {
             if (!isMounted.current) return;
@@ -405,145 +432,48 @@ export default function BuilderScreen() {
             await AsyncStorage.setItem(`builder_generate_count_${email}`, String(count + 1));
 
             if (count + 1 === 4) {
-                if (isMounted.current) { setLoading(false); setGenerateError(true); await AsyncStorage.setItem(`builder_generate_count_${email}`, '0'); }
+                if (isMounted.current) { setLoading(false); setGenerateError(true); setGenerated(false); await AsyncStorage.setItem(`builder_generate_count_${email}`, '0'); }
                 return;
             }
 
             const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
+            const styleGroup = detectStyleGroup(keywords);
+            const { tags: styleTags, shoeStyle } = STYLE_GROUPS[styleGroup];
             const sourceItems = getSourceItems();
-            const pinnedItems = selectedItems.filter(i => sourceItems.find(s => s.id === i.id));
-            const shopOnlyItems = sourceItems.filter(i => !selectedItems.find(s => s.id === i.id));
 
-            const scoredPinned: ScoredItem[] = pinnedItems.map(item => ({ ...item, score: scoreItem(item, keywords) })).sort((a, b) => b.score - a.score);
-            const scoredShop: ScoredItem[] = shopOnlyItems.map(item => ({ ...item, score: scoreItem(item, keywords) })).sort((a, b) => b.score - a.score);
-            const allScored = [...scoredPinned, ...scoredShop];
-
-            const wantsSport = keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k));
-            const wantsOffice = keywords.some(k => ['office', 'work', 'business', 'professional', 'blazer', 'smart'].includes(k));
-            const wantsEvening = keywords.some(k => ['elegant', 'evening', 'formal', 'gala', 'dressy'].includes(k));
-            const wantsParty = keywords.some(k => ['party', 'fun', 'night', 'club'].includes(k));
-            const wantsSpring = keywords.some(k => ['spring', 'cozy', 'casual', 'everyday'].includes(k));
-            const wantsAutumn = keywords.some(k => ['autumn', 'fall', 'warm', 'winter'].includes(k));
-            const wantsCasual = keywords.some(k => ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k));
-
-            const pinnedByCategory = (cat: string): ScoredItem | undefined => scoredPinned.find(i => i.category === cat);
-            const shopByCategory = (cat: string): ScoredItem | undefined => scoredShop.find(i => i.category === cat);
-            const bestForCategory = (cat: string): ScoredItem | undefined => pinnedByCategory(cat) ?? shopByCategory(cat);
-
-            const bestShoes = (style: 'elegant' | 'casual' | 'sport' | 'boots'): ScoredItem | undefined => {
-                const pinned = pinnedByCategory('shoes');
-                if (pinned) return pinned;
-                if (style === 'elegant') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('heels') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening') || i.tags.includes('night')));
-                if (style === 'casual') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sneakers') || i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('spring')));
-                if (style === 'sport') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sport') || i.tags.includes('active') || i.tags.includes('running')));
-                if (style === 'boots') return scoredShop.find(i => i.category === 'shoes' && i.tags.includes('boots')) ?? scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('elegant') || i.tags.includes('heels'))) ?? shopByCategory('shoes');
-                return shopByCategory('shoes');
-            };
-
-            const bestElegantTop = (): ScoredItem | undefined =>
-                scoredPinned.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('dressy') || i.tags.includes('lace') || i.tags.includes('night')))
-                ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('lace') || i.tags.includes('evening') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('night')))
-                ?? bestForCategory('top');
-
-            const bestElegantPants = (): ScoredItem | undefined =>
-                scoredPinned.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart') || i.tags.includes('trousers')))
-                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart')))
-                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('black') || i.tags.includes('dark')))
-                ?? bestForCategory('pants');
-
-            const bestCasualTop = (): ScoredItem | undefined =>
-                scoredPinned.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic')))
-                ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic') || i.tags.includes('stripe')))
-                ?? bestForCategory('top');
-
-            const bestCasualPants = (): ScoredItem | undefined =>
-                scoredPinned.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim')))
-                ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('denim') || i.tags.includes('casual') || i.tags.includes('relaxed')))
-                ?? bestForCategory('pants');
-
-            const bestJacket = (style: 'elegant' | 'casual'): ScoredItem | undefined => {
-                if (style === 'elegant') return pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic')));
-                return pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering') || i.tags.includes('cropped')));
-            };
-
-            let shoes: OutfitItem | undefined;
-            let pants: OutfitItem | undefined;
-            let top: OutfitItem | undefined;
-            let jacket: OutfitItem | undefined;
-
-            if (wantsSport) {
-                const sets = allScored.filter(i => i.category === 'set');
-                shoes = bestShoes('sport') ?? bestShoes('casual');
-                pants = scoredShop.find(i => i.category === 'pants' && (i.tags.includes('sport') || i.tags.includes('active') || i.tags.includes('joggers'))) ?? bestForCategory('pants');
-                top = scoredShop.find(i => i.category === 'top' && (i.tags.includes('sport') || i.tags.includes('active'))) ?? bestForCategory('top');
-                jacket = scoredShop.find(i => i.category === 'jacket' && i.tags.includes('casual')) ?? bestForCategory('jacket');
-                if (sets.length > 0) { const set = pinnedByCategory('set') ?? sets[0]; shoes = bestShoes('sport') ?? bestShoes('casual'); pants = set; top = set; jacket = undefined; }
-            } else if (wantsOffice) {
-                shoes = bestShoes('elegant');
-                pants = bestElegantPants();
-                top = scoredShop.find(i => i.category === 'top' && (i.tags.includes('shirt') || i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic'))) ?? bestElegantTop();
-                jacket = pinnedByCategory('jacket') ?? pinnedByCategory('coat') ?? scoredShop.find(i => (i.category === 'jacket' || i.category === 'coat') && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic')));
-            } else if (wantsEvening && !wantsParty) {
-                shoes = bestShoes('elegant');
-                pants = bestElegantPants();
-                top = bestElegantTop();
-                jacket = bestJacket('elegant') ?? scoredShop.find(i => i.category === 'coat' && (i.tags.includes('elegant') || i.tags.includes('classic')));
-            } else if (wantsParty) {
-                shoes = bestShoes('elegant');
-                pants = scoredShop.find(i => i.category === 'pants' && (i.tags.includes('black') || i.tags.includes('dark') || i.tags.includes('elegant'))) ?? bestElegantPants();
-                top = scoredShop.find(i => i.category === 'top' && (i.tags.includes('party') || i.tags.includes('dressy') || i.tags.includes('night') || i.tags.includes('lace'))) ?? bestElegantTop();
-                jacket = bestJacket('elegant');
-            } else if (wantsSpring) {
-                shoes = bestShoes('casual');
-                pants = scoredShop.find(i => i.category === 'pants' && (i.tags.includes('light') || i.tags.includes('relaxed') || i.tags.includes('denim') || i.tags.includes('jeans'))) ?? bestCasualPants();
-                top = scoredShop.find(i => i.category === 'top' && (i.tags.includes('spring') || i.tags.includes('casual') || i.tags.includes('stripe') || i.tags.includes('basic'))) ?? bestCasualTop();
-                jacket = scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering') || i.tags.includes('cropped'))) ?? scoredShop.find(i => i.category === 'jacket');
-            } else if (wantsAutumn) {
-                shoes = bestShoes('boots');
-                pants = scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('denim') || i.tags.includes('dark'))) ?? bestForCategory('pants');
-                top = bestForCategory('top') ?? scoredShop.find(i => i.category === 'top');
-                jacket = pinnedByCategory('coat') ?? pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'coat' && (i.tags.includes('autumn') || i.tags.includes('warm') || i.tags.includes('classic'))) ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('autumn') || i.tags.includes('warm')));
-            } else if (wantsCasual) {
-                shoes = bestShoes('casual');
-                pants = bestCasualPants();
-                top = bestCasualTop();
-                jacket = bestJacket('casual');
-            } else {
-                shoes = bestShoes('casual');
-                pants = bestForCategory('pants');
-                top = bestForCategory('top');
-                jacket = bestForCategory('jacket') ?? bestForCategory('coat');
-            }
-
-            // Pevné poradie slotov: shoes, pants, top, jacket
-            const result: (OutfitItem | undefined)[] = [shoes, pants, top, jacket];
+            const wardrobeInSource = sourceItems.filter(i => i.fromWardrobe);
+            const priorityItems = [
+                ...wardrobeInSource,
+                ...selectedItems.filter(i => !wardrobeInSource.find(w => w.id === i.id)),
+            ];
+            const pinnedByCategory = (cat: string) => priorityItems.find(i => i.category === cat);
 
             const seen = new Set<string>();
-            const filtered: OutfitItem[] = result
-                .map((item, index) => {
-                    if (!item) return undefined;
-                    if (seen.has(item.id)) {
-                        const cat = SLOT_CATEGORIES[index];
-                        const replacement = allScored.find(i => !seen.has(i.id) && i.category === cat);
-                        if (replacement) { seen.add(replacement.id); return replacement; }
-                        return undefined;
-                    }
-                    seen.add(item.id);
-                    return item;
-                })
-                .filter((item): item is OutfitItem => !!item);
 
-            // Fallback pre prázdne sloty
-            for (let i = filtered.length; i < 4; i++) {
-                const cat = SLOT_CATEGORIES[i] ?? 'top';
-                const replacement = allScored.find(item => !seen.has(item.id) && item.category === cat);
-                if (replacement) { filtered.push(replacement); seen.add(replacement.id); }
-                else { const any = allScored.find(item => !seen.has(item.id)); if (any) { filtered.push(any); seen.add(any.id); } }
+            const shoes  = pinnedByCategory('shoes')  ?? pickRandomShoe(sourceItems, shoeStyle, seen);
+            if (shoes)  seen.add(shoes.id);
+            const pants  = pinnedByCategory('pants')  ?? pickRandom(sourceItems, 'pants',  styleTags, seen);
+            if (pants)  seen.add(pants.id);
+            const top    = pinnedByCategory('top')    ?? pickRandom(sourceItems, 'top',    styleTags, seen);
+            if (top)    seen.add(top.id);
+            const jacket = pinnedByCategory('jacket') ?? pinnedByCategory('coat') ??
+                           pickRandom(sourceItems, 'jacket', styleTags, seen) ??
+                           pickRandom(sourceItems, 'coat',   styleTags, seen);
+            if (jacket) seen.add(jacket.id);
+
+            const result = [shoes, pants, top, jacket].filter((i): i is OutfitItem => !!i);
+
+            for (let i = result.length; i < 4; i++) {
+                const cat = SLOT_CATEGORIES[i];
+                const fallback = sourceItems.find(item => !seen.has(item.id) && item.category === cat)
+                    ?? sourceItems.find(item => !seen.has(item.id));
+                if (fallback) { result.push(fallback); seen.add(fallback.id); }
             }
 
             if (!isMounted.current) return;
-            setOutfits(filtered.slice(0, 4));
-            setGenerated(true); setLoading(false);
+            setOutfits(result.slice(0, 4));
+            setGenerated(true);
+            setLoading(false);
             startAfterOnboarding();
 
             if (email === 'test@test.com') {
@@ -578,16 +508,28 @@ export default function BuilderScreen() {
     };
 
     const toggleChip = (chip: string) => { setSelectedChips(prev => prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip]); };
-
     const handleClear = () => { setPrompt(''); setOutfits([]); setGenerated(false); setAddedToCart(false); setInlineFeedbackRating(0); setInlineFeedbackSubmitted(false); setGenerateError(false); };
-
     const handleAddToCart = () => { const shopItems = outfits.filter(i => !i.fromWardrobe); if (shopItems.length === 0) return; setCartModalVisible(true); };
 
     const handleConfirmAddToCart = (cartId: string) => {
         const shopItems = outfits.filter(i => !i.fromWardrobe);
-        shopItems.forEach(item => { addProductToCart(cartId, { id: item.id + Date.now().toString(), name: item.name, price: 49.99, quantity: 1, image: item.image, note: 'Added from Outfit Builder' }); });
-        setCartModalVisible(false); setAddedToCart(true);
-        setTimeout(() => { if (!isMounted.current) return; handleClear(); router.replace({ pathname: '/cart_detail', params: { cartId } }); }, 1500);
+        const ts = Date.now();
+        const newProducts: CartProduct[] = shopItems.map((item, index) => ({
+            id: `${item.id}-builder-${ts}-${index}`,
+            name: item.name,
+            price: item.price ?? 49.99,
+            quantity: 1,
+            image: item.image,
+            note: 'Added from Outfit Builder',
+        }));
+        addProductsToCart(cartId, newProducts);
+        setCartModalVisible(false);
+        setAddedToCart(true);
+        setTimeout(() => {
+            if (!isMounted.current) return;
+            handleClear();
+            router.replace({ pathname: '/cart_detail', params: { cartId } });
+        }, 1200);
     };
 
     const handleItemPress = (item: OutfitItem) => {
@@ -629,7 +571,7 @@ export default function BuilderScreen() {
     const getButtonLabel = () => { if (loading) return 'Generating things for you...'; if (generated) return 'REGENERATE'; return 'GENERATE OUTFIT'; };
 
     const handleEditCart = (cartId: string) => { setCartModalVisible(false); router.push({ pathname: '/(tabs)/cart_detail', params: { cartId, returnToBuilder: 'true' } }); };
-    const getCartTotal = (cart: { products: any[] }) => cart.products.reduce((sum, product) => sum + product.price * product.quantity, 0);
+    const getCartTotal = (cart: { products: CartProduct[] }) => cart.products.reduce((sum, p) => sum + p.price * p.quantity, 0);
     const handleDeleteCart = (cartId: string) => { Alert.alert('Delete cart', 'Are you sure you want to delete this cart?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteCart(cartId) }]); };
 
     const renderCartRightActions = (cartId: string) => (
@@ -695,7 +637,11 @@ export default function BuilderScreen() {
                 </View>
 
                 <View ref={generateRef}>
-                    <TouchableOpacity style={[styles.generateButton, loading && styles.generateButtonLoading, isPromptEmpty && styles.generateButtonDisabled, generated && !loading && styles.generateButtonRegenerate]} onPress={handleGenerate} disabled={loading || isPromptEmpty}>
+                    <TouchableOpacity
+                        style={[styles.generateButton, loading && styles.generateButtonLoading, isPromptEmpty && styles.generateButtonDisabled, generated && !loading && styles.generateButtonRegenerate]}
+                        onPress={handleGenerate}
+                        disabled={loading || isPromptEmpty}
+                    >
                         <Feather name={generated && !loading ? 'refresh-cw' : 'zap'} size={16} color="#fff" />
                         <Text style={styles.generateButtonText}>{getButtonLabel()}</Text>
                     </TouchableOpacity>
@@ -730,11 +676,8 @@ export default function BuilderScreen() {
                                                 <Feather name="refresh-cw" size={13} color="#111" />
                                             </TouchableOpacity>
                                         </View>
-                                        {/* Slot label */}
                                         <View style={styles.slotLabelBadge}>
-                                            <Text style={styles.slotLabelText}>
-                                                {index === 0 ? '👟' : index === 1 ? '👖' : index === 2 ? '👕' : '🧥'}
-                                            </Text>
+                                            <Text style={styles.slotLabelText}>{index === 0 ? '👟' : index === 1 ? '👖' : index === 2 ? '👕' : '🧥'}</Text>
                                         </View>
                                         {item.fromWardrobe ? (
                                             <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.wardrobeBadge}><Text style={styles.wardrobeBadgeText}>My item</Text></View>
@@ -749,7 +692,6 @@ export default function BuilderScreen() {
                                 </View>
                             ))}
                         </View>
-
                         <View ref={actionRowRef} style={styles.actionRow}>
                             <TouchableOpacity style={styles.actionButtonOutline} onPress={handleClear}>
                                 <Feather name="x" size={16} color="#111" /><Text style={styles.actionButtonOutlineText}>Dismiss</Text>
@@ -776,7 +718,6 @@ export default function BuilderScreen() {
                 )}
             </ScrollView>
 
-            {/* Onboarding */}
             {onboardingStep >= 0 && onboardingPhase !== null && (
                 <Modal visible transparent animationType="fade">
                     <View style={styles.onboardingOverlay}>
@@ -799,7 +740,6 @@ export default function BuilderScreen() {
                 </Modal>
             )}
 
-            {/* Feedback Modal */}
             <Modal visible={feedbackVisible} transparent animationType="slide" onRequestClose={() => setFeedbackVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setFeedbackVisible(false)} />
@@ -849,7 +789,6 @@ export default function BuilderScreen() {
                 </View>
             </Modal>
 
-            {/* Reward Modal */}
             <Modal visible={rewardModalVisible} transparent animationType="fade" onRequestClose={() => setRewardModalVisible(false)}>
                 <TouchableOpacity style={styles.rewardOverlay} activeOpacity={1} onPress={() => setRewardModalVisible(false)}>
                     <TouchableOpacity activeOpacity={1} onPress={() => {}}>
@@ -869,7 +808,6 @@ export default function BuilderScreen() {
                 </TouchableOpacity>
             </Modal>
 
-            {/* Wardrobe / Wishlist Sheet */}
             <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setSheetVisible(false)} />
@@ -905,7 +843,6 @@ export default function BuilderScreen() {
                 </View>
             </Modal>
 
-            {/* Manual Picker */}
             <Modal visible={manualPickerVisible} animationType="slide" transparent onRequestClose={() => setManualPickerVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setManualPickerVisible(false)} />
@@ -946,7 +883,6 @@ export default function BuilderScreen() {
                 </View>
             </Modal>
 
-            {/* Cart Modal */}
             <Modal visible={cartModalVisible} animationType="slide" transparent onRequestClose={() => setCartModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <TouchableOpacity style={styles.modalBackdrop} onPress={() => setCartModalVisible(false)} />

@@ -245,9 +245,9 @@ export default function CartDetailScreen() {
                         style={styles.checkoutButton}
                         onPress={() =>
                             router.push({
-                                pathname: '/payment',
-                                params: { cartId: cart.id },
-                            })
+                            pathname: '/(tabs)/payment',
+                            params: { cartId: cart.id },
+                        })
                         }
                     >
     <Text style={styles.checkoutButtonText}>Proceed to payment</Text>

@@ -23,7 +23,6 @@ export default function RootLayout() {
                                     <Stack.Screen name="index" />
                                     <Stack.Screen name="(tabs)" />
                                     <Stack.Screen name="cart_detail" />
-                                    <Stack.Screen name="payment" />
                                     <Stack.Screen
                                         name="modal"
                                         options={{ presentation: 'modal', title: 'Modal', headerShown: true }}
