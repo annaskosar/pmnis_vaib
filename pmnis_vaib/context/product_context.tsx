@@ -12,12 +12,12 @@ export type MainCategory =
     | 'SALE: HOT DEALS'
     | 'CLOTHING'
     | 'SHOES'
-    | 'DRESSES'
-    | 'DESIGN'
-    | 'ACCESSORIES'
-    | 'BRANDS'
-    | 'ACTIVEWEAR'
-    | 'PYJAMAS';
+    //| 'DRESSES'
+    | 'DESIGN';
+    // | 'ACCESSORIES'
+    // | 'BRANDS'
+    // | 'ACTIVEWEAR'
+    // | 'PYJAMAS';
 
 export type SubCategory =
     | 'All'
@@ -39,14 +39,14 @@ export type SubCategory =
     | 'Boots'
     | 'Heels'
     | 'Sandals'
-    | 'Flats'
-    | 'Running shoes'
-    | 'Mini dresses'
-    | 'Maxi dresses'
-    | 'Party dresses'
-    | 'Casual dresses'
-    | 'Evening dresses'
-    | 'Floral dresses'
+    //| 'Flats'
+    //| 'Running shoes'
+    // | 'Mini dresses'
+    // | 'Maxi dresses'
+    // | 'Party dresses'
+    // | 'Casual dresses'
+    // | 'Evening dresses'
+    // | 'Floral dresses'
     | 'New designers'
     | 'Luxury picks'
     | 'Trend hits'
@@ -166,45 +166,45 @@ export const categoryMap: Record<MainCategory, string[]> = {
         'Sneakers',
         'Boots',
         'Heels',
-        'Sandals',
-        'Flats',
-        'Running shoes',
+        //'Sandals',
+        //'Flats',
+        //'Running shoes',
     ],
-    DRESSES: [
-        'Mini dresses',
-        'Maxi dresses',
-        'Party dresses',
-        'Casual dresses',
-        'Evening dresses',
-        'Floral dresses',
-    ],
+    // DRESSES: [
+    //     'Mini dresses',
+    //     'Maxi dresses',
+    //     'Party dresses',
+        // 'Casual dresses',
+        // 'Evening dresses',
+        // 'Floral dresses',
+    //],
     DESIGN: ['New designers', 'Luxury picks', 'Trend hits', 'Runway mood'],
-    ACCESSORIES: [
-        'Bags',
-        'Jewellery',
-        'Belts',
-        'Sunglasses',
-        'Scarves',
-        'Hats',
-        'Hair accessories',
-        'Watches',
-    ],
-    BRANDS: [
-        'New brands',
-        'Trending brands',
-        'Designer brands',
-        'Sports brands',
-        'Sustainable brands',
-    ],
-    ACTIVEWEAR: [
-        'Leggings',
-        'Sports bras',
-        'Workout tops',
-        'Joggers',
-        'Gym sets',
-        'Yoga wear',
-    ],
-    PYJAMAS: ['Pyjama sets', 'Night dresses', 'Sleep tops', 'Sleep shorts', 'Slippers'],
+    // ACCESSORIES: [
+    //     'Bags',
+    //     'Jewellery',
+    //     'Belts',
+    //     'Sunglasses',
+    //     'Scarves',
+    //     'Hats',
+    //     'Hair accessories',
+    //     'Watches',
+    // ],
+    // BRANDS: [
+    //     'New brands',
+    //     'Trending brands',
+    //     'Designer brands',
+    //     'Sports brands',
+    //     'Sustainable brands',
+    // ],
+    // ACTIVEWEAR: [
+    //     'Leggings',
+    //     'Sports bras',
+    //     'Workout tops',
+    //     'Joggers',
+    //     'Gym sets',
+    //     'Yoga wear',
+    // ],
+    // PYJAMAS: ['Pyjama sets', 'Night dresses', 'Sleep tops', 'Sleep shorts', 'Slippers'],
 };
 
 export type SizeOption = {
@@ -1080,6 +1080,39 @@ export const rawProducts: Omit<Product, 'description' | 'fit' | 'rating' | 'revi
     isTrending: true,
     images: ['sneakers2_0'],
     playgroundStyles: ['clean_girl', 'street_cool', 'old_money'],
+},
+
+{
+    id: 'boots1',
+    name: 'Suede Knee-High Heeled Boots',
+    brand: 'Mango',
+    price: 289,
+    gender: 'women',
+    isOnSale: false,
+    discountPercent: 0,
+    mainCategory: 'SHOES',
+    subCategory: 'Boots',
+    availableColors: [{ name: 'Brown', code: '#8B5E3C', imageKeys: ['boots1_0'] }],
+    availableSizes: ['EU 36', 'EU 38', 'EU 40'],
+    images: ['boots1_0'],
+    tags: ['Best sellers'],
+    playgroundStyles: ['old_money', 'dark_academia'],
+},
+{
+    id: 'boots2',
+    name: 'Embroidered Cowboy Boots',
+    brand: 'Zara',
+    price: 179,
+    gender: 'women',
+    isOnSale: false,
+    discountPercent: 0,
+    mainCategory: 'SHOES',
+    subCategory: 'Boots',
+    availableColors: [{ name: 'Brown', code: '#4A2E1A', imageKeys: ['boots2_0'] }],
+    availableSizes: ['EU 36', 'EU 38', 'EU 40'],
+    images: ['boots2_0'],
+    tags: ['Trending brands'],
+    playgroundStyles: ['grunge_rebel', 'street_cool'],
 },
 ];
 
@@ -2067,6 +2100,45 @@ sneakers2: {
         material: 'Leather upper, rubber sole',
         sustainability: 'Durable leather construction, high repeat wear, versatile styling',
         ecoAlternativeIds: [{ productId: 'sneakers1', ecoScore: 58 }],
+    },
+},
+
+boots1: {
+    description: 'Elegant knee-high suede boots with a structured block heel and gold buckle detail — a timeless investment piece for autumn and winter styling.',
+    fit: 'Regular',
+    rating: 4.7,
+    reviewCount: 112,
+    reviews: [
+        { id: 'boots1_r1', name: 'Laura', rating: 5, text: 'Absolutely stunning boots. The suede quality is amazing.', date: '2 days ago' },
+        { id: 'boots1_r2', name: 'Nina', rating: 5, text: 'So elegant and the gold buckle is a beautiful touch.', date: '1 week ago' },
+        { id: 'boots1_r3', name: 'Mia', rating: 4, text: 'Very comfortable for heeled boots, wear them constantly.', date: '2 weeks ago' },
+    ],
+    awards: ['Best seller', 'Editor pick', 'Customer favorite'],
+    eco: {
+        ecoScore: 71,
+        ecoDescription: 'Suede construction with strong longevity and high repeat wear potential support a good eco score.',
+        material: 'Suede upper, leather lining, rubber sole',
+        sustainability: 'Durable natural material, timeless design, high repeat wear',
+        ecoAlternativeIds: [{ productId: 'boots2', ecoScore: 58 }],
+    },
+},
+boots2: {
+    description: 'Statement embroidered cowboy boots with intricate gold detailing, metal eyelet harness and a bold pointed heel — made for those who dress with attitude.',
+    fit: 'Regular',
+    rating: 4.5,
+    reviewCount: 78,
+    reviews: [
+        { id: 'boots2_r1', name: 'Zoe', rating: 5, text: 'These are absolutely incredible. So many compliments.', date: '3 days ago' },
+        { id: 'boots2_r2', name: 'Kika', rating: 4, text: 'Bold and beautiful, exactly what I wanted.', date: '1 week ago' },
+        { id: 'boots2_r3', name: 'Domi', rating: 5, text: 'The embroidery detail is even better in person.', date: '3 weeks ago' },
+    ],
+    awards: ['Trending', 'Editor pick'],
+    eco: {
+        ecoScore: 58,
+        ecoDescription: 'Embellished construction and synthetic materials lower the eco score, though statement styling supports longer ownership.',
+        material: 'Faux leather upper, metal eyelets, synthetic sole',
+        sustainability: 'Statement piece with moderate repeat wear, synthetic materials',
+        ecoAlternativeIds: [{ productId: 'boots1', ecoScore: 71 }],
     },
 },
 

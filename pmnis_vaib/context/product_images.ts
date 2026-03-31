@@ -58,4 +58,7 @@ export const productImages: Record<string, any> = {
     heels2_0: require('../assets/products/clothing/heels/heels2_0.png'),
     sneakers1_0: require('../assets/products/clothing/sneakers/sneakers1_0.png'),
     sneakers2_0: require('../assets/products/clothing/sneakers/sneakers2_0.png'),
+
+    boots1_0: require('../assets/products/clothing/boots/boots1_0.png'),
+    boots2_0: require('../assets/products/clothing/boots/boots2_0.png'),
     };
