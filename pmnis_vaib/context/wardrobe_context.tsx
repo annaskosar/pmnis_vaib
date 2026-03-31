@@ -13,6 +13,7 @@ export type WardrobeItem = {
     pinnedAt?: number | null;
     createdAt: number;
     updatedAt?: number | null;
+    color?: string | null;
 };
 
 type WardrobeContextType = {
@@ -37,6 +38,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Brown',
     },
     {
         id: '2',
@@ -48,6 +50,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Blue',
     },
     {
         id: '3',
@@ -59,6 +62,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Blue',
     },
     {
         id: '4',
@@ -70,6 +74,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Pink',
     },
     {
         id: '5',
@@ -81,6 +86,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Grey',
     },
     {
         id: '6',
@@ -92,6 +98,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'White',
     },
     {
         id: '7',
@@ -103,6 +110,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Purple',
     },
     {
         id: '8',
@@ -114,6 +122,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         pinnedAt: null,
         createdAt: Date.now(),
         updatedAt: null,
+        color: 'Yellow',
     },
 ];
 

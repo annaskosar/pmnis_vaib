@@ -234,7 +234,7 @@ export default function WardrobeScreen() {
             const bagProduct = products.find(
                 (product) =>
                     product.gender === 'women' &&
-                    (product.subCategory === 'Bags' || product.mainCategory === 'ACCESSORIES')
+                    (product.subCategory === 'Bags')
             );
             if (bagProduct) suggestions.push(bagProduct);
         }
@@ -266,14 +266,6 @@ export default function WardrobeScreen() {
             if (jeansProduct) suggestions.push(jeansProduct);
         }
 
-        if (!hasDress) {
-            const dressProduct = products.find(
-                (product) =>
-                    product.gender === 'women' &&
-                    product.mainCategory === 'DRESSES'
-            );
-            if (dressProduct) suggestions.push(dressProduct);
-        }
 
         if (suggestions.length < 3) {
             const fallbackProducts = products.filter((product) => {
@@ -285,10 +277,9 @@ export default function WardrobeScreen() {
                 if (
                     (hasCoat && (product.subCategory === 'Coats' || product.subCategory === 'Jackets')) ||
                     (hasJeans && product.subCategory === 'Jeans') ||
-                    (hasDress && product.mainCategory === 'DRESSES') ||
-                    (hasBag && (product.subCategory === 'Bags' || product.mainCategory === 'ACCESSORIES')) ||
+                    (hasBag && (product.subCategory === 'Bags' ) ||
                     (hasShoes && product.mainCategory === 'SHOES')
-                ) {
+                )) {
                     return false;
                 }
 

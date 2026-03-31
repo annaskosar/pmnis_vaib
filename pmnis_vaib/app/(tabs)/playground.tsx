@@ -31,138 +31,149 @@ type PlaygroundCard = {
     title: string;
     subtitle: string;
     styleKey: PlaygroundStyleKey;
-    image: any;
+    swipeImage: any;
+    resultImage: any;
+};
+
+type PlaygroundStyleConfig = {
+    id: string;
+    title: string;
+    subtitle: string;
+    styleKey: PlaygroundStyleKey;
+    imageA: any;
+    imageB: any;
+    resultSubtitle: string;
 };
 
 const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.24;
 
-const playgroundCards: PlaygroundCard[] = [
+const allStyleConfigs: PlaygroundStyleConfig[] = [
     {
         id: '1',
         title: 'Goth',
         subtitle: 'Dark layers, leather textures and bold, moody energy.',
         styleKey: 'goth',
-        image: require('../../assets/images_app/model1.jpg'),
+        imageA: require('../../assets/playground/goth.jpg'),
+        imageB: require('../../assets/playground/goth2.jpg'),
+        resultSubtitle:
+            'Dark, bold and a little mysterious — this energy just clicks with you right now.',
     },
     {
         id: '2',
         title: 'Grunge Rebel',
         subtitle: 'Ripped, messy and effortlessly anti-everything.',
         styleKey: 'grunge_rebel',
-        image: require('../../assets/images_app/model2.jpg'),
+        imageA: require('../../assets/playground/rebel.jpg'),
+        imageB: require('../../assets/playground/rebel2.jpg'),
+        resultSubtitle:
+            'Messy layers, raw attitude and not caring too much — exactly your vibe.',
     },
     {
         id: '3',
         title: 'Y2K Glam',
         subtitle: 'Shiny, playful and iconic 2000s main character energy.',
         styleKey: 'y2k_glam',
-        image: require('../../assets/images_app/model3.jpg'),
+        imageA: require('../../assets/playground/y2k.jpg'),
+        imageB: require('../../assets/playground/y2k2.jpg'),
+        resultSubtitle:
+            'Playful, confident and a little extra — you’re giving main character energy.',
     },
     {
         id: '4',
         title: 'Street Cool',
         subtitle: 'Oversized fits, layers and confident everyday drip.',
         styleKey: 'street_cool',
-        image: require('../../assets/images_app/model4.jpg'),
+        imageA: require('../../assets/playground/street.jpg'),
+        imageB: require('../../assets/playground/street2.jpg'),
+        resultSubtitle:
+            'Effortless layers, oversized fits and quiet confidence — you just get it.',
     },
     {
         id: '5',
         title: 'Clean Girl',
         subtitle: 'Slick, minimal and effortlessly put-together.',
         styleKey: 'clean_girl',
-        image: require('../../assets/images_app/model5.jpg'),
+        imageA: require('../../assets/playground/clean.jpg'),
+        imageB: require('../../assets/playground/clean2.jpg'),
+        resultSubtitle:
+            'Minimal, polished and put-together — your energy is calm but powerful.',
     },
     {
         id: '6',
         title: 'Old Money',
         subtitle: 'Timeless, elegant and quietly luxurious.',
         styleKey: 'old_money',
-        image: require('../../assets/images_app/model6.jpg'),
+        imageA: require('../../assets/playground/old_money.jpg'),
+        imageB: require('../../assets/playground/old_money2.jpg'),
+        resultSubtitle:
+            'Timeless, elegant and understated — luxury without trying too hard.',
     },
     {
         id: '7',
         title: 'Dark Academia',
         subtitle: 'Blazers, books and intellectual vintage mood.',
         styleKey: 'dark_academia',
-        image: require('../../assets/images_app/model7.jpg'),
+        imageA: require('../../assets/playground/academia.jpg'),
+        imageB: require('../../assets/playground/academia2.jpg'),
+        resultSubtitle:
+            'Intellectual, moody and aesthetic — like you belong in a classic novel.',
     },
     {
         id: '8',
         title: 'Coquette Soft',
         subtitle: 'Delicate, feminine and softly romantic aesthetic.',
         styleKey: 'coquette_soft',
-        image: require('../../assets/images_app/model2.jpg'),
+        imageA: require('../../assets/playground/cot.jpg'),
+        imageB: require('../../assets/playground/cot2.jpg'),
+        resultSubtitle:
+            'Soft, feminine and a little dreamy — delicate but still intentional.',
     },
 ];
 
-const resultMap: Record<
-    PlaygroundStyleKey,
-    { matchLabel: string; styleName: string; subtitle: string; image: any }
-> = {
-    goth: {
-        matchLabel: 'You matched with',
-        styleName: 'Goth',
-        subtitle:
-            'Dark, bold and a little mysterious — this energy just clicks with you right now.',
-        image: require('../../assets/images_app/model1.jpg'),
-    },
-    grunge_rebel: {
-        matchLabel: 'You matched with',
-        styleName: 'Grunge Rebel',
-        subtitle:
-            'Messy layers, raw attitude and not caring too much — exactly your vibe.',
-        image: require('../../assets/images_app/model2.jpg'),
-    },
-    y2k_glam: {
-        matchLabel: 'You matched with',
-        styleName: 'Y2K Glam',
-        subtitle:
-            'Playful, confident and a little extra — you’re giving main character energy.',
-        image: require('../../assets/images_app/model3.jpg'),
-    },
-    street_cool: {
-        matchLabel: 'You matched with',
-        styleName: 'Street Cool',
-        subtitle:
-            'Effortless layers, oversized fits and quiet confidence — you just get it.',
-        image: require('../../assets/images_app/model4.jpg'),
-    },
-    clean_girl: {
-        matchLabel: 'You matched with',
-        styleName: 'Clean Girl',
-        subtitle:
-            'Minimal, polished and put-together — your energy is calm but powerful.',
-        image: require('../../assets/images_app/model5.jpg'),
-    },
-    old_money: {
-        matchLabel: 'You matched with',
-        styleName: 'Old Money',
-        subtitle:
-            'Timeless, elegant and understated — luxury without trying too hard.',
-        image: require('../../assets/images_app/model6.jpg'),
-    },
-    dark_academia: {
-        matchLabel: 'You matched with',
-        styleName: 'Dark Academia',
-        subtitle:
-            'Intellectual, moody and aesthetic — like you belong in a classic novel.',
-        image: require('../../assets/images_app/model7.jpg'),
-    },
-    coquette_soft: {
-        matchLabel: 'You matched with',
-        styleName: 'Coquette Soft',
-        subtitle:
-            'Soft, feminine and a little dreamy — delicate but still intentional.',
-        image: require('../../assets/images_app/model2.jpg'),
-    },
+const shuffleArray = <T,>(array: T[]) => {
+    const copy = [...array];
+
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+
+    return copy;
+};
+
+const buildRandomPlaygroundCards = (): PlaygroundCard[] => {
+    const shuffled = shuffleArray(allStyleConfigs).slice(0, 4);
+
+    return shuffled.map((style) => {
+        const useAForSwipe = Math.random() > 0.5;
+
+        return {
+            id: style.id,
+            title: style.title,
+            subtitle: style.subtitle,
+            styleKey: style.styleKey,
+            swipeImage: useAForSwipe ? style.imageA : style.imageB,
+            resultImage: useAForSwipe ? style.imageB : style.imageA,
+        };
+    });
 };
 
 export default function PlaygroundSwipeScreen() {
     const router = useRouter();
 
+    const position = React.useRef(new Animated.ValueXY()).current;
+
+    const [activeCards, setActiveCards] = React.useState<PlaygroundCard[]>(() =>
+        buildRandomPlaygroundCards()
+    );
     const [currentIndex, setCurrentIndex] = React.useState(0);
     const [finished, setFinished] = React.useState(false);
+    const [burstType, setBurstType] = React.useState<'like' | 'skip' | null>(null);
+    const [imagesReady, setImagesReady] = React.useState(false);
+    const [showResultCard, setShowResultCard] = React.useState(false);
+    const [showResultConfetti, setShowResultConfetti] = React.useState(false);
+
     const [scores, setScores] = React.useState<Record<PlaygroundStyleKey, number>>({
         goth: 0,
         grunge_rebel: 0,
@@ -176,7 +187,9 @@ export default function PlaygroundSwipeScreen() {
 
     useFocusEffect(
         React.useCallback(() => {
-            // keď sa screen otvorí → reset
+            const newCards = buildRandomPlaygroundCards();
+
+            setActiveCards(newCards);
             setCurrentIndex(0);
             setFinished(false);
             setShowResultCard(false);
@@ -195,19 +208,9 @@ export default function PlaygroundSwipeScreen() {
 
             position.setValue({ x: 0, y: 0 });
 
-            return () => {
-                // optional: keď odídeš zo screen
-            };
-        }, [])
+            return () => {};
+        }, [position])
     );
-
-    const [burstType, setBurstType] = React.useState<'like' | 'skip' | null>(null);
-    const [imagesReady, setImagesReady] = React.useState(false);
-
-    const currentCard = playgroundCards[currentIndex];
-    const position = React.useRef(new Animated.ValueXY()).current;
-    const [showResultCard, setShowResultCard] = React.useState(false);
-    const [showResultConfetti, setShowResultConfetti] = React.useState(false);
 
     const burst1 = React.useRef(new Animated.Value(0)).current;
     const burst2 = React.useRef(new Animated.Value(0)).current;
@@ -217,6 +220,8 @@ export default function PlaygroundSwipeScreen() {
     const burst6 = React.useRef(new Animated.Value(0)).current;
 
     const pulse = React.useRef(new Animated.Value(1)).current;
+
+    const currentCard = activeCards[currentIndex];
 
     React.useEffect(() => {
         if (!finished || showResultCard) return;
@@ -244,7 +249,6 @@ export default function PlaygroundSwipeScreen() {
         };
     }, [finished, showResultCard, pulse]);
 
-
     const CONFETTI_COUNT = 28;
 
     const CONFETTI_COLORS = [
@@ -258,30 +262,34 @@ export default function PlaygroundSwipeScreen() {
         '#ff006e',
     ];
 
-    const confettiPieces = Array.from({ length: CONFETTI_COUNT }, (_, index) => {
-        const spreadX = (Math.random() - 0.5) * width * 1.4;
-        const spreadY = -(120 + Math.random() * 260);
-        const rotateEnd = `${Math.random() * 520 - 260}deg`;
-        const scale = 0.7 + Math.random() * 0.9;
-        const size = 10 + Math.random() * 10;
-        const color =
-            CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        const shape = Math.random() > 0.5 ? '•' : '✦';
+    const confettiPieces = React.useMemo(
+        () =>
+            Array.from({ length: CONFETTI_COUNT }, (_, index) => {
+                const spreadX = (Math.random() - 0.5) * width * 1.4;
+                const spreadY = -(120 + Math.random() * 260);
+                const rotateEnd = `${Math.random() * 520 - 260}deg`;
+                const scale = 0.7 + Math.random() * 0.9;
+                const size = 10 + Math.random() * 10;
+                const color =
+                    CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+                const shape = Math.random() > 0.5 ? '•' : '✦';
 
-        return {
-            id: `confetti-${index}`,
-            spreadX,
-            spreadY,
-            rotateEnd,
-            scale,
-            size,
-            color,
-            shape,
-        };
-    });
+                return {
+                    id: `confetti-${index}`,
+                    spreadX,
+                    spreadY,
+                    rotateEnd,
+                    scale,
+                    size,
+                    color,
+                    shape,
+                };
+            }),
+        []
+    );
 
     const confettiAnims = React.useRef(
-        confettiPieces.map(() => new Animated.Value(0))
+        Array.from({ length: CONFETTI_COUNT }, () => new Animated.Value(0))
     ).current;
 
     const rotate = position.x.interpolate({
@@ -326,7 +334,6 @@ export default function PlaygroundSwipeScreen() {
         extrapolate: 'clamp',
     });
 
-
     const cardAnimatedStyle = {
         transform: [
             { translateX: position.x },
@@ -341,9 +348,10 @@ export default function PlaygroundSwipeScreen() {
         const preloadImages = async () => {
             try {
                 await Promise.all(
-                    playgroundCards.map((card) =>
-                        Asset.fromModule(card.image).downloadAsync()
-                    )
+                    allStyleConfigs.flatMap((style) => [
+                        Asset.fromModule(style.imageA).downloadAsync(),
+                        Asset.fromModule(style.imageB).downloadAsync(),
+                    ])
                 );
 
                 await Asset.fromModule(
@@ -370,7 +378,7 @@ export default function PlaygroundSwipeScreen() {
     const goToNextCard = (updatedScores: Record<PlaygroundStyleKey, number>) => {
         const nextIndex = currentIndex + 1;
 
-        if (nextIndex >= playgroundCards.length) {
+        if (nextIndex >= activeCards.length) {
             setScores(updatedScores);
             setFinished(true);
         } else {
@@ -527,17 +535,34 @@ export default function PlaygroundSwipeScreen() {
                     }
                 },
             }),
-        [position, currentIndex, scores]
+        [position, currentCard, currentIndex, scores]
     );
 
     const matchedStyle = (
-        Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] ??
-        'goth'
+        Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'goth'
     ) as PlaygroundStyleKey;
 
-    const result = resultMap[matchedStyle];
+    const matchedStyleConfig = allStyleConfigs.find(
+        (item) => item.styleKey === matchedStyle
+    );
+
+    const matchedActiveCard = activeCards.find(
+        (item) => item.styleKey === matchedStyle
+    );
+
+    const result = {
+        matchLabel: 'You matched with',
+        styleName: matchedStyleConfig?.title ?? 'Goth',
+        subtitle:
+            matchedStyleConfig?.resultSubtitle ??
+            'Dark, bold and a little mysterious — this energy just clicks with you right now.',
+        image:
+            matchedActiveCard?.resultImage ??
+            require('../../assets/playground/goth2.jpg'),
+    };
 
     const handleRestart = () => {
+        setActiveCards(buildRandomPlaygroundCards());
         setCurrentIndex(0);
         setShowResultCard(false);
         setShowResultConfetti(false);
@@ -554,7 +579,18 @@ export default function PlaygroundSwipeScreen() {
         });
         position.setValue({ x: 0, y: 0 });
     };
+
     if (!imagesReady) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.loaderWrap}>
+                    <Text style={styles.loaderText}>Loading playground...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    if (!currentCard && !finished) {
         return (
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.loaderWrap}>
@@ -699,8 +735,6 @@ export default function PlaygroundSwipeScreen() {
                             </View>
                         )}
                     </>
-
-
                 </View>
             </SafeAreaView>
         );
@@ -719,7 +753,7 @@ export default function PlaygroundSwipeScreen() {
 
                     <Text style={styles.headerTitleLight}>Playground</Text>
                     <Text style={styles.counterTextLight}>
-                        {currentIndex + 1}/{playgroundCards.length}
+                        {currentIndex + 1}/{activeCards.length}
                     </Text>
                 </View>
 
@@ -728,7 +762,7 @@ export default function PlaygroundSwipeScreen() {
                         style={[
                             styles.progressFillLight,
                             {
-                                width: `${((currentIndex + 1) / playgroundCards.length) * 100}%`,
+                                width: `${((currentIndex + 1) / activeCards.length) * 100}%`,
                             },
                         ]}
                     />
@@ -741,7 +775,7 @@ export default function PlaygroundSwipeScreen() {
                             {...panResponder.panHandlers}
                         >
                             <ImageBackground
-                                source={currentCard.image}
+                                source={currentCard.swipeImage}
                                 style={styles.card}
                                 imageStyle={styles.cardImage}
                                 resizeMode="cover"
@@ -948,6 +982,7 @@ export default function PlaygroundSwipeScreen() {
                             >
                                 {burstType === 'like' ? '♥' : '✕'}
                             </Animated.Text>
+
                             <Animated.Text
                                 style={[
                                     styles.burstIcon,
@@ -1299,7 +1334,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 10,
     },
-
 
     resultSubtitle: {
         fontSize: 14,

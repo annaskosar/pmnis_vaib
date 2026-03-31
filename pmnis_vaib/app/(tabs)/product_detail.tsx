@@ -25,6 +25,7 @@ import { useProducts, sizeOptions } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { useWardrobe } from '../../context/wardrobe_context';
 
 
 const { width } = Dimensions.get('window');
@@ -92,6 +93,8 @@ const builderLooks: BuilderLook[] = [
         itemIds: ['jeans2', 'top3', 'coat12', 'shirt6'],
     },
 ];
+
+
 
 const peopleDecisionItems: MiniProduct[] = [
     { id: 'p1', image: require('../../assets/images_app/model11.jpg'), name: 'Layering cotton top', price: '€27.99' },
@@ -187,13 +190,104 @@ function MiniProductCard({
     );
 }
 
+function hexToRgb(hex: string) {
+    const cleaned = hex.replace('#', '');
+
+    if (cleaned.length !== 6) return null;
+
+    const r = parseInt(cleaned.slice(0, 2), 16);
+    const g = parseInt(cleaned.slice(2, 4), 16);
+    const b = parseInt(cleaned.slice(4, 6), 16);
+
+    return { r, g, b };
+}
+
+function getBrightness(hex: string) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return 128;
+
+    return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+}
+
+function isDarkHex(hex: string) {
+    return getBrightness(hex) < 128;
+}
+
+function isLightHex(hex: string) {
+    return getBrightness(hex) >= 128;
+}
+
+function getProductTypeKey(product: any) {
+    const sub = product?.subCategory ?? '';
+
+    if (sub === 'Jeans') return 'jeans';
+    if (sub === 'Trousers') return 'trousers';
+    if (sub === 'Tops') return 'tops';
+    if (sub === 'Shirts') return 'shirts';
+    if (sub === 'Jackets') return 'jackets';
+    if (sub === 'Coats') return 'coats';
+    if (sub === 'Hoodies') return 'hoodies';
+    if (sub === 'Sneakers') return 'sneakers';
+    if (sub === 'Boots') return 'boots';
+    if (sub === 'Heels') return 'heels';
+    if (sub === 'Bags') return 'bags';
+
+    return sub.toLowerCase();
+}
+
+
+function normalizeColor(color?: string | null) {
+    if (!color) return '';
+
+    const value = color.toLowerCase().trim();
+
+    if (value === 'grey') return 'gray';
+    if (value === 'burgundy') return 'red';
+    if (value === 'cream') return 'white';
+    if (value === 'camel') return 'beige';
+    if (value === 'purple') return 'pink';
+
+    return value;
+}
+
+function areSimilarColors(productColor?: string | null, wardrobeColor?: string | null) {
+    const p = normalizeColor(productColor);
+    const w = normalizeColor(wardrobeColor);
+
+    if (!p || !w) return true;
+    if (p === w) return true;
+
+    const darkGroup = ['black', 'gray', 'brown'];
+    const lightGroup = ['white', 'cream', 'beige', 'camel'];
+    const blueGroup = ['blue'];
+    const redGroup = ['red', 'burgundy'];
+    const pinkGroup = ['pink', 'purple'];
+    const greenGroup = ['green'];
+    const yellowGroup = ['yellow', 'orange'];
+
+    const groups = [
+        darkGroup,
+        lightGroup,
+        blueGroup,
+        redGroup,
+        pinkGroup,
+        greenGroup,
+        yellowGroup,
+    ];
+
+    return groups.some((group) => group.includes(p) && group.includes(w));
+}
+
+
+
 export default function ProductDetailScreen() {
     const router = useRouter();
     const { productId, category, subcategory, gender, from } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const { carts, addProductToCart, deleteCart } = useCart();
-    const { getProductById } = useProducts();
+    const { getProductById, products } = useProducts();
     const { toggleWishlist, isInWishlist } = useWishlist();
+    const { wardrobeItems } = useWardrobe();
 
     const pulse1 = React.useRef(new Animated.Value(1)).current;
     const pulse2 = React.useRef(new Animated.Value(1)).current;
@@ -233,9 +327,109 @@ export default function ProductDetailScreen() {
 
     const [openPanels, setOpenPanels] = React.useState({ delivery: true, sizeFit: false, productDetails: false });
 
-    const hasSimilarWardrobeItem = true;
+    function normalizeText(text: string) {
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
+    }
+
+    function getDuplicateKeywords(product: any, subcategoryName?: string, categoryName?: string) {
+        const rawText = [
+            product?.name ?? '',
+            subcategoryName ?? '',
+            categoryName ?? '',
+            ...(product?.tags ?? []),
+        ].join(' ');
+
+        const text = normalizeText(rawText);
+
+        if (
+            text.includes('jeans') ||
+            text.includes('jean') ||
+            text.includes('rifle') ||
+            text.includes('denim') ||
+            text.includes('pants') ||
+            text.includes('trousers')
+        ) {
+            return ['jeans', 'jean', 'rifle', 'denim', 'pants', 'trousers'];
+        }
+
+        if (
+            text.includes('bag') ||
+            text.includes('bags') ||
+            text.includes('handbag') ||
+            text.includes('kabelka')
+        ) {
+            return ['bag', 'bags', 'handbag', 'kabelka'];
+        }
+
+        if (
+            text.includes('shoe') ||
+            text.includes('shoes') ||
+            text.includes('topanky') ||
+            text.includes('boots') ||
+            text.includes('boot') ||
+            text.includes('heels') ||
+            text.includes('heel') ||
+            text.includes('sneakers') ||
+            text.includes('sneaker')
+        ) {
+            return ['shoe', 'shoes', 'topanky', 'boots', 'boot', 'heels', 'heel', 'sneakers', 'sneaker'];
+        }
+
+        if (
+            text.includes('top') ||
+            text.includes('tricko') ||
+            text.includes('bluzka') ||
+            text.includes('blouse') ||
+            text.includes('tielko') ||
+            text.includes('shirt') ||
+            text.includes('tee') ||
+            text.includes('t-shirt')
+        ) {
+            return ['top', 'tricko', 'bluzka', 'blouse', 'tielko', 'shirt', 'tee', 't-shirt'];
+        }
+
+        if (
+            text.includes('jacket') ||
+            text.includes('coat') ||
+            text.includes('bunda') ||
+            text.includes('kabat')
+        ) {
+            return ['jacket', 'coat', 'bunda', 'kabat'];
+        }
+
+        if (
+            text.includes('dress') ||
+            text.includes('saty')
+        ) {
+            return ['dress', 'saty'];
+        }
+
+        if (
+            text.includes('skirt') ||
+            text.includes('sukna')
+        ) {
+            return ['skirt', 'sukna'];
+        }
+
+        return [];
+    }
 
     React.useEffect(() => {
+        if (!showDuplicateModal) {
+            pulse1.stopAnimation();
+            pulse2.stopAnimation();
+            pulse3.stopAnimation();
+
+            pulse1.setValue(1);
+            pulse2.setValue(1);
+            pulse3.setValue(1);
+            return;
+        }
+
         const createPulse = (anim: Animated.Value, delay: number) =>
             Animated.loop(
                 Animated.sequence([
@@ -256,6 +450,10 @@ export default function ProductDetailScreen() {
                 ])
             );
 
+        pulse1.setValue(1);
+        pulse2.setValue(1);
+        pulse3.setValue(1);
+
         const animation1 = createPulse(pulse1, 0);
         const animation2 = createPulse(pulse2, 300);
         const animation3 = createPulse(pulse3, 600);
@@ -268,8 +466,12 @@ export default function ProductDetailScreen() {
             animation1.stop();
             animation2.stop();
             animation3.stop();
+
+            pulse1.setValue(1);
+            pulse2.setValue(1);
+            pulse3.setValue(1);
         };
-    }, [pulse1, pulse2, pulse3]);
+    }, [showDuplicateModal]);
 
     const handleToggleMiniWishlist = (item: MiniProduct) => {
         toggleWishlist({
@@ -296,20 +498,6 @@ export default function ProductDetailScreen() {
         );
     }
 
-
-    const ecoData = { name: product.name, ...product.eco };
-
-    const ecoAlternatives = product.eco.ecoAlternativeIds
-        .map((alt) => {
-            const altProduct = getProductById(alt.productId);
-            if (!altProduct) return null;
-            const firstImageKey = altProduct.availableColors[0]?.imageKeys[0] ?? altProduct.images[0];
-            const imageSource = firstImageKey ? productImages[firstImageKey] : null;
-            if (!imageSource) return null;
-            return { id: altProduct.id, name: altProduct.name, image: imageSource, ecoScore: alt.ecoScore };
-        })
-        .filter(Boolean) as { id: string; name: string; image: any; ecoScore: number }[];
-
     const colorVariants: ProductColorVariant[] = product.availableColors.map((color, index) => ({
         id: `${product.id}-${index}`,
         name: color.name,
@@ -326,6 +514,45 @@ export default function ProductDetailScreen() {
 
     const selectedColor = colorVariants.find((variant) => variant.id === selectedColorId) ?? colorVariants[0];
 
+    const selectedProductColorName =
+        selectedColor?.name ??
+        product.availableColors?.[0]?.name ??
+        null;
+
+    const duplicateKeywords = getDuplicateKeywords(product, subcategoryName, categoryName);
+
+    const duplicateWardrobeItem = wardrobeItems.find((item) => {
+        const itemName = normalizeText(item.name ?? '');
+        const itemCategory = normalizeText(item.category ?? '');
+
+        const typeMatch = duplicateKeywords.some(
+            (keyword) =>
+                itemName.includes(keyword) || itemCategory.includes(keyword)
+        );
+
+        if (!typeMatch) return false;
+
+        return areSimilarColors(selectedProductColorName, item.color);
+    });
+
+
+    const hasSimilarWardrobeItem = !!duplicateWardrobeItem;
+
+
+    const ecoData = { name: product.name, ...product.eco };
+
+    const ecoAlternatives = product.eco.ecoAlternativeIds
+        .map((alt) => {
+            const altProduct = getProductById(alt.productId);
+            if (!altProduct) return null;
+            const firstImageKey = altProduct.availableColors[0]?.imageKeys[0] ?? altProduct.images[0];
+            const imageSource = firstImageKey ? productImages[firstImageKey] : null;
+            if (!imageSource) return null;
+            return { id: altProduct.id, name: altProduct.name, image: imageSource, ecoScore: alt.ecoScore };
+        })
+        .filter(Boolean) as { id: string; name: string; image: any; ecoScore: number }[];
+
+
     const productGallery = selectedColor?.images?.length
         ? selectedColor.images
         : product.images.map((key) => productImages[key]).filter(Boolean);
@@ -339,13 +566,49 @@ export default function ProductDetailScreen() {
         note: `${selectedColor?.name ?? ''}${selectedSize ? `, ${selectedSize}` : ''}`,
     };
 
-    const duplicateWardrobeItem = { id: 'w1', name: 'Similar wardrobe item', image: require('../../assets/wardrobe_images/item1.png') };
+    const currentColorCode =
+        selectedColor?.swatch ??
+        product.availableColors?.[0]?.code ??
+        '#808080';
 
-    const duplicateAlternatives = [
-        { id: 'a1', name: 'Organic cotton top', image: require('../../assets/images_app/model8.jpg'), ecoScore: 82 },
-        { id: 'a2', name: 'Recycled soft tee', image: require('../../assets/images_app/model9.jpg'), ecoScore: 78 },
-        { id: 'a3', name: 'Better basic long sleeve', image: require('../../assets/images_app/model10.jpg'), ecoScore: 85 },
-    ];
+    const currentIsDark = isDarkHex(currentColorCode);
+    const productTypeKey = getProductTypeKey(product);
+
+    const sameTypeProducts = products.filter((item) => {
+        if (item.id === product.id) return false;
+        if (item.gender !== product.gender) return false;
+
+        return getProductTypeKey(item) === productTypeKey;
+    });
+
+    const contrastProducts = sameTypeProducts.filter((item) => {
+        const itemColorCodes = (item.availableColors ?? []).map((color) => color.code);
+
+        if (currentIsDark) {
+            return itemColorCodes.some((code) => isLightHex(code));
+        }
+
+        return itemColorCodes.some((code) => isDarkHex(code));
+    });
+
+    const fallbackProducts = sameTypeProducts.filter(
+        (item) => !contrastProducts.some((picked) => picked.id === item.id)
+    );
+
+    const duplicateAlternatives = [...contrastProducts, ...fallbackProducts]
+        .slice(0, 3)
+        .map((item) => {
+            const firstImageKey =
+                item.availableColors?.[0]?.imageKeys?.[0] ??
+                item.images?.[0];
+
+            return {
+                id: item.id,
+                name: item.name,
+                image: firstImageKey ? productImages[firstImageKey] : null,
+            };
+        })
+        .filter((item) => item.image);
 
     const goToPrevEcoAlternative = () => setEcoAlternativeIndex((prev) => prev === 0 ? ecoAlternatives.length - 1 : prev - 1);
     const goToNextEcoAlternative = () => setEcoAlternativeIndex((prev) => prev === ecoAlternatives.length - 1 ? 0 : prev + 1);
@@ -572,7 +835,22 @@ export default function ProductDetailScreen() {
                         <Text style={styles.quickActionText}>Builder</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.quickActionButton} onPress={openCartPicker}>
+                    <TouchableOpacity
+                        style={styles.quickActionButton}
+                        onPress={() => {
+                            if (!selectedSize) {
+                                Alert.alert('Select size', 'Please choose a size first.');
+                                return;
+                            }
+
+                            if (hasSimilarWardrobeItem) {
+                                setShowDuplicateModal(true);
+                                return;
+                            }
+
+                            openCartPicker();
+                        }}
+                    >
                         <Feather name="shopping-cart" size={20} color={COLORS.black} />
                         <Text style={styles.quickActionText}>Cart</Text>
                     </TouchableOpacity>
@@ -914,7 +1192,13 @@ export default function ProductDetailScreen() {
                                 <Text style={styles.duplicateEqualsText}>=</Text>
                             </View>
                             <View style={styles.duplicateCompareItem}>
-                                <Image source={duplicateWardrobeItem.image} style={styles.duplicateCompareImage} contentFit="cover" />
+                                {duplicateWardrobeItem && (
+                                    <Image
+                                        source={duplicateWardrobeItem.image}
+                                        style={styles.duplicateCompareImage}
+                                        contentFit="cover"
+                                    />
+                                )}
                                 <Text style={styles.duplicateCompareLabel} numberOfLines={1}>In wardrobe</Text>
                             </View>
                         </View>
@@ -939,7 +1223,19 @@ export default function ProductDetailScreen() {
                                             { transform: [{ scale: scaleAnim }] },
                                         ]}
                                     >
-                                        <TouchableOpacity activeOpacity={0.85} style={{ flex: 1 }}>
+                                        <TouchableOpacity
+                                            activeOpacity={0.85}
+                                            style={{ flex: 1 }}
+                                            onPress={() => {
+                                                setShowDuplicateModal(false);
+                                                router.push({
+                                                    pathname: '/product_detail',
+                                                    params: {
+                                                        productId: alt.id,
+                                                    },
+                                                });
+                                            }}
+                                        >
                                             <Image
                                                 source={alt.image}
                                                 style={styles.duplicateAlternativeImage}

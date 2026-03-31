@@ -26,6 +26,23 @@ const CATEGORIES: { value: WardrobeCategory; label: string; icon: string }[] = [
     { value: 'other', label: 'Other', icon: '🛍️' },
 ];
 
+const COLOR_OPTIONS = [
+    'Black',
+    'White',
+    'Blue',
+    'Grey',
+    'Brown',
+    'Beige',
+    'Green',
+    'Pink',
+    'Red',
+    'Orange',
+    'Yellow',
+    'Cream',
+    'Camel',
+    'Burgundy',
+] as const;
+
 export default function WardrobeAddScreen() {
     const router = useRouter();
     const { imageUri } = useLocalSearchParams();
@@ -35,6 +52,7 @@ export default function WardrobeAddScreen() {
     const [additionalInfo, setAdditionalInfo] = React.useState('');
     const [selectedCategory, setSelectedCategory] = React.useState<WardrobeCategory | null>(null);
     const [selectedAction, setSelectedAction] = React.useState<'cancel' | 'save' | null>(null);
+    const [selectedColor, setSelectedColor] = React.useState<string | null>(null);
 
     const imageSource =
         typeof imageUri === 'string' ? { uri: imageUri } : undefined;
@@ -50,6 +68,7 @@ export default function WardrobeAddScreen() {
             name: itemName.trim() || 'new item',
             category: selectedCategory ?? 'other',
             additionalInfo: additionalInfo.trim(),
+            color: selectedColor,
             createdAt: Date.now(),
         });
         router.replace('/(tabs)/wardrobe');
@@ -61,6 +80,7 @@ export default function WardrobeAddScreen() {
             setItemName('');
             setAdditionalInfo('');
             setSelectedCategory(null);
+            setSelectedColor(null);
         }, [])
     );
 
@@ -161,6 +181,31 @@ export default function WardrobeAddScreen() {
                                             selectedCategory === cat.value && styles.categoryLabelActive,
                                         ]}>
                                             {cat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={styles.label}>Color</Text>
+                            <View style={styles.categoryGrid}>
+                                {COLOR_OPTIONS.map((color) => (
+                                    <TouchableOpacity
+                                        key={color}
+                                        style={[
+                                            styles.categoryChip,
+                                            selectedColor === color && styles.categoryChipActive,
+                                        ]}
+                                        onPress={() =>
+                                            setSelectedColor(selectedColor === color ? null : color)
+                                        }
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.categoryLabel,
+                                                selectedColor === color && styles.categoryLabelActive,
+                                            ]}
+                                        >
+                                            {color}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}

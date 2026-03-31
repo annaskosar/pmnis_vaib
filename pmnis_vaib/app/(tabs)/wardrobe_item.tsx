@@ -449,6 +449,20 @@ export default function WardrobeItemScreen() {
                             <>
                                 <Text style={styles.itemName}>{item.name}</Text>
 
+                                <Text style={styles.sectionTitle}>Color</Text>
+                                <View style={styles.colorBadge}>
+                                    <Text style={styles.colorBadgeText}>
+                                        {item.color?.trim() ? item.color : 'No color selected'}
+                                    </Text>
+                                </View>
+
+                                <Text style={styles.sectionTitle}>Additional information</Text>
+                                <Text style={styles.itemInfo}>
+                                    {item.additionalInfo?.trim()
+                                        ? item.additionalInfo
+                                        : 'No additional information yet.'}
+                                </Text>
+
                                 <Text style={styles.sectionTitle}>Additional information</Text>
                                 <Text style={styles.itemInfo}>
                                     {item.additionalInfo?.trim()
@@ -961,5 +975,19 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#111',
         fontWeight: '700',
+    },
+
+    colorBadge: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#dedede',
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+
+    colorBadgeText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#111',
     },
 });
