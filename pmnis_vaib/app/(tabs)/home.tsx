@@ -352,7 +352,7 @@ export default function HomeScreen() {
                                 <View style={styles.toggleRow}>
                                     <View style={styles.toggleTextBlock}>
                                         <Text style={styles.toggleLabel}>Share shopping activity</Text>
-                                        <Text style={styles.toggleDescription}>Browsing, wishlist, searches and purchases</Text>
+                                        <Text style={styles.toggleDescription}>Your browsing, wishlist, searches and clicks</Text>
                                     </View>
                                     <Switch
                                         value={trackingEnabled}

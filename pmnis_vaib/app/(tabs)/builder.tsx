@@ -886,7 +886,7 @@ export default function BuilderScreen() {
             <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Outfit Builder</Text>
-                    <Text style={styles.headerSubtitle}>Pick a vibe and we'll build the perfect outfit for you ✨</Text>
+                    <Text style={styles.headerSubtitle}>Pick a vibe and we'll build the outfit for you ✨</Text>
                 </View>
 
                 <Text style={styles.sectionLabel}>Sources</Text>
