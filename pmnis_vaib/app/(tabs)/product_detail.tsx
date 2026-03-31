@@ -301,12 +301,13 @@ function areSimilarShades(
 
 export default function ProductDetailScreen() {
     const router = useRouter();
-    const { productId, category, subcategory, gender, from, itemId } = useLocalSearchParams();
+    const { productId, category, subcategory, gender, from, itemId, cartId } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const fromValue = Array.isArray(from) ? from[0] : from;
     const categoryName = Array.isArray(category) ? category[0] : category;
     const subcategoryName = Array.isArray(subcategory) ? subcategory[0] : subcategory;
     const itemIdValue = Array.isArray(itemId) ? itemId[0] : itemId;
+    const cartIdValue = Array.isArray(cartId) ? cartId[0] : cartId;
 
     const { carts, addProductToCart, deleteCart } = useCart();
     const { getProductById, products } = useProducts();
@@ -354,6 +355,10 @@ export default function ProductDetailScreen() {
                 router.replace('/(tabs)/wishlist');
                 return;
 
+            case 'wardrobe':
+                router.replace('/(tabs)/wardrobe');
+                return;
+
             case 'wardrobe_item':
                 if (itemIdValue) {
                     router.replace({
@@ -373,7 +378,14 @@ export default function ProductDetailScreen() {
                 router.replace('/(tabs)/search');
                 return;
 
-            case 'cart':
+            case 'cart_detail':
+                if (cartIdValue) {
+                    router.replace({
+                        pathname: '/(tabs)/cart_detail',
+                        params: { cartId: cartIdValue },
+                    });
+                    return;
+                }
                 router.replace('/(tabs)/cart');
                 return;
 
@@ -650,6 +662,18 @@ export default function ProductDetailScreen() {
         quantity: 1,
         image: productGallery[imageIndex] ?? productGallery[0],
         note: `${selectedColor?.name ?? ''}${selectedSize ? `, ${selectedSize}` : ''}`,
+
+        sourceProductId: product.id,
+        category: categoryName ?? product.mainCategory,
+        subcategory: subcategoryName ?? product.subCategory,
+        gender:
+            genderValue === 'MAN'
+                ? 'MAN'
+                : genderValue === 'WOMAN'
+                    ? 'WOMAN'
+                    : product.gender === 'men'
+                        ? 'MAN'
+                        : 'WOMAN',
     };
 
     const currentColorCode =

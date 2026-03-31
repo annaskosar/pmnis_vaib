@@ -8,7 +8,12 @@ export type CartProduct = {
     quantity: number;
     image: any;
     note: string;
+    sourceProductId?: string;
+    category?: string;
+    subcategory?: string;
+    gender?: 'WOMAN' | 'MAN';
 };
+
 
 export type BudgetCart = {
     id: string;
