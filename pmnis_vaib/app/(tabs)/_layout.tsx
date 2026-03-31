@@ -28,6 +28,7 @@ function CustomTabBar({ state, navigation }: any) {
         }
         navigation.navigate(routeName);
     };
+
     const isSearchActive = pathname.startsWith('/search');
     const isCartActive = pathname.startsWith('/cart');
     const isWardrobeActive = pathname.startsWith('/wardrobe');
@@ -95,6 +96,7 @@ export default function TabLayout() {
                             <Tabs.Screen name="wishlist" options={{ href: null }} />
                             <Tabs.Screen name="playground" options={{ href: null }} />
                             <Tabs.Screen name="my_reviews" options={{ href: null }} />
+                            <Tabs.Screen name="payment" options={{ href: null }} />
                         </Tabs>
                     </CartProvider>
                 </WardrobeProvider>

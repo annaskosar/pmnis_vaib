@@ -156,8 +156,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const saveCarts = async (newCarts: BudgetCart[], email: string | null) => {
-        if (!email) return;
+        if (!email) {
+            console.log('saveCarts: email is null, skipping save');
+            return;
+        }
         const key = `carts_${email}`;
+        console.log('saveCarts: saving', newCarts.length, 'carts for', email);
         const toSave = newCarts.map(cart => ({
             ...cart,
             products: cart.products.map(p => ({
@@ -282,7 +286,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             });
             return { ...cart, products: merged };
         });
-        updateCarts(newCarts);
+        setCarts(newCarts);
+        // Ulož aj keď userEmail ešte nie je nastavený
+        AsyncStorage.getItem('currentUser').then(userData => {
+            if (!userData) return;
+            const email = JSON.parse(userData).email;
+            saveCarts(newCarts, email);
+        });
     };
 
     const addBuilderFeedback = () => {
