@@ -294,12 +294,10 @@ export default function HomeScreen() {
     const { toggleWishlist, isInWishlist } = useWishlist();
 
     const cards = [
-        { image: require('../../assets/images_app/model2.png'), label: 'denim' },
-        { image: require('../../assets/images_app/model3.png'), label: 'dress' },
-        { image: require('../../assets/images_app/model4.png'), label: 'spring' },
-        { image: require('../../assets/images_app/model5.png'), label: 'shoes' },
-        { image: require('../../assets/images_app/model6.png'), label: 'swim' },
-        { image: require('../../assets/images_app/model7.png'), label: 'favorites' },
+        { image: require('../../assets/images_app/model2.png'), label: 'Denim' },
+        { image: require('../../assets/images_app/model3.png'), label: 'Dress' },
+        { image: require('../../assets/images_app/model4.png'), label: 'Essentials' },
+        { image: require('../../assets/images_app/model5.png'), label: 'Shoes' }
     ];
 
     const brands = [
