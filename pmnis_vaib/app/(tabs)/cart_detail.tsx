@@ -15,6 +15,7 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCart } from '../../context/cart_context';
 import { usePathname } from 'expo-router';
 
+
 export default function CartDetailScreen() {
     const router = useRouter();
     const [voucherCode, setVoucherCode] = React.useState('');
@@ -30,6 +31,8 @@ export default function CartDetailScreen() {
 
     const parsedCartId = typeof cartId === 'string' ? cartId : '';
     const cart = getCartById(parsedCartId);
+
+
 
     // ← HOOKS musia byť PRED if (!cart) return
     useFocusEffect(
@@ -159,41 +162,75 @@ export default function CartDetailScreen() {
                     contentContainerStyle={styles.scrollContent}
                 >
                     {products.map((product) => (
-                        <View key={product.id} style={styles.productCard}>
+                        <TouchableOpacity
+                            key={product.id}
+                            style={styles.productCard}
+                            activeOpacity={0.9}
+                            onPress={() => {
+                                if (!product.sourceProductId) return;
+
+                                router.push({
+                                    pathname: '/product_detail',
+                                    params: {
+                                        productId: product.sourceProductId,
+                                        category: product.category ?? '',
+                                        subcategory: product.subcategory ?? '',
+                                        gender: product.gender === 'MAN' ? 'MAN' : 'WOMAN',
+                                        from: 'cart_detail',
+                                        cartId: cart.id,
+                                    },
+                                });
+                            }}
+                        >
                             <Image
                                 source={typeof product.image === 'string' ? { uri: product.image } : product.image}
                                 style={styles.productImage}
                                 resizeMode="cover"
                             />
+
                             <View style={styles.productInfo}>
                                 <View style={styles.productTopRow}>
                                     <Text style={styles.productName}>{product.name}</Text>
+
                                     <TouchableOpacity
                                         style={styles.removeButton}
-                                        onPress={() => removeProductFromCart(cart.id, product.id)}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            removeProductFromCart(cart.id, product.id);
+                                        }}
                                     >
                                         <Feather name="x" size={18} color="#111" />
                                     </TouchableOpacity>
                                 </View>
+
                                 <Text style={styles.productNote}>{product.note}</Text>
                                 <Text style={styles.productPrice}>€{product.price.toFixed(2)}</Text>
+
                                 <View style={styles.quantityRow}>
                                     <TouchableOpacity
                                         style={styles.quantityButton}
-                                        onPress={() => decreaseProductQuantity(cart.id, product.id)}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            decreaseProductQuantity(cart.id, product.id);
+                                        }}
                                     >
                                         <Feather name="minus" size={16} color="#111" />
                                     </TouchableOpacity>
+
                                     <Text style={styles.quantityText}>{product.quantity}</Text>
+
                                     <TouchableOpacity
                                         style={styles.quantityButton}
-                                        onPress={() => increaseProductQuantity(cart.id, product.id)}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            increaseProductQuantity(cart.id, product.id);
+                                        }}
                                     >
                                         <Feather name="plus" size={16} color="#111" />
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     ))}
 
                     <View style={styles.voucherCard}>

@@ -297,16 +297,42 @@ function areSimilarShades(
     return productShade.toLowerCase() === wardrobeShade.toLowerCase();
 }
 
+type DuplicateReasonKey =
+    | 'type_exact'
+    | 'type_partial'
+    | 'color_exact'
+    | 'color_similar'
+    | 'shade_match'
+    | 'name_match'
+    | 'category_match';
+
+type DuplicateAnalysis = {
+    isDuplicate: boolean;
+    confidence: number;
+    matchedItem: any | null;
+    reasons: string[];
+    mismatches: string[];
+    explanation: string;
+    scoreBreakdown: {
+        typeScore: number;
+        colorScore: number;
+        shadeScore: number;
+        nameScore: number;
+        categoryScore: number;
+        totalScore: number;
+    };
+};
 
 
 export default function ProductDetailScreen() {
     const router = useRouter();
-    const { productId, category, subcategory, gender, from, itemId } = useLocalSearchParams();
+    const { productId, category, subcategory, gender, from, itemId, cartId } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
     const fromValue = Array.isArray(from) ? from[0] : from;
     const categoryName = Array.isArray(category) ? category[0] : category;
     const subcategoryName = Array.isArray(subcategory) ? subcategory[0] : subcategory;
     const itemIdValue = Array.isArray(itemId) ? itemId[0] : itemId;
+    const cartIdValue = Array.isArray(cartId) ? cartId[0] : cartId;
 
     const { carts, addProductToCart, deleteCart } = useCart();
     const { getProductById, products } = useProducts();
@@ -354,6 +380,10 @@ export default function ProductDetailScreen() {
                 router.replace('/(tabs)/wishlist');
                 return;
 
+            case 'wardrobe':
+                router.replace('/(tabs)/wardrobe');
+                return;
+
             case 'wardrobe_item':
                 if (itemIdValue) {
                     router.replace({
@@ -373,7 +403,14 @@ export default function ProductDetailScreen() {
                 router.replace('/(tabs)/search');
                 return;
 
-            case 'cart':
+            case 'cart_detail':
+                if (cartIdValue) {
+                    router.replace({
+                        pathname: '/(tabs)/cart_detail',
+                        params: { cartId: cartIdValue },
+                    });
+                    return;
+                }
                 router.replace('/(tabs)/cart');
                 return;
 
@@ -406,6 +443,37 @@ export default function ProductDetailScreen() {
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .trim();
+    }
+
+    function getWordSet(text: string) {
+        return new Set(
+            normalizeText(text)
+                .split(/\s+/)
+                .filter(Boolean)
+        );
+    }
+
+    function getNameSimilarityScore(a?: string, b?: string) {
+        if (!a || !b) return 0;
+
+        const aSet = getWordSet(a);
+        const bSet = getWordSet(b);
+
+        if (aSet.size === 0 || bSet.size === 0) return 0;
+
+        let overlap = 0;
+        aSet.forEach((word) => {
+            if (bSet.has(word)) overlap += 1;
+        });
+
+        const union = new Set([...aSet, ...bSet]).size;
+        const ratio = union === 0 ? 0 : overlap / union;
+
+        if (ratio >= 0.8) return 20;
+        if (ratio >= 0.5) return 12;
+        if (ratio >= 0.3) return 6;
+
+        return 0;
     }
 
     function getDuplicateKeywords(product: any, subcategoryName?: string, categoryName?: string) {
@@ -491,6 +559,134 @@ export default function ProductDetailScreen() {
         return [];
     }
 
+    function analyzeDuplicateCandidate({
+                                           product,
+                                           selectedProductColorName,
+                                           selectedProductShade,
+                                           wardrobeItem,
+                                           duplicateKeywords,
+                                       }: {
+        product: any;
+        selectedProductColorName?: string | null;
+        selectedProductShade?: 'Light' | 'Medium' | 'Dark' | null;
+        wardrobeItem: any;
+        duplicateKeywords: string[];
+    }): DuplicateAnalysis {
+        const itemName = normalizeText(wardrobeItem?.name ?? '');
+        const itemCategory = normalizeText(wardrobeItem?.category ?? '');
+        const productName = normalizeText(product?.name ?? '');
+        const productSubcategory = normalizeText(product?.subCategory ?? '');
+
+        const reasons: string[] = [];
+        const mismatches: string[] = [];
+
+        let typeScore = 0;
+        let colorScore = 0;
+        let shadeScore = 0;
+        let nameScore = 0;
+        let categoryScore = 0;
+
+        const exactTypeMatch =
+            duplicateKeywords.length > 0 &&
+            duplicateKeywords.some(
+                (keyword) =>
+                    itemName.includes(keyword) && productName.includes(keyword)
+            );
+
+        const partialTypeMatch =
+            duplicateKeywords.length > 0 &&
+            duplicateKeywords.some(
+                (keyword) =>
+                    itemName.includes(keyword) || itemCategory.includes(keyword)
+            );
+
+        if (exactTypeMatch) {
+            typeScore = 40;
+            reasons.push('Same product type');
+        } else if (partialTypeMatch) {
+            typeScore = 28;
+            reasons.push('Similar product type');
+        } else {
+            mismatches.push('Different product type');
+        }
+
+        const normalizedProductColor = normalizeColor(selectedProductColorName);
+        const normalizedWardrobeColor = normalizeColor(wardrobeItem?.color);
+
+        if (normalizedProductColor && normalizedWardrobeColor) {
+            if (normalizedProductColor === normalizedWardrobeColor) {
+                colorScore = 25;
+                reasons.push('Same color');
+            } else if (areSimilarColors(selectedProductColorName, wardrobeItem?.color)) {
+                colorScore = 16;
+                reasons.push('Similar color family');
+            } else {
+                mismatches.push('Different color');
+            }
+        } else {
+            mismatches.push('Color missing');
+        }
+
+        if (selectedProductShade && wardrobeItem?.shade) {
+            if (areSimilarShades(selectedProductShade, wardrobeItem.shade)) {
+                shadeScore = 15;
+                reasons.push('Same shade');
+            } else {
+                mismatches.push('Different shade');
+            }
+        } else {
+            mismatches.push('Shade missing');
+        }
+
+        nameScore = getNameSimilarityScore(product?.name, wardrobeItem?.name);
+        if (nameScore >= 12) {
+            reasons.push('Name is very similar');
+        } else if (nameScore > 0) {
+            reasons.push('Name is somewhat similar');
+        } else {
+            mismatches.push('Name is not very similar');
+        }
+
+        if (productSubcategory && itemCategory) {
+            if (itemCategory.includes(productSubcategory) || productSubcategory.includes(itemCategory)) {
+                categoryScore = 10;
+                reasons.push('Category aligns');
+            }
+        }
+
+        const totalScore = Math.min(
+            100,
+            typeScore + colorScore + shadeScore + nameScore + categoryScore
+        );
+
+        let explanation = 'Low confidence because only a few duplicate signals matched.';
+
+        if (totalScore >= 80) {
+            explanation = 'High confidence because the item type, color and overall appearance strongly match.';
+        } else if (totalScore >= 60) {
+            explanation = 'Medium confidence because several important signals match, but not all of them.';
+        } else if (totalScore >= 40) {
+            explanation = 'Low-to-medium confidence because there are some similarities, but also noticeable differences.';
+        }
+
+        return {
+            isDuplicate: totalScore >= 60,
+            confidence: totalScore,
+            matchedItem: wardrobeItem,
+            reasons,
+            mismatches,
+            explanation,
+            scoreBreakdown: {
+                typeScore,
+                colorScore,
+                shadeScore,
+                nameScore,
+                categoryScore,
+                totalScore,
+            },
+        };
+    }
+
     React.useEffect(() => {
         if (!showDuplicateModal) {
             pulse1.stopAnimation();
@@ -502,6 +698,7 @@ export default function ProductDetailScreen() {
             pulse3.setValue(1);
             return;
         }
+
 
         const createPulse = (anim: Animated.Value, delay: number) =>
             Animated.loop(
@@ -621,6 +818,41 @@ export default function ProductDetailScreen() {
         return true;
     });
 
+    const duplicateAnalysis = React.useMemo(() => {
+        if (!product || !duplicateWardrobeItem) {
+            return {
+                isDuplicate: false,
+                confidence: 0,
+                matchedItem: null,
+                reasons: [],
+                mismatches: [],
+                explanation: 'No similar item found.',
+                scoreBreakdown: {
+                    typeScore: 0,
+                    colorScore: 0,
+                    shadeScore: 0,
+                    nameScore: 0,
+                    categoryScore: 0,
+                    totalScore: 0,
+                },
+            } as DuplicateAnalysis;
+        }
+
+        return analyzeDuplicateCandidate({
+            product,
+            selectedProductColorName,
+            selectedProductShade,
+            wardrobeItem: duplicateWardrobeItem,
+            duplicateKeywords,
+        });
+    }, [
+        product,
+        duplicateWardrobeItem,
+        selectedProductColorName,
+        selectedProductShade,
+        duplicateKeywords,
+    ]);
+
 
     const hasSimilarWardrobeItem = !!duplicateWardrobeItem;
 
@@ -650,6 +882,18 @@ export default function ProductDetailScreen() {
         quantity: 1,
         image: productGallery[imageIndex] ?? productGallery[0],
         note: `${selectedColor?.name ?? ''}${selectedSize ? `, ${selectedSize}` : ''}`,
+
+        sourceProductId: product.id,
+        category: categoryName ?? product.mainCategory,
+        subcategory: subcategoryName ?? product.subCategory,
+        gender:
+            genderValue === 'MAN'
+                ? 'MAN'
+                : genderValue === 'WOMAN'
+                    ? 'WOMAN'
+                    : product.gender === 'men'
+                        ? 'MAN'
+                        : 'WOMAN',
     };
 
     const currentColorCode =
@@ -1250,8 +1494,38 @@ export default function ProductDetailScreen() {
                             <Text style={styles.duplicateTitleText}>Duplicate!</Text>
                         </View>
 
+                        <TouchableOpacity
+                            style={styles.duplicateConfidenceBadge}
+                            activeOpacity={0.85}
+                            onPress={() =>
+                                Alert.alert(
+                                    'Why we flagged this',
+                                    `${duplicateAnalysis.explanation}\n\nReasons:\n• ${duplicateAnalysis.reasons.join('\n• ')}`
+                                )
+                            }
+                        >
+                            <View style={styles.duplicateConfidenceContent}>
+                                <View>
+                                    <Text style={styles.duplicateConfidenceLabel}>Match confidence</Text>
+
+                                    <Text
+                                        style={[
+                                            styles.duplicateConfidenceValue,
+                                            duplicateAnalysis.confidence >= 75 && { color: '#e53935' } // 🔥 červené
+                                        ]}
+                                    >
+                                        {duplicateAnalysis.confidence}%
+                                    </Text>
+                                </View>
+
+                                <View style={styles.duplicateInfoIcon}>
+                                    <Text style={styles.duplicateInfoIconText}>i</Text>
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+
                         <Text style={styles.duplicateMainText}>
-                            You already have a very similar piece in your wardrobe.
+                            {duplicateAnalysis.explanation}
                         </Text>
                         <View style={styles.duplicateCompareBox}>
                             <View style={styles.duplicateCompareItem}>
@@ -1974,6 +2248,62 @@ const styles = StyleSheet.create({
         color: '#6a6a6a',
         textAlign: 'center',
         lineHeight: 20,
+    },
+
+    duplicateConfidenceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14,
+        gap: 10,
+    },
+
+    duplicateConfidenceBadge: {
+        backgroundColor: '#e9e9e9',
+        borderWidth: 1,
+        borderColor: '#cfcfcf',
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 14,
+    },
+
+    duplicateConfidenceContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+
+    duplicateConfidenceLabel: {
+        fontSize: 12,
+        color: '#666',
+        fontWeight: '700',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+
+    duplicateConfidenceValue: {
+        fontSize: 24,
+        color: '#111',
+        fontWeight: '800',
+    },
+
+    duplicateInfoIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: '#444',
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    duplicateInfoIconText: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#111',
     },
 
 
