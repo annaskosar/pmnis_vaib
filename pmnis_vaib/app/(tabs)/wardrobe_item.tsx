@@ -24,6 +24,50 @@ import { Image } from 'expo-image';
 import { useProducts, Product } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
 
+const COLOR_OPTIONS = [
+    'Black',
+    'White',
+    'Blue',
+    'Grey',
+    'Brown',
+    'Beige',
+    'Green',
+    'Pink',
+    'Red',
+    'Orange',
+    'Yellow',
+    'Cream',
+    'Camel',
+    'Burgundy',
+    'Purple',
+] as const;
+
+const SHADE_OPTIONS = ['Light', 'Medium', 'Dark'] as const;
+
+const COLOR_STYLES: Record<string, { backgroundColor: string; textColor: string; borderColor?: string }> = {
+    Black: { backgroundColor: '#1a1a1a', textColor: '#fff' },
+    White: { backgroundColor: '#ffffff', textColor: '#111', borderColor: '#111' },
+    Blue: { backgroundColor: '#5aa7ff', textColor: '#111' },
+    Grey: { backgroundColor: '#b5b5b5', textColor: '#111' },
+    Brown: { backgroundColor: '#b57a4b', textColor: '#111' },
+    Beige: { backgroundColor: '#e6c9a8', textColor: '#111' },
+    Green: { backgroundColor: '#4caf7a', textColor: '#111' },
+    Pink: { backgroundColor: '#ff7eb6', textColor: '#111' },
+    Red: { backgroundColor: '#ff5a5a', textColor: '#111' },
+    Orange: { backgroundColor: '#ff9f43', textColor: '#111' },
+    Yellow: { backgroundColor: '#ffd84d', textColor: '#111' },
+    Cream: { backgroundColor: '#f2e6d8', textColor: '#111' },
+    Camel: { backgroundColor: '#c69c6d', textColor: '#111' },
+    Burgundy: { backgroundColor: '#8c2f39', textColor: '#fff' },
+    Purple: { backgroundColor: '#8e6cff', textColor: '#111' },
+};
+
+const SHADE_STYLES: Record<string, { backgroundColor: string; textColor: string; borderColor?: string }> = {
+    Light: { backgroundColor: '#f5f5f5', textColor: '#111', borderColor: '#cfcfcf' },
+    Medium: { backgroundColor: '#d9d9d9', textColor: '#111' },
+    Dark: { backgroundColor: '#8f8f8f', textColor: '#fff' },
+};
+
 
 export default function WardrobeItemScreen() {
     const router = useRouter();
@@ -47,12 +91,16 @@ export default function WardrobeItemScreen() {
     const [editedImage, setEditedImage] = React.useState<any>(item?.image);
 
     const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+    const [editedColor, setEditedColor] = React.useState<string | null>(item?.color ?? null);
+    const [editedShade, setEditedShade] = React.useState<'Light' | 'Medium' | 'Dark' | null>(item?.shade ?? null);
 
     React.useEffect(() => {
         if (item) {
             setEditedName(item.name);
             setEditedInfo(item.additionalInfo ?? '');
             setEditedImage(item.image);
+            setEditedColor(item.color ?? null);
+            setEditedShade(item.shade ?? null);
             setIsEditing(false);
             setShowDeleteModal(false);
             setImageLoading(true);
@@ -274,6 +322,8 @@ export default function WardrobeItemScreen() {
             image: editedImage,
             name: editedName.trim() || 'novy item',
             additionalInfo: editedInfo.trim(),
+            color: editedColor,
+            shade: editedShade,
         });
 
         setIsEditing(false);
@@ -289,6 +339,8 @@ export default function WardrobeItemScreen() {
         setEditedImage(item.image);
         setIsEditing(false);
         setShowDeleteModal(false);
+        setEditedColor(item.color ?? null);
+        setEditedShade(item.shade ?? null);
     };
 
     const handleBackPress = () => {
@@ -303,6 +355,8 @@ export default function WardrobeItemScreen() {
         setEditedInfo(item.additionalInfo ?? '');
         setEditedImage(item.image);
         setIsEditing(false);
+        setEditedColor(item.color ?? null);
+        setEditedShade(item.shade ?? null);
     };
 
     const handleDeleteItem = () => {
@@ -324,6 +378,12 @@ export default function WardrobeItemScreen() {
             minute: '2-digit',
         });
     };
+
+    const displayColorStyle =
+        item.color ? COLOR_STYLES[item.color] : null;
+
+    const displayShadeStyle =
+        item.shade ? SHADE_STYLES[item.shade] : null;
 
 
     return (
@@ -415,6 +475,76 @@ export default function WardrobeItemScreen() {
                                         style={styles.input}
                                     />
 
+                                    <Text style={styles.label}>Color</Text>
+                                    <View style={styles.optionGrid}>
+                                        {COLOR_OPTIONS.map((color) => {
+                                            const isSelected = editedColor === color;
+                                            const colorStyle = COLOR_STYLES[color];
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={color}
+                                                    style={[
+                                                        styles.optionChip,
+                                                        isSelected && styles.optionChipActive,
+                                                        isSelected && {
+                                                            backgroundColor: colorStyle.backgroundColor,
+                                                            borderColor: colorStyle.borderColor ?? '#111',
+                                                        },
+                                                    ]}
+                                                    onPress={() => setEditedColor(editedColor === color ? null : color)}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.optionChipText,
+                                                            isSelected && {
+                                                                color: colorStyle.textColor,
+                                                                fontWeight: '700',
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {color}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+
+                                    <Text style={styles.label}>Shade</Text>
+                                    <View style={styles.optionGrid}>
+                                        {SHADE_OPTIONS.map((shade) => {
+                                            const isSelected = editedShade === shade;
+                                            const shadeStyle = SHADE_STYLES[shade];
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={shade}
+                                                    style={[
+                                                        styles.optionChip,
+                                                        isSelected && styles.optionChipActive,
+                                                        isSelected && {
+                                                            backgroundColor: shadeStyle.backgroundColor,
+                                                            borderColor: shadeStyle.borderColor ?? '#111',
+                                                        },
+                                                    ]}
+                                                    onPress={() => setEditedShade(editedShade === shade ? null : shade)}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.optionChipText,
+                                                            isSelected && {
+                                                                color: shadeStyle.textColor,
+                                                                fontWeight: '700',
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {shade}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+
                                     <Text style={styles.label}>Additional information</Text>
                                     <TextInput
                                         value={editedInfo}
@@ -449,11 +579,52 @@ export default function WardrobeItemScreen() {
                             <>
                                 <Text style={styles.itemName}>{item.name}</Text>
 
-                                <Text style={styles.sectionTitle}>Color</Text>
-                                <View style={styles.colorBadge}>
-                                    <Text style={styles.colorBadgeText}>
-                                        {item.color?.trim() ? item.color : 'No color selected'}
-                                    </Text>
+                                <Text style={styles.sectionTitle}>Color & shade</Text>
+
+                                <View style={styles.badgesRow}>
+                                    <View
+                                        style={[
+                                            styles.colorBadge,
+                                            item.color && displayColorStyle && {
+                                                backgroundColor: displayColorStyle.backgroundColor,
+                                                borderColor: displayColorStyle.borderColor ?? 'transparent',
+                                                borderWidth: displayColorStyle.borderColor ? 1.5 : 0,
+                                            },
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.colorBadgeText,
+                                                item.color && displayColorStyle && {
+                                                    color: displayColorStyle.textColor,
+                                                },
+                                            ]}
+                                        >
+                                            {item.color?.trim() ? item.color : 'No color selected'}
+                                        </Text>
+                                    </View>
+
+                                    <View
+                                        style={[
+                                            styles.colorBadge,
+                                            item.shade && displayShadeStyle && {
+                                                backgroundColor: displayShadeStyle.backgroundColor,
+                                                borderColor: displayShadeStyle.borderColor ?? 'transparent',
+                                                borderWidth: displayShadeStyle.borderColor ? 1.5 : 0,
+                                            },
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.colorBadgeText,
+                                                item.shade && displayShadeStyle && {
+                                                    color: displayShadeStyle.textColor,
+                                                },
+                                            ]}
+                                        >
+                                            {item.shade?.trim() ? item.shade : 'No shade selected'}
+                                        </Text>
+                                    </View>
                                 </View>
 
                                 <Text style={styles.sectionTitle}>Additional information</Text>
@@ -463,12 +634,6 @@ export default function WardrobeItemScreen() {
                                         : 'No additional information yet.'}
                                 </Text>
 
-                                <Text style={styles.sectionTitle}>Additional information</Text>
-                                <Text style={styles.itemInfo}>
-                                    {item.additionalInfo?.trim()
-                                        ? item.additionalInfo
-                                        : 'No additional information yet.'}
-                                </Text>
 
                                 <View style={styles.actionButtonsRow}>
                                     <TouchableOpacity
@@ -989,5 +1154,42 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: '#111',
+    },
+
+    optionGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginBottom: 4,
+    },
+
+    optionChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#dedede',
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+
+    optionChipActive: {
+        backgroundColor: '#fff',
+        borderColor: '#111',
+    },
+
+    optionChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
+    },
+
+    optionChipTextActive: {
+        color: '#111',
+    },
+
+    badgesRow: {
+        flexDirection: 'row',
+        gap: 10,
+        flexWrap: 'wrap',
     },
 });

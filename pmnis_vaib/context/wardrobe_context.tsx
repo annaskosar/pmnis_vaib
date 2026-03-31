@@ -14,6 +14,7 @@ export type WardrobeItem = {
     createdAt: number;
     updatedAt?: number | null;
     color?: string | null;
+    shade?: 'Light' | 'Medium' | 'Dark' | null;
 };
 
 type WardrobeContextType = {
@@ -39,6 +40,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Brown',
+        shade: "Dark",
     },
     {
         id: '2',
@@ -51,6 +53,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Blue',
+        shade: "Light",
     },
     {
         id: '3',
@@ -63,6 +66,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Blue',
+        shade: "Dark",
     },
     {
         id: '4',
@@ -75,6 +79,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Pink',
+        shade: "Light",
     },
     {
         id: '5',
@@ -87,6 +92,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Grey',
+        shade: "Medium",
     },
     {
         id: '6',
@@ -99,6 +105,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'White',
+        shade: "Light"
     },
     {
         id: '7',
@@ -111,6 +118,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Purple',
+        shade: "Dark",
     },
     {
         id: '8',
@@ -123,6 +131,7 @@ const DEFAULT_ITEMS: WardrobeItem[] = [
         createdAt: Date.now(),
         updatedAt: null,
         color: 'Yellow',
+        shade: "Light",
     },
 ];
 

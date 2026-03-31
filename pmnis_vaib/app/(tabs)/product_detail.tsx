@@ -278,6 +278,25 @@ function areSimilarColors(productColor?: string | null, wardrobeColor?: string |
     return groups.some((group) => group.includes(p) && group.includes(w));
 }
 
+function getShadeFromHex(hex?: string | null): 'Light' | 'Medium' | 'Dark' | null {
+    if (!hex) return null;
+
+    const brightness = getBrightness(hex);
+
+    if (brightness >= 190) return 'Light';
+    if (brightness <= 95) return 'Dark';
+    return 'Medium';
+}
+
+function areSimilarShades(
+    productShade?: 'Light' | 'Medium' | 'Dark' | null,
+    wardrobeShade?: string | null
+) {
+    if (!productShade || !wardrobeShade) return true;
+
+    return productShade.toLowerCase() === wardrobeShade.toLowerCase();
+}
+
 
 
 export default function ProductDetailScreen() {
@@ -519,6 +538,13 @@ export default function ProductDetailScreen() {
         product.availableColors?.[0]?.name ??
         null;
 
+    const selectedProductShade =
+        getShadeFromHex(
+            selectedColor?.swatch ??
+            product.availableColors?.[0]?.code ??
+            null
+        );
+
     const duplicateKeywords = getDuplicateKeywords(product, subcategoryName, categoryName);
 
     const duplicateWardrobeItem = wardrobeItems.find((item) => {
@@ -532,7 +558,13 @@ export default function ProductDetailScreen() {
 
         if (!typeMatch) return false;
 
-        return areSimilarColors(selectedProductColorName, item.color);
+        const colorMatch = areSimilarColors(selectedProductColorName, item.color);
+        if (!colorMatch) return false;
+
+        const shadeMatch = areSimilarShades(selectedProductShade, item.shade);
+        if (!shadeMatch) return false;
+
+        return true;
     });
 
 

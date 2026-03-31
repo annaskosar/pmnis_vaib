@@ -41,7 +41,48 @@ const COLOR_OPTIONS = [
     'Cream',
     'Camel',
     'Burgundy',
+    'Purple',
 ] as const;
+
+const SHADE_OPTIONS = ['Light', 'Medium', 'Dark'] as const;
+
+const COLOR_STYLES: Record<string, { backgroundColor: string; textColor: string; borderColor?: string }> = {
+    Black: { backgroundColor: '#1a1a1a', textColor: '#fff' },
+
+    White: { backgroundColor: '#ffffff', textColor: '#111', borderColor: '#111' },
+
+    Blue: { backgroundColor: '#5aa7ff', textColor: '#111' },
+
+    Grey: { backgroundColor: '#b5b5b5', textColor: '#111' },
+
+    Brown: { backgroundColor: '#b57a4b', textColor: '#111' },
+
+    Beige: { backgroundColor: '#e6c9a8', textColor: '#111' },
+
+    Green: { backgroundColor: '#4caf7a', textColor: '#111' },
+
+    Pink: { backgroundColor: '#ff7eb6', textColor: '#111' },
+
+    Red: { backgroundColor: '#ff5a5a', textColor: '#111' },
+
+    Orange: { backgroundColor: '#ff9f43', textColor: '#111' },
+
+    Yellow: { backgroundColor: '#ffd84d', textColor: '#111' },
+
+    Cream: { backgroundColor: '#f2e6d8', textColor: '#111' },
+
+    Camel: { backgroundColor: '#c69c6d', textColor: '#111' },
+
+    Burgundy: { backgroundColor: '#8c2f39', textColor: '#fff' },
+
+    Purple: { backgroundColor: '#8e6cff', textColor: '#111' },
+};
+
+const SHADE_STYLES: Record<string, { backgroundColor: string; textColor: string; borderColor?: string }> = {
+    Light: { backgroundColor: '#f5f5f5', textColor: '#111', borderColor: '#cfcfcf' },
+    Medium: { backgroundColor: '#d9d9d9', textColor: '#111' },
+    Dark: { backgroundColor: '#8f8f8f', textColor: '#fff' },
+};
 
 export default function WardrobeAddScreen() {
     const router = useRouter();
@@ -53,6 +94,7 @@ export default function WardrobeAddScreen() {
     const [selectedCategory, setSelectedCategory] = React.useState<WardrobeCategory | null>(null);
     const [selectedAction, setSelectedAction] = React.useState<'cancel' | 'save' | null>(null);
     const [selectedColor, setSelectedColor] = React.useState<string | null>(null);
+    const [selectedShade, setSelectedShade] = React.useState<'Light' | 'Medium' | 'Dark' | null>(null);
 
     const imageSource =
         typeof imageUri === 'string' ? { uri: imageUri } : undefined;
@@ -69,6 +111,7 @@ export default function WardrobeAddScreen() {
             category: selectedCategory ?? 'other',
             additionalInfo: additionalInfo.trim(),
             color: selectedColor,
+            shade: selectedShade,
             createdAt: Date.now(),
         });
         router.replace('/(tabs)/wardrobe');
@@ -81,6 +124,7 @@ export default function WardrobeAddScreen() {
             setAdditionalInfo('');
             setSelectedCategory(null);
             setSelectedColor(null);
+            setSelectedShade(null);
         }, [])
     );
 
@@ -188,27 +232,76 @@ export default function WardrobeAddScreen() {
 
                             <Text style={styles.label}>Color</Text>
                             <View style={styles.categoryGrid}>
-                                {COLOR_OPTIONS.map((color) => (
-                                    <TouchableOpacity
-                                        key={color}
-                                        style={[
-                                            styles.categoryChip,
-                                            selectedColor === color && styles.categoryChipActive,
-                                        ]}
-                                        onPress={() =>
-                                            setSelectedColor(selectedColor === color ? null : color)
-                                        }
-                                    >
-                                        <Text
+                                {COLOR_OPTIONS.map((color) => {
+                                    const isSelected = selectedColor === color;
+                                    const colorStyle = COLOR_STYLES[color];
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={color}
                                             style={[
-                                                styles.categoryLabel,
-                                                selectedColor === color && styles.categoryLabelActive,
+                                                styles.categoryChip,
+                                                isSelected && styles.categoryChipActive,
+                                                isSelected && {
+                                                    backgroundColor: colorStyle.backgroundColor,
+                                                    borderColor: colorStyle.borderColor ?? '#111',
+                                                },
                                             ]}
+                                            onPress={() =>
+                                                setSelectedColor(selectedColor === color ? null : color)
+                                            }
                                         >
-                                            {color}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                                            <Text
+                                                style={[
+                                                    styles.categoryLabel,
+                                                    isSelected && {
+                                                        color: colorStyle.textColor,
+                                                        fontWeight: '700',
+                                                    },
+                                                ]}
+                                            >
+                                                {color}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+
+                            <Text style={styles.label}>Shade</Text>
+                            <View style={styles.categoryGrid}>
+                                {SHADE_OPTIONS.map((shade) => {
+                                    const isSelected = selectedShade === shade;
+                                    const shadeStyle = SHADE_STYLES[shade];
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={shade}
+                                            style={[
+                                                styles.categoryChip,
+                                                isSelected && styles.categoryChipActive,
+                                                isSelected && {
+                                                    backgroundColor: shadeStyle.backgroundColor,
+                                                    borderColor: shadeStyle.borderColor ?? '#111',
+                                                },
+                                            ]}
+                                            onPress={() =>
+                                                setSelectedShade(selectedShade === shade ? null : shade)
+                                            }
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.categoryLabel,
+                                                    isSelected && {
+                                                        color: shadeStyle.textColor,
+                                                        fontWeight: '700',
+                                                    },
+                                                ]}
+                                            >
+                                                {shade}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
 
                             <Text style={styles.label}>Name</Text>
@@ -281,7 +374,7 @@ const styles = StyleSheet.create({
         borderRadius: 20, backgroundColor: '#dedede',
         borderWidth: 1.5, borderColor: 'transparent',
     },
-    categoryChipActive: { backgroundColor: '#fff', borderColor: '#111' },
+    categoryChipActive: { borderColor: '#111' },
     categoryIcon: { fontSize: 16 },
     categoryLabel: { fontSize: 13, fontWeight: '600', color: '#666' },
     categoryLabelActive: { color: '#111' },
