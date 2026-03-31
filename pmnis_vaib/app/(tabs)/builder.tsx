@@ -14,10 +14,11 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useProducts } from '../../context/product_context';
 
 const PRESET_PROMPTS = [
-    { label: '🌙 Elegant evening', value: 'elegant evening formal night' },
+    
     { label: '☀️ Daily casual',    value: 'casual everyday relaxed basic' },
     { label: '🌸 Spring casual',   value: 'spring casual cozy jacket everyday' },
     { label: '💼 Office',          value: 'office formal elegant smart work' },
+    { label: '🌙 Elegant evening', value: 'elegant evening formal night' }
 ];
 
 const PRESET_VALUE_MAP: Record<string, string> = Object.fromEntries(
@@ -41,6 +42,8 @@ const ONBOARDING_STEPS_AFTER = [
     { title: 'Your outfit results 👀', description: 'Tap this item to see its full details — either in the Shop or your Wardrobe.', phase: 'after' as const },
     { title: 'Shop vs My item 🏷️', description: 'This badge shows where the item comes from. "Shop" means you can buy it, "My item" means it is already in your wardrobe.', phase: 'after' as const },
     { title: 'Swap single items 🔄', description: 'Use this refresh button to swap only this one item while keeping the rest of the outfit.', phase: 'after' as const },
+    // NEW: explain match scores so users know when to doubt the AI
+    { title: 'Reading match scores 🎯', description: 'Each item shows how well it matched your style prompt. Tap "Why this?" to see what matched, or use the refresh icon to swap it.', phase: 'after' as const },
 ];
 
 const SUBCATEGORY_TO_BUILDER_CATEGORY: Record<string, string> = {
@@ -116,6 +119,10 @@ type OutfitItem = {
     id: string; image: any; name: string; category?: string;
     tags: string[]; fromWardrobe?: boolean; imageKey?: string;
     price?: number;
+    // NEW: AI trust calibration fields
+    matchScore?: number;      // 0–100, how well tags matched the prompt style group
+    matchedTags?: string[];   // which tags actually matched (shown in "Why this?" panel)
+    isFallback?: boolean;     // true when no tags matched and item was picked randomly
 };
 type OnboardingPhase = 'before' | 'after' | null;
 type SlotCategory = 'shoes' | 'pants' | 'top' | 'jacket';
@@ -143,6 +150,28 @@ function useShopProducts(userGender: 'women' | 'men'): OutfitItem[] {
             .filter((item): item is NonNullable<typeof item> => item !== null);
     }, [products, userGender]);
 }
+
+// NEW: compute match score and matched tags between an item and the style tags
+const computeMatch = (item: OutfitItem, styleTags: string[]): { score: number; matchedTags: string[] } => {
+    if (styleTags.length === 0) return { score: 0, matchedTags: [] };
+
+    const matched = item.tags.filter(t => styleTags.includes(t));
+    const uniqueMatched = [...new Set(matched)];
+
+    let score = (uniqueMatched.length / styleTags.length) * 100;
+
+    // 🔥 boost ak sa niečo trafí
+    if (uniqueMatched.length > 0) {
+        score += 20;
+    }
+
+    score = Math.min(100, Math.round(score));
+
+    return {
+        score,
+        matchedTags: uniqueMatched
+    };
+};
 
 export default function BuilderScreen() {
     const router = useRouter();
@@ -182,6 +211,8 @@ export default function BuilderScreen() {
     const [onboardingStep, setOnboardingStep] = useState(-1);
     const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, width: 0, height: 0 });
+    // NEW: track which outfit card has its "Why this?" panel open (by index)
+    const [whyOpenIndex, setWhyOpenIndex] = useState<number | null>(null);
 
     const isMounted = React.useRef(true);
     React.useEffect(() => { return () => { isMounted.current = false; }; }, []);
@@ -383,13 +414,19 @@ export default function BuilderScreen() {
         return items.filter((item, index, self) => self.findIndex(i => i.id === item.id) === index);
     };
 
+    // MODIFIED: pickRandom now attaches matchScore, matchedTags, isFallback to the chosen item
     const pickRandom = (items: OutfitItem[], category: string, styleTags: string[], exclude: Set<string>): OutfitItem | undefined => {
-        const matching = items.filter(i => i.category === category && !exclude.has(i.id) && i.tags.some(t => styleTags.includes(t)));
-        const pool = matching.length > 0 ? matching : items.filter(i => i.category === category && !exclude.has(i.id));
+        const categoryItems = items.filter(i => i.category === category && !exclude.has(i.id));
+        const matching = categoryItems.filter(i => i.tags.some(t => styleTags.includes(t)));
+        const isFallback = matching.length === 0;
+        const pool = isFallback ? categoryItems : matching;
         if (pool.length === 0) return undefined;
-        return pool[Math.floor(Math.random() * pool.length)];
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        const { score, matchedTags } = computeMatch(picked, styleTags);
+        return { ...picked, matchScore: score, matchedTags, isFallback };
     };
 
+    // MODIFIED: pickRandomShoe also attaches match info
     const pickRandomShoe = (items: OutfitItem[], shoeStyle: 'elegant' | 'casual' | 'boots' | 'sport', exclude: Set<string>): OutfitItem | undefined => {
         const styleTags: Record<string, string[]> = {
             elegant: ['heels', 'elegant', 'dressy', 'evening', 'night', 'formal'],
@@ -417,6 +454,8 @@ export default function BuilderScreen() {
             : pickRandom(sourceItems.filter(i => !i.fromWardrobe), slotCategory, styleTags, currentIds);
 
         if (!newItem) return;
+        // Close "Why this?" panel if it was open for this slot
+        if (whyOpenIndex === index) setWhyOpenIndex(null);
         setOutfits(prev => { const updated = [...prev]; updated[index] = newItem; return updated; });
     };
 
@@ -427,6 +466,7 @@ export default function BuilderScreen() {
         setAddedToCart(false);
         setInlineFeedbackRating(0);
         setInlineFeedbackSubmitted(false);
+        setWhyOpenIndex(null); // reset any open "Why this?" panels
 
         setTimeout(async () => {
             if (!isMounted.current) return;
@@ -456,13 +496,20 @@ export default function BuilderScreen() {
 
             const seen = new Set<string>();
 
-            const shoes  = pinnedByCategory('shoes')  ?? pickRandomShoe(sourceItems, shoeStyle, seen);
+            // For pinned (wardrobe/selected) items we still compute their match score so the UI is consistent
+            const pinWithScore = (item: OutfitItem): OutfitItem => {
+                const { score, matchedTags } = computeMatch(item, styleTags);
+                return { ...item, matchScore: score, matchedTags, isFallback: false };
+            };
+
+            const shoes  = pinnedByCategory('shoes')  ? pinWithScore(pinnedByCategory('shoes')!)  : pickRandomShoe(sourceItems, shoeStyle, seen);
             if (shoes)  seen.add(shoes.id);
-            const pants  = pinnedByCategory('pants')  ?? pickRandom(sourceItems, 'pants',  styleTags, seen);
+            const pants  = pinnedByCategory('pants')  ? pinWithScore(pinnedByCategory('pants')!)  : pickRandom(sourceItems, 'pants',  styleTags, seen);
             if (pants)  seen.add(pants.id);
-            const top    = pinnedByCategory('top')    ?? pickRandom(sourceItems, 'top',    styleTags, seen);
+            const top    = pinnedByCategory('top')    ? pinWithScore(pinnedByCategory('top')!)    : pickRandom(sourceItems, 'top',    styleTags, seen);
             if (top)    seen.add(top.id);
-            const jacket = pinnedByCategory('jacket') ?? pinnedByCategory('coat') ??
+            const jacket = pinnedByCategory('jacket') ? pinWithScore(pinnedByCategory('jacket')!) :
+                           pinnedByCategory('coat')   ? pinWithScore(pinnedByCategory('coat')!)   :
                            pickRandom(sourceItems, 'jacket', styleTags, seen) ??
                            pickRandom(sourceItems, 'coat',   styleTags, seen);
             if (jacket) seen.add(jacket.id);
@@ -473,7 +520,11 @@ export default function BuilderScreen() {
                 const cat = SLOT_CATEGORIES[i];
                 const fallback = sourceItems.find(item => !seen.has(item.id) && item.category === cat)
                     ?? sourceItems.find(item => !seen.has(item.id));
-                if (fallback) { result.push(fallback); seen.add(fallback.id); }
+                if (fallback) {
+                    const { score, matchedTags } = computeMatch(fallback, styleTags);
+                    result.push({ ...fallback, matchScore: score, matchedTags, isFallback: true });
+                    seen.add(fallback.id);
+                }
             }
 
             if (!isMounted.current) return;
@@ -514,7 +565,7 @@ export default function BuilderScreen() {
     };
 
     const toggleChip = (chip: string) => { setSelectedChips(prev => prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip]); };
-    const handleClear = () => { setPrompt(''); setOutfits([]); setGenerated(false); setAddedToCart(false); setInlineFeedbackRating(0); setInlineFeedbackSubmitted(false); setGenerateError(false); };
+    const handleClear = () => { setPrompt(''); setOutfits([]); setGenerated(false); setAddedToCart(false); setInlineFeedbackRating(0); setInlineFeedbackSubmitted(false); setGenerateError(false); setWhyOpenIndex(null); };
     const handleAddToCart = () => { const shopItems = outfits.filter(i => !i.fromWardrobe); if (shopItems.length === 0) return; setCartModalVisible(true); };
 
     const handleConfirmAddToCart = (cartId: string) => {
@@ -540,18 +591,10 @@ export default function BuilderScreen() {
 
     const handleItemPress = (item: OutfitItem) => {
         if (item.fromWardrobe) {
-            router.push({
-                pathname: '/(tabs)/wardrobe_item',
-                params: {
-                    itemId: item.id,
-                    from: 'builder',
-                },
-            });
+            router.push({ pathname: '/(tabs)/wardrobe_item', params: { itemId: item.id, from: 'builder' } });
             return;
         }
-
         const product = getProductById(item.id);
-
         router.push({
             pathname: '/(tabs)/product_detail',
             params: {
@@ -569,6 +612,18 @@ export default function BuilderScreen() {
     };
 
     const handleConfirmManualPicker = () => { if (manualPickerItems.length === 0) return; setOutfits(manualPickerItems); setGenerated(true); setManualPickerVisible(false); setManualPickerItems([]); setGenerateError(false); };
+
+    // NEW: helper — returns bar color based on score
+    const getScoreColor = (score: number): string => {
+        if (score >= 75) return '#1D9E75';  // green — strong match
+        if (score >= 50) return '#BA7517';  // amber — partial match
+        return '#E24B4A';                   // red — weak / fallback
+    };
+
+    // NEW: toggle "Why this?" panel for a given outfit card index
+    const toggleWhy = (index: number) => {
+        setWhyOpenIndex(prev => prev === index ? null : index);
+    };
 
     const shopItemsCount = outfits.filter(i => !i.fromWardrobe).length;
     const isShopActive = sources.includes('shop');
@@ -673,30 +728,79 @@ export default function BuilderScreen() {
                     <View style={styles.resultsSection}>
                         <Text style={styles.resultsTitle}>{prompt.trim() ? `Results for "${prompt}"` : 'Suggested outfits'}</Text>
                         <View style={styles.outfitsGrid}>
-                            {outfits.map((item, index) => (
-                                <View key={item.id} ref={index === 0 ? firstOutfitCardRef : null} style={styles.outfitCard}>
-                                    <TouchableOpacity activeOpacity={0.85} onPress={() => handleItemPress(item)} style={{ flex: 1 }}>
-                                        <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.outfitImage} resizeMode="cover" />
-                                        <View ref={index === 0 ? firstOutfitRefreshRef : null} collapsable={false} style={styles.refreshAnchor}>
-                                            <TouchableOpacity style={styles.regenerateItemButton} onPress={(e) => { e.stopPropagation(); regenerateItem(index); }}>
-                                                <Feather name="refresh-cw" size={13} color="#111" />
-                                            </TouchableOpacity>
-                                        </View>
-                                        <View style={styles.slotLabelBadge}>
-                                            <Text style={styles.slotLabelText}>{index === 0 ? '👟' : index === 1 ? '👖' : index === 2 ? '👕' : '🧥'}</Text>
-                                        </View>
-                                        {item.fromWardrobe ? (
-                                            <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.wardrobeBadge}><Text style={styles.wardrobeBadgeText}>My item</Text></View>
-                                        ) : selectedItems.find(s => s.id === item.id) ? (
-                                            <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.wishlistBadge}><Text style={styles.wishlistBadgeText}>Wishlist</Text></View>
-                                        ) : (
-                                            <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.shopBadge}><Text style={styles.shopBadgeText}>Shop</Text></View>
+                            {outfits.map((item, index) => {
+                                const score = item.matchScore ?? 0;
+                                const scoreColor = getScoreColor(score);
+                                const isWhyOpen = whyOpenIndex === index;
+                                const showWarning = !item.fromWardrobe && score < 60;
+
+                                return (
+                                    <View key={item.id} ref={index === 0 ? firstOutfitCardRef : null} style={styles.outfitCard}>
+                                        <TouchableOpacity activeOpacity={0.85} onPress={() => handleItemPress(item)} style={{ flex: 1 }}>
+                                            <Image source={typeof item.image === 'string' ? { uri: item.image } : item.image} style={styles.outfitImage} resizeMode="cover" />
+                                            <View ref={index === 0 ? firstOutfitRefreshRef : null} collapsable={false} style={styles.refreshAnchor}>
+                                                <TouchableOpacity style={styles.regenerateItemButton} onPress={(e) => { e.stopPropagation(); regenerateItem(index); }}>
+                                                    <Feather name="refresh-cw" size={13} color="#111" />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View style={styles.slotLabelBadge}>
+                                                <Text style={styles.slotLabelText}>{index === 0 ? '👟' : index === 1 ? '👖' : index === 2 ? '👕' : '🧥'}</Text>
+                                            </View>
+                                            {item.fromWardrobe ? (
+                                                <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.wardrobeBadge}><Text style={styles.wardrobeBadgeText}>My item</Text></View>
+                                            ) : selectedItems.find(s => s.id === item.id) ? (
+                                                <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.wishlistBadge}><Text style={styles.wishlistBadgeText}>Wishlist</Text></View>
+                                            ) : (
+                                                <View ref={index === 0 ? firstOutfitBadgeRef : null} collapsable={false} style={styles.shopBadge}><Text style={styles.shopBadgeText}>Shop</Text></View>
+                                            )}
+                                            <Text style={styles.outfitName} numberOfLines={2}>{item.name}</Text>
+                                            <Text style={styles.outfitTapHint}>Tap to view details</Text>
+                                        </TouchableOpacity>
+
+                                        {/* NEW: match score bar — only for non-wardrobe items */}
+                                        {!item.fromWardrobe && (
+                                            <View style={styles.matchRow}>
+                                                <View style={styles.matchBarTrack}>
+                                                    <View style={[styles.matchBarFill, { width: `${score}%` as any, backgroundColor: scoreColor }]} />
+                                                </View>
+                                                <Text style={[styles.matchScoreText, { color: scoreColor }]}>{score}%</Text>
+                                                {showWarning && (
+                                                    <Feather name="alert-triangle" size={12} color="#BA7517" style={{ marginLeft: 2 }} />
+                                                )}
+                                            </View>
                                         )}
-                                        <Text style={styles.outfitName} numberOfLines={2}>{item.name}</Text>
-                                        <Text style={styles.outfitTapHint}>Tap to view details</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
+
+                                        {/* NEW: "Why this?" toggle button */}
+                                        {!item.fromWardrobe && (
+                                            <TouchableOpacity
+                                                style={styles.whyButton}
+                                                onPress={() => toggleWhy(index)}
+                                            >
+                                                <Feather name="info" size={11} color="#888" />
+                                                <Text style={styles.whyButtonText}>{isWhyOpen ? 'Hide' : 'Why this?'}</Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                        {/* NEW: "Why this?" explanation panel */}
+                                        {isWhyOpen && !item.fromWardrobe && (
+                                            <View style={styles.whyPanel}>
+                                                {item.isFallback ? (
+                                                    <Text style={styles.whyPanelText}>
+                                                        No tags matched your prompt — this was a random pick. Try refreshing or adjusting your prompt.
+                                                    </Text>
+                                                ) : item.matchedTags && item.matchedTags.length > 0 ? (
+                                                    <Text style={styles.whyPanelText}>
+                                                        Matched: <Text style={styles.whyPanelTags}>{item.matchedTags.join(', ')}</Text>
+                                                        {'\n'}These tags overlap with your "{getPromptValue(prompt)}" style.
+                                                    </Text>
+                                                ) : (
+                                                    <Text style={styles.whyPanelText}>No direct tag matches found for this item.</Text>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
                         </View>
                         <View ref={actionRowRef} style={styles.actionRow}>
                             <TouchableOpacity style={styles.actionButtonOutline} onPress={handleClear}>
@@ -979,6 +1083,17 @@ const styles = StyleSheet.create({
     shopBadgeText: { color: '#111', fontSize: 10, fontWeight: '700' },
     outfitName: { marginTop: 8, fontSize: 13, color: '#111', fontWeight: '500' },
     outfitTapHint: { fontSize: 11, color: '#aaa', marginTop: 2 },
+    // NEW: match score styles
+    matchRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+    matchBarTrack: { flex: 1, height: 5, borderRadius: 999, backgroundColor: '#e9e9e9', overflow: 'hidden' },
+    matchBarFill: { height: 5, borderRadius: 999 },
+    matchScoreText: { fontSize: 11, fontWeight: '700', minWidth: 30 },
+    // NEW: "Why this?" styles
+    whyButton: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, paddingVertical: 2 },
+    whyButtonText: { fontSize: 11, color: '#888', fontWeight: '500' },
+    whyPanel: { backgroundColor: '#efefef', borderRadius: 10, padding: 10, marginTop: 6 },
+    whyPanelText: { fontSize: 11, color: '#555', lineHeight: 17 },
+    whyPanelTags: { fontWeight: '700', color: '#111' },
     actionRow: { flexDirection: 'row', gap: 12, marginTop: 24, alignItems: 'center' },
     actionButtonOutline: { flex: 1, height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     actionButtonOutlineText: { color: '#111', fontWeight: '600', fontSize: 14 },
