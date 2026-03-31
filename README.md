@@ -13,9 +13,14 @@
 You can get the project either by cloning it from GitHub or by opening the folder shared in MS Teams.
 
 **Option 1 — Clone from GitHub:**
+Create blank folder on your computer and then run
+
+> ⚠️ Make sure you run cd pmnis_vaib two times
+
 ```bash
 git clone https://github.com/annaskosar/pmnis_vaib.git
 cd pmnis_vaib
+cd pmis_vaib
 ```
 
 **Option 2 — Open from MS Teams shared folder:**
