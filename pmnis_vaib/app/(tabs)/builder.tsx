@@ -20,6 +20,12 @@ const PRESET_PROMPTS = [
     { label: '💼 Office',          value: 'office formal elegant smart work' },
 ];
 
+const PRESET_VALUE_MAP: Record<string, string> = Object.fromEntries(
+    PRESET_PROMPTS.map(p => [p.label, p.value])
+);
+
+const getPromptValue = (p: string) => PRESET_VALUE_MAP[p] ?? p;
+
 const FEEDBACK_CHIPS = [
     'Wrong style', 'Not my size', 'Needs more color',
     'Too similar', 'Not my taste', 'Not seasonal',
@@ -94,6 +100,15 @@ const STYLE_GROUPS: Record<string, { tags: string[]; shoeStyle: 'elegant' | 'cas
     spring:  { tags: ['spring', 'casual', 'cozy', 'layering', 'cropped', 'everyday'], shoeStyle: 'casual' },
     autumn:  { tags: ['autumn', 'warm', 'winter', 'classic', 'coat', 'outerwear'], shoeStyle: 'boots' },
     sport:   { tags: ['sport', 'sporty', 'gym', 'workout', 'active'], shoeStyle: 'sport' },
+};
+
+const detectStyleGroup = (keywords: string[]): keyof typeof STYLE_GROUPS => {
+    if (keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k))) return 'sport';
+    if (keywords.some(k => ['office', 'work', 'business', 'professional', 'smart'].includes(k))) return 'office';
+    if (keywords.some(k => ['elegant', 'evening', 'formal', 'gala', 'dressy', 'party', 'night', 'club'].includes(k))) return 'elegant';
+    if (keywords.some(k => ['spring', 'cozy'].includes(k))) return 'spring';
+    if (keywords.some(k => ['autumn', 'fall', 'warm', 'winter'].includes(k))) return 'autumn';
+    return 'casual';
 };
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
@@ -368,15 +383,6 @@ export default function BuilderScreen() {
         return items.filter((item, index, self) => self.findIndex(i => i.id === item.id) === index);
     };
 
-    const detectStyleGroup = (keywords: string[]): keyof typeof STYLE_GROUPS => {
-        if (keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k))) return 'sport';
-        if (keywords.some(k => ['office', 'work', 'business', 'professional', 'smart'].includes(k))) return 'office';
-        if (keywords.some(k => ['elegant', 'evening', 'formal', 'gala', 'dressy', 'party', 'night', 'club'].includes(k))) return 'elegant';
-        if (keywords.some(k => ['spring', 'cozy'].includes(k))) return 'spring';
-        if (keywords.some(k => ['autumn', 'fall', 'warm', 'winter'].includes(k))) return 'autumn';
-        return 'casual';
-    };
-
     const pickRandom = (items: OutfitItem[], category: string, styleTags: string[], exclude: Set<string>): OutfitItem | undefined => {
         const matching = items.filter(i => i.category === category && !exclude.has(i.id) && i.tags.some(t => styleTags.includes(t)));
         const pool = matching.length > 0 ? matching : items.filter(i => i.category === category && !exclude.has(i.id));
@@ -399,8 +405,8 @@ export default function BuilderScreen() {
         const currentItem = outfits[index];
         if (currentItem?.fromWardrobe) return;
 
-        const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
-        const styleGroup = detectStyleGroup(keywords);
+        const kw = getPromptValue(prompt).toLowerCase().split(' ').filter(k => k.length > 1);
+        const styleGroup = detectStyleGroup(kw);
         const styleTags = STYLE_GROUPS[styleGroup].tags;
         const sourceItems = getSourceItems();
         const currentIds = new Set(outfits.map(o => o.id));
@@ -436,8 +442,8 @@ export default function BuilderScreen() {
                 return;
             }
 
-            const keywords = prompt.toLowerCase().split(' ').filter(k => k.length > 1);
-            const styleGroup = detectStyleGroup(keywords);
+            const kw = getPromptValue(prompt).toLowerCase().split(' ').filter(k => k.length > 1);
+            const styleGroup = detectStyleGroup(kw);
             const { tags: styleTags, shoeStyle } = STYLE_GROUPS[styleGroup];
             const sourceItems = getSourceItems();
 
@@ -624,8 +630,8 @@ export default function BuilderScreen() {
                 <View ref={promptRef}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
                         {PRESET_PROMPTS.map(preset => (
-                            <TouchableOpacity key={preset.value} style={[styles.presetChip, prompt === preset.value && styles.presetChipActive]} onPress={() => setPrompt(prompt === preset.value ? '' : preset.value)}>
-                                <Text style={[styles.presetChipText, prompt === preset.value && styles.presetChipTextActive]}>{preset.label}</Text>
+                            <TouchableOpacity key={preset.label} style={[styles.presetChip, prompt === preset.label && styles.presetChipActive]} onPress={() => setPrompt(prompt === preset.label ? '' : preset.label)}>
+                                <Text style={[styles.presetChipText, prompt === preset.label && styles.presetChipTextActive]}>{preset.label}</Text>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
