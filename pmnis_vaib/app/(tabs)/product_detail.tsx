@@ -894,6 +894,10 @@ export default function ProductDetailScreen() {
                     : product.gender === 'men'
                         ? 'MAN'
                         : 'WOMAN',
+
+        duplicate: duplicateAnalysis.isDuplicate,
+        duplicateConfidence: duplicateAnalysis.confidence,
+        duplicateName: duplicateAnalysis.matchedItem?.name ?? null,
     };
 
     const currentColorCode =

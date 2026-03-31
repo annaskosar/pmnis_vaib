@@ -104,6 +104,7 @@ export default function CartDetailScreen() {
     const subtotal = total - vat;
     const remaining = cart.budget - total;
     const isOverBudget = remaining < 0;
+    const hasDuplicates = products.some((product) => product.duplicate);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -204,6 +205,12 @@ export default function CartDetailScreen() {
                                 </View>
 
                                 <Text style={styles.productNote}>{product.note}</Text>
+                                {product.duplicate && (
+                                    <Text style={{ marginTop: 4, fontSize: 12, fontWeight: '700', color: '#df2518' }}>
+                                        Possible duplicate
+                                        {product.duplicateConfidence ? ` (${product.duplicateConfidence}%)` : ''}
+                                    </Text>
+                                )}
                                 <Text style={styles.productPrice}>€{product.price.toFixed(2)}</Text>
 
                                 <View style={styles.quantityRow}>
@@ -280,12 +287,31 @@ export default function CartDetailScreen() {
                     </View>
                     <TouchableOpacity
                         style={styles.checkoutButton}
-                        onPress={() =>
+                        onPress={() => {
+                            if (hasDuplicates) {
+                                Alert.alert(
+                                    'Duplicates found',
+                                    'You have some items in your cart that are similar to items in your wardrobe. Do you still want to continue to payment?',
+                                    [
+                                        { text: 'Go back', style: 'cancel' },
+                                        {
+                                            text: 'Pay anyway',
+                                            onPress: () =>
+                                                router.push({
+                                                    pathname: '/(tabs)/payment',
+                                                    params: { cartId: cart.id },
+                                                }),
+                                        },
+                                    ]
+                                );
+                                return;
+                            }
+
                             router.push({
-                            pathname: '/(tabs)/payment',
-                            params: { cartId: cart.id },
-                        })
-                        }
+                                pathname: '/(tabs)/payment',
+                                params: { cartId: cart.id },
+                            });
+                        }}
                     >
     <Text style={styles.checkoutButtonText}>Proceed to payment</Text>
 </TouchableOpacity>

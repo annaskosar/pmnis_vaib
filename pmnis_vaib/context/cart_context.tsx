@@ -12,6 +12,9 @@ export type CartProduct = {
     category?: string;
     subcategory?: string;
     gender?: 'WOMAN' | 'MAN';
+    duplicate?: boolean;
+    duplicateConfidence?: number;
+    duplicateName?: string | null;
 };
 
 
