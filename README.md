@@ -2,33 +2,44 @@
 
 ### Prerequisites
 
-- Node.js 18+ if you don't have it please install using the following link https://nodejs.org/en
-- iOS/Android operating system for testing on the real device or Android Emulator (for Instance using Android Studio)
-- Expo Go mobile application available for downloading in App Store or Google Play for testing application on a real device
+- **Node.js 18+** — if you don't have it, install it here: https://nodejs.org/en
+- **Expo Go** mobile app — available on App Store or Google Play for testing on a real device
+- **Android Studio** *(optional)* — only needed if you want to run an Android Emulator instead of a real device
+
+---
 
 ### Install & Run
 
-For instalation of your project you can rather clone it from public available git hub repository or by opening a file attached in shared forder in MS Teams
+You can get the project either by cloning it from GitHub or by opening the folder shared in MS Teams.
 
-If you would like to clone the project prome Git Hub here is a link:
-
+**Option 1 — Clone from GitHub:**
 ```bash
 git clone https://github.com/annaskosar/pmnis_vaib.git
+cd pmnis_vaib
 ```
 
+**Option 2 — Open from MS Teams shared folder:**
 
-When the project has been cloned successfully (and also Node.js installed), you can run the server in terminal by using:
+Unzip the project folder and navigate into it in your terminal.
+
+---
+
+Once you have the project folder ready, install dependencies and start the development server:
 ```bash
-cd pmnis_vaib
 npm install
 npx expo start
 ```
 
-Then open in:
-- **Expo Go** — scan the QR code and application will be opened on your mobile device 
-- **Android Emulator** — or you can open the mobile application using emulator by pressing `a`
+Then choose how to open the app:
+
+- **Expo Go (real device)** — scan the QR code shown in the terminal with your phone camera (iOS) or the Expo Go app (Android)
+- **Android Emulator** — press `a` in the terminal after the server starts (requires Android Studio with a virtual device set up)
+
+> ⚠️ Make sure your phone and computer are connected to the **same Wi-Fi network or hotspot** when using Expo Go.
+
 
 ---
 
-If you would like to test some specific scenarious here are some tips:
-- while testing manual flow (graceful failure) in outfit builder a failure will be simulated ahter the 4th regeneration of the outfit
+### Testing Notes
+
+- **Outfit Builder — graceful failure:** A simulated error will appear after the **4th outfit regeneration**. This is intentional and tests the error state flow. After dismissing it, the counter resets.

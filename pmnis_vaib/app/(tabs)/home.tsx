@@ -295,9 +295,9 @@ export default function HomeScreen() {
 
     const cards = [
         { image: require('../../assets/images_app/model2.png'), label: 'Denim' },
-        { image: require('../../assets/images_app/model3.png'), label: 'Dress' },
+        //{ image: require('../../assets/images_app/model3.png'), label: 'Dress' },
         { image: require('../../assets/images_app/model4.png'), label: 'Essentials' },
-        { image: require('../../assets/images_app/model5.png'), label: 'Shoes' }
+        //{ image: require('../../assets/images_app/model5.png'), label: 'Shoes' }
     ];
 
     const brands = [
@@ -318,7 +318,7 @@ export default function HomeScreen() {
                 router.push({ pathname: '/search_items', params: { category: 'CLOTHING', subcategory: 'Jeans', gender: 'WOMAN' } }); break;
             case 'dress':
                 router.push({ pathname: '/search_items', params: { category: 'DRESSES', gender: 'WOMAN' } }); break;
-            case 'spring':
+            case 'essentials':
                 router.push({ pathname: '/search_items', params: { category: 'CLOTHING', subcategory: 'Tops', gender: 'WOMAN' } }); break;
             case 'shoes':
                 router.push({ pathname: '/search_items', params: { category: 'SHOES', gender: 'WOMAN' } }); break;

@@ -157,7 +157,6 @@ export const categoryMap: Record<MainCategory, string[]> = {
         'Shirts',
         'Jeans',
         'Trousers',
-        'Shirts',
         'Jackets',
         'Coats',
         'Hoodies',
