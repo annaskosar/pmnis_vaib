@@ -1,7 +1,3 @@
-# pmnis_vaib
-npx expo install react-native-svg
-6. regeneration of builder simuluje chybu
-
 ## Getting Started
 
 ### Prerequisites
@@ -16,7 +12,10 @@ For instalation of your project you can rather clone it from public available gi
 
 If you would like to clone the project prome Git Hub here is a link:
 
+```bash
 git clone https://github.com/annaskosar/pmnis_vaib.git
+```
+
 
 When the project has been cloned successfully (and also Node.js installed), you can run the server in terminal by using:
 ```bash
