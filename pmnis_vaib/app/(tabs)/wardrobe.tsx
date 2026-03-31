@@ -432,6 +432,7 @@ export default function WardrobeScreen() {
                                                                     category: item.mainCategory,
                                                                     subcategory: item.subCategory,
                                                                     gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                                    from: 'wardrobe',
                                                                 },
                                                             })
                                                         }

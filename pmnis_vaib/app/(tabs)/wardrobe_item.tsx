@@ -679,6 +679,8 @@ export default function WardrobeItemScreen() {
                                                                 category: product.mainCategory,
                                                                 subcategory: product.subCategory,
                                                                 gender: product.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                                from: 'wardrobe_item',
+                                                                itemId: item.id,
                                                             },
                                                         })
                                                     }

@@ -591,8 +591,29 @@ export default function BuilderScreen() {
     };
 
     const handleItemPress = (item: OutfitItem) => {
-        if (item.fromWardrobe) { router.push({ pathname: '/(tabs)/wardrobe_item', params: { itemId: item.id } }); }
-        else { router.push({ pathname: '/(tabs)/product_detail', params: { productId: item.id, category: 'CLOTHING', subcategory: item.category ?? '', gender: userGender === 'men' ? 'MAN' : 'WOMAN', from: 'builder' } }); }
+        if (item.fromWardrobe) {
+            router.push({
+                pathname: '/(tabs)/wardrobe_item',
+                params: {
+                    itemId: item.id,
+                    from: 'builder',
+                },
+            });
+            return;
+        }
+
+        const product = getProductById(item.id);
+
+        router.push({
+            pathname: '/(tabs)/product_detail',
+            params: {
+                productId: item.id,
+                category: product?.mainCategory ?? 'CLOTHING',
+                subcategory: product?.subCategory ?? '',
+                gender: product?.gender === 'men' ? 'MAN' : 'WOMAN',
+                from: 'builder',
+            },
+        });
     };
 
     const handleManualPickerToggle = (item: OutfitItem) => {

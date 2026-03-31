@@ -301,8 +301,13 @@ function areSimilarShades(
 
 export default function ProductDetailScreen() {
     const router = useRouter();
-    const { productId, category, subcategory, gender, from } = useLocalSearchParams();
+    const { productId, category, subcategory, gender, from, itemId } = useLocalSearchParams();
     const genderValue = Array.isArray(gender) ? gender[0] : gender;
+    const fromValue = Array.isArray(from) ? from[0] : from;
+    const categoryName = Array.isArray(category) ? category[0] : category;
+    const subcategoryName = Array.isArray(subcategory) ? subcategory[0] : subcategory;
+    const itemIdValue = Array.isArray(itemId) ? itemId[0] : itemId;
+
     const { carts, addProductToCart, deleteCart } = useCart();
     const { getProductById, products } = useProducts();
     const { toggleWishlist, isInWishlist } = useWishlist();
@@ -318,8 +323,7 @@ export default function ProductDetailScreen() {
     const [pendingDuplicateAction, setPendingDuplicateAction] = React.useState<'close' | 'add' | null>(null);
 
     const productIdValue = Array.isArray(productId) ? productId[0] : productId;
-    const categoryName = Array.isArray(category) ? category[0] : category;
-    const subcategoryName = Array.isArray(subcategory) ? subcategory[0] : subcategory;
+
 
     const product = typeof productIdValue === 'string' ? getProductById(productIdValue) : undefined;
 
@@ -339,6 +343,56 @@ export default function ProductDetailScreen() {
 
     const fullscreenScrollRef = React.useRef<ScrollView>(null);
     const scrollX = React.useRef(new Animated.Value(0)).current;
+
+    const handleGoBack = () => {
+        switch (fromValue) {
+            case 'home':
+                router.replace('/(tabs)/home');
+                return;
+
+            case 'wishlist':
+                router.replace('/(tabs)/wishlist');
+                return;
+
+            case 'wardrobe_item':
+                if (itemIdValue) {
+                    router.replace({
+                        pathname: '/wardrobe_item',
+                        params: { itemId: itemIdValue },
+                    });
+                    return;
+                }
+                router.replace('/(tabs)/wardrobe');
+                return;
+
+            case 'builder':
+                router.replace('/(tabs)/builder');
+                return;
+
+            case 'search':
+                router.replace('/(tabs)/search');
+                return;
+
+            case 'cart':
+                router.replace('/(tabs)/cart');
+                return;
+
+            case 'search_items':
+                router.replace({
+                    pathname: '/search_items',
+                    params: {
+                        category: categoryName ?? '',
+                        subcategory: subcategoryName ?? '',
+                        gender: genderValue ?? 'WOMAN',
+                    },
+                });
+                return;
+
+            default:
+                router.back();
+                return;
+        }
+    };
 
     const getCartItemsCount = (cart: { products: CartProduct[] }) =>
         cart.products.reduce((sum, product) => sum + product.quantity, 0);
@@ -788,26 +842,10 @@ export default function ProductDetailScreen() {
                     </Animated.ScrollView>
 
                     <View style={styles.topIconsRow}>
-                        <TouchableOpacity onPress={() => {
-                            if (from === 'wishlist') {
-                                router.replace('/(tabs)/wishlist');
-                                return;
-                            }
-                            if (categoryName && subcategoryName) {
-                                router.replace({
-                                    pathname: '/search_items',
-                                    params: {
-                                        category: categoryName,
-                                        subcategory: subcategoryName,
-                                        gender: genderValue ?? 'WOMAN',
-                                    },
-                                });
-                                return;
-                            }
-                            router.replace('/search');
-                        }}>
+                        <TouchableOpacity onPress={handleGoBack}>
                             <Feather name="arrow-left" size={24} color={COLORS.black} />
                         </TouchableOpacity>
+
                         <TouchableOpacity onPress={() => setShowSaveSheet(true)}>
                             <Feather name="download" size={22} color={COLORS.black} />
                         </TouchableOpacity>
@@ -1549,14 +1587,13 @@ const styles = StyleSheet.create({
     imageViewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)' },
     imageViewerTopRow: {
         position: 'absolute',
-        top: 30,
-        left: 4,
-        right: 4,
+        top: 60,
+        left: 16,
+        right: 16,
         zIndex: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 4,
         paddingVertical: 10,
     },
     imageViewerCounter: { color: '#fff', fontSize: 15, fontWeight: '700' },

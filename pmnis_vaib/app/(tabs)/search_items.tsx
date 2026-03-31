@@ -690,7 +690,18 @@ export default function SearchItemsScreen() {
                                                 <View key={imgIndex} style={{ width: CARD_WIDTH, height: IMAGE_HEIGHT }}>
                                                     <TouchableOpacity
                                                         activeOpacity={1}
-                                                        onPress={() => router.push({ pathname: '/product_detail', params: { productId: item.id, category: categoryName ?? '', subcategory: subcategoryName ?? '', gender: selectedGenderParam ?? 'WOMAN' } })}
+                                                        onPress={() =>
+                                                            router.push({
+                                                                pathname: '/product_detail',
+                                                                params: {
+                                                                    productId: item.id,
+                                                                    category: item.mainCategory,
+                                                                    subcategory: item.subCategory,
+                                                                    gender: selectedGenderParam ?? 'WOMAN',
+                                                                    from: 'search_items',
+                                                                },
+                                                            })
+                                                        }
                                                         onLongPress={() => openPreview(imageSource, item.name)}
                                                         delayLongPress={250}
                                                     >

@@ -781,6 +781,8 @@ export default function HomeScreen() {
                                                     productId: item.id,
                                                     category: item.mainCategory,
                                                     subcategory: item.subCategory,
+                                                    gender: item.gender === 'women' ? 'WOMAN' : 'MAN',
+                                                    from: 'home',
                                                 },
                                             })
                                         }
