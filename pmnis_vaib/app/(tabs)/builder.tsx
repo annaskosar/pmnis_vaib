@@ -14,12 +14,10 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useProducts } from '../../context/product_context';
 
 const PRESET_PROMPTS = [
-    { label: '☀️ Casual summer', value: 'casual summer outfit' },
-    { label: '🌙 Elegant evening', value: 'elegant formal dress evening' },
-    { label: '🏃 Sport', value: 'sport sporty workout gym' },
-    { label: '🍂 Autumn cozy', value: 'autumn cozy casual jacket' },
-    { label: '💼 Office', value: 'office elegant blazer formal' },
-    { label: '🎉 Party', value: 'party elegant dress night' },
+    { label: '🌙 Elegant evening', value: 'elegant evening dress formal night' },
+    { label: '🌸 Spring cozy', value: 'spring casual cozy jacket everyday' },
+    { label: '💼 Office', value: 'office formal elegant blazer smart work' },
+    { label: '🎉 Party', value: 'party night dress dressy fun' },
 ];
 
 const FEEDBACK_CHIPS = [
@@ -74,18 +72,18 @@ const SUBCATEGORY_STYLE_TAGS: Record<string, string[]> = {
     'Jackets': ['casual', 'jacket', 'layering', 'spring', 'autumn', 'streetwear', 'elegant', 'formal'],
     'Coats': ['elegant', 'winter', 'coat', 'warm', 'classic', 'autumn', 'outerwear'],
     'Hoodies': ['casual', 'sport', 'cozy', 'streetwear', 'relaxed', 'everyday'],
-    'Sneakers': ['casual', 'sport', 'shoes', 'everyday', 'relaxed', 'summer'],
+    'Sneakers': ['casual', 'sport', 'shoes', 'everyday', 'relaxed', 'summer', 'spring'],
     'Boots': ['elegant', 'autumn', 'winter', 'shoes', 'boots', 'classic'],
-    'Heels': ['elegant', 'formal', 'evening', 'party', 'shoes', 'dressy'],
+    'Heels': ['elegant', 'formal', 'evening', 'party', 'shoes', 'dressy', 'night'],
     'Sandals': ['summer', 'casual', 'shoes', 'warm'],
-    'Flats': ['casual', 'everyday', 'shoes', 'comfortable'],
+    'Flats': ['casual', 'everyday', 'shoes', 'comfortable', 'spring'],
     'Running shoes': ['sport', 'sporty', 'gym', 'workout', 'shoes', 'active'],
-    'Mini dresses': ['party', 'summer', 'casual', 'dress', 'fun'],
+    'Mini dresses': ['party', 'summer', 'casual', 'dress', 'fun', 'night', 'dressy'],
     'Maxi dresses': ['elegant', 'summer', 'boho', 'dress', 'flowy'],
-    'Party dresses': ['party', 'elegant', 'evening', 'night', 'dress', 'dressy'],
-    'Casual dresses': ['casual', 'everyday', 'summer', 'dress', 'relaxed'],
-    'Evening dresses': ['elegant', 'formal', 'evening', 'gala', 'dress', 'dressy'],
-    'Floral dresses': ['summer', 'boho', 'casual', 'dress', 'floral', 'feminine'],
+    'Party dresses': ['party', 'elegant', 'evening', 'night', 'dress', 'dressy', 'fun'],
+    'Casual dresses': ['casual', 'everyday', 'summer', 'dress', 'relaxed', 'spring'],
+    'Evening dresses': ['elegant', 'formal', 'evening', 'gala', 'dress', 'dressy', 'night'],
+    'Floral dresses': ['summer', 'boho', 'casual', 'dress', 'floral', 'feminine', 'spring'],
     'Leggings': ['sport', 'sporty', 'gym', 'workout', 'casual', 'active'],
     'Sports bras': ['sport', 'sporty', 'gym', 'workout', 'active'],
     'Workout tops': ['sport', 'sporty', 'gym', 'workout', 'top', 'active'],
@@ -97,12 +95,12 @@ const SUBCATEGORY_STYLE_TAGS: Record<string, string[]> = {
 const PLAYGROUND_TO_STYLE_TAGS: Record<string, string[]> = {
     'goth': ['dark', 'elegant', 'black', 'evening', 'edgy'],
     'grunge_rebel': ['casual', 'streetwear', 'edgy', 'relaxed'],
-    'y2k_glam': ['party', 'trendy', 'colorful', 'fun'],
+    'y2k_glam': ['party', 'trendy', 'colorful', 'fun', 'dressy'],
     'street_cool': ['casual', 'streetwear', 'urban', 'everyday'],
-    'clean_girl': ['minimal', 'casual', 'everyday', 'basic', 'classic'],
+    'clean_girl': ['minimal', 'casual', 'everyday', 'basic', 'classic', 'spring'],
     'old_money': ['elegant', 'formal', 'classic', 'office', 'smart'],
     'dark_academia': ['elegant', 'formal', 'autumn', 'classic', 'smart'],
-    'coquette_soft': ['soft', 'feminine', 'casual', 'pink', 'romantic'],
+    'coquette_soft': ['soft', 'feminine', 'casual', 'pink', 'romantic', 'spring'],
 };
 
 type Source = 'wardrobe' | 'wishlist' | 'shop';
@@ -352,13 +350,7 @@ export default function BuilderScreen() {
             image: item.image,
             name: item.name,
             category: cat,
-            tags: [
-                item.name.toLowerCase(),
-                ...item.name.toLowerCase().split(' '),
-                cat,
-                'casual',
-                'everyday',
-            ],
+            tags: [item.name.toLowerCase(), ...item.name.toLowerCase().split(' '), cat, 'casual', 'everyday'],
             fromWardrobe: true,
         };
     });
@@ -374,13 +366,7 @@ export default function BuilderScreen() {
             image: item.image,
             name: item.name,
             category: builderCategory,
-            tags: [
-                item.name.toLowerCase(),
-                ...item.name.toLowerCase().split(' '),
-                ...colorTags,
-                ...subCategoryTags,
-                ...playgroundTags,
-            ],
+            tags: [item.name.toLowerCase(), ...item.name.toLowerCase().split(' '), ...colorTags, ...subCategoryTags, ...playgroundTags],
             fromWardrobe: false,
         };
     });
@@ -460,9 +446,7 @@ export default function BuilderScreen() {
         let items: OutfitItem[] = [];
         if (selectedItems.length > 0) items = [...items, ...selectedItems];
         if (sources.includes('shop')) items = [...items, ...shopProducts];
-        return items.filter((item, index, self) =>
-            self.findIndex(i => i.id === item.id) === index
-        );
+        return items.filter((item, index, self) => self.findIndex(i => i.id === item.id) === index);
     };
 
     const scoreItem = (item: OutfitItem, keywords: string[]): number => {
@@ -517,16 +501,16 @@ export default function BuilderScreen() {
                 .map(item => ({ ...item, score: scoreItem(item, keywords) }))
                 .sort((a, b) => b.score - a.score);
 
-            const wantsDress = keywords.some(k => ['dress', 'elegant', 'formal', 'party', 'evening', 'night', 'gala', 'dressy'].includes(k));
-            const wantsSport = keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k));
-            const wantsCasual = keywords.some(k => ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k));
-            const wantsOffice = keywords.some(k => ['office', 'work', 'business', 'professional', 'blazer', 'formal'].includes(k));
-            const wantsParty = keywords.some(k => ['party', 'club', 'going', 'night'].includes(k));
-            const wantsAutumn = keywords.some(k => ['autumn', 'fall', 'cozy', 'warm', 'winter'].includes(k));
-
             const allScored = [...scoredPinned, ...scoredShop];
 
-            // Pinned len ak má správnu kategóriu
+            const wantsSport = keywords.some(k => ['sport', 'sporty', 'gym', 'workout', 'running', 'athletic', 'active'].includes(k));
+            const wantsOffice = keywords.some(k => ['office', 'work', 'business', 'professional', 'blazer', 'smart'].includes(k));
+            const wantsEvening = keywords.some(k => ['elegant', 'evening', 'formal', 'gala', 'dressy'].includes(k));
+            const wantsParty = keywords.some(k => ['party', 'fun', 'night', 'club'].includes(k));
+            const wantsSpring = keywords.some(k => ['spring', 'cozy', 'casual', 'everyday'].includes(k));
+            const wantsAutumn = keywords.some(k => ['autumn', 'fall', 'warm', 'winter'].includes(k));
+            const wantsCasual = keywords.some(k => ['casual', 'everyday', 'relaxed', 'chill', 'basic', 'summer'].includes(k));
+
             const pinnedByCategory = (cat: string): ScoredItem | undefined =>
                 scoredPinned.find(i => i.category === cat);
 
@@ -536,12 +520,11 @@ export default function BuilderScreen() {
             const bestForCategory = (cat: string): ScoredItem | undefined =>
                 pinnedByCategory(cat) ?? shopByCategory(cat);
 
-            // Shoes s preferenciou štýlu
             const bestShoes = (style: 'elegant' | 'casual' | 'sport' | 'boots'): ScoredItem | undefined => {
                 const pinned = pinnedByCategory('shoes');
                 if (pinned) return pinned;
-                if (style === 'elegant') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('heels') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening')));
-                if (style === 'casual') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sneakers') || i.tags.includes('casual') || i.tags.includes('everyday')));
+                if (style === 'elegant') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('heels') || i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening') || i.tags.includes('night')));
+                if (style === 'casual') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sneakers') || i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('spring')));
                 if (style === 'sport') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('sport') || i.tags.includes('active') || i.tags.includes('running')));
                 if (style === 'boots') return scoredShop.find(i => i.category === 'shoes' && (i.tags.includes('boots') || i.tags.includes('autumn') || i.tags.includes('winter')));
                 return shopByCategory('shoes');
@@ -566,44 +549,81 @@ export default function BuilderScreen() {
                         bestForCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && i.tags.includes('casual')),
                     ];
                 }
-            } else if (wantsDress || wantsParty) {
-                const hasDress = allScored.some(i => i.category === 'dress');
-                if (hasDress) {
+
+            } else if (wantsOffice) {
+                result = [
+                    pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic') || i.tags.includes('office'))),
+                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('smart') || i.tags.includes('formal') || i.tags.includes('office'))),
+                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic'))),
+                    bestShoes('elegant'),
+                ];
+
+            } else if (wantsEvening && !wantsParty) {
+                // Elegant evening — evening dress + heels + elegant jacket + bag
+                const hasEveningDress = allScored.some(i => i.category === 'dress' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('formal') || i.tags.includes('dressy')));
+                if (hasEveningDress) {
                     result = [
-                        bestForCategory('dress'),
+                        scoredPinned.find(i => i.category === 'dress') ??
+                        scoredShop.find(i => i.category === 'dress' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('formal'))),
                         bestShoes('elegant'),
-                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('dressy'))),
+                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
                         bestForCategory('bag') ?? scoredShop.find(i => i.category === 'bag'),
                     ];
                 } else {
                     result = [
                         bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('evening') || i.tags.includes('dressy'))),
-                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
+                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('smart'))),
                         bestShoes('elegant'),
                         pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
                     ];
                 }
-            } else if (wantsOffice) {
+
+            } else if (wantsParty) {
+                // Party — party/mini dress + heels + jacket + bag
+                const hasPartyDress = allScored.some(i => i.category === 'dress' && (i.tags.includes('party') || i.tags.includes('fun') || i.tags.includes('night') || i.tags.includes('dressy')));
+                if (hasPartyDress) {
+                    result = [
+                        scoredPinned.find(i => i.category === 'dress') ??
+                        scoredShop.find(i => i.category === 'dress' && (i.tags.includes('party') || i.tags.includes('fun') || i.tags.includes('night') || i.tags.includes('dressy'))),
+                        bestShoes('elegant'),
+                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('formal'))),
+                        bestForCategory('bag') ?? scoredShop.find(i => i.category === 'bag'),
+                    ];
+                } else {
+                    result = [
+                        bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('dressy') || i.tags.includes('evening'))),
+                        bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('formal'))),
+                        bestShoes('elegant'),
+                        pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('dressy'))),
+                    ];
+                }
+
+            } else if (wantsSpring) {
+                // Spring cozy — jeans + casual top + jacket + sneakers/flats
                 result = [
-                    pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('office') || i.tags.includes('classic'))),
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('office') || i.tags.includes('smart'))),
-                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('elegant') || i.tags.includes('formal') || i.tags.includes('classic'))),
-                    bestShoes('elegant'),
+                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim'))),
+                    bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic') || i.tags.includes('spring'))),
+                    pinnedByCategory('jacket') ?? scoredShop.find(i => i.category === 'jacket' && (i.tags.includes('casual') || i.tags.includes('spring') || i.tags.includes('layering'))),
+                    bestShoes('casual'),
                 ];
+
             } else if (wantsAutumn) {
                 result = [
-                    pinnedByCategory('coat') ?? pinnedByCategory('jacket') ?? scoredShop.find(i => (i.category === 'coat' || i.category === 'jacket') && (i.tags.includes('autumn') || i.tags.includes('warm') || i.tags.includes('cozy') || i.tags.includes('outerwear'))),
-                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('elegant') || i.tags.includes('casual'))),
+                    pinnedByCategory('coat') ?? pinnedByCategory('jacket') ??
+                    scoredShop.find(i => (i.category === 'coat' || i.category === 'jacket') && (i.tags.includes('autumn') || i.tags.includes('warm') || i.tags.includes('outerwear'))),
+                    bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants'),
                     bestForCategory('top') ?? scoredShop.find(i => i.category === 'top'),
                     bestShoes('boots'),
                 ];
+
             } else if (wantsCasual) {
                 result = [
                     bestForCategory('pants') ?? scoredShop.find(i => i.category === 'pants' && (i.tags.includes('jeans') || i.tags.includes('casual') || i.tags.includes('denim'))),
                     bestForCategory('top') ?? scoredShop.find(i => i.category === 'top' && (i.tags.includes('casual') || i.tags.includes('everyday') || i.tags.includes('basic'))),
                     bestShoes('casual'),
-                    pinnedByCategory('jacket') ?? scoredShop.find(i => (i.category === 'jacket' || i.category === 'top') && (i.tags.includes('casual') || i.tags.includes('hoodie') || i.tags.includes('denim') || i.tags.includes('streetwear'))),
+                    pinnedByCategory('jacket') ?? scoredShop.find(i => (i.category === 'jacket' || i.category === 'top') && (i.tags.includes('casual') || i.tags.includes('hoodie') || i.tags.includes('streetwear'))),
                 ];
+
             } else {
                 const usedCategories = new Set<string>();
                 const defaultResult: OutfitItem[] = [];
