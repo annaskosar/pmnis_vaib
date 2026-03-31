@@ -7,13 +7,12 @@ import {
     TouchableOpacity,
     ScrollView,
     ImageBackground,
-    FlatList,
+    Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { categoryMap, useProducts } from '../../context/product_context';
 import { productImages } from '../../context/product_images';
-import { Image } from 'react-native';
 
 export default function SearchCategoryScreen() {
     const router = useRouter();
@@ -23,13 +22,39 @@ export default function SearchCategoryScreen() {
     const categoryName = Array.isArray(category) ? category[0] : category;
     const selectedGender = Array.isArray(gender) ? gender[0] : gender;
 
-    const isSale = categoryName === 'SALE: HOT DEALS';
+    const normalizedCategory =
+        typeof categoryName === 'string' ? categoryName.trim().toUpperCase() : '';
+
+    const normalizedGender =
+        typeof selectedGender === 'string' ? selectedGender.trim().toLowerCase() : '';
+
+    const isSale =
+        normalizedCategory === 'SALE: HOT DEALS' ||
+        normalizedCategory === 'HOT DEALS' ||
+        normalizedCategory === 'SALE';
 
     const saleProducts = isSale
-        ? products.filter(p =>
-            p.isOnSale &&
-            (selectedGender === 'WOMAN' ? p.gender === 'women' : p.gender === 'men')
-          )
+        ? products.filter((product) => {
+              if (!product.isOnSale) return false;
+
+              if (
+                  normalizedGender === 'woman' ||
+                  normalizedGender === 'women' ||
+                  normalizedGender === 'female'
+              ) {
+                  return product.gender === 'women';
+              }
+
+              if (
+                  normalizedGender === 'man' ||
+                  normalizedGender === 'men' ||
+                  normalizedGender === 'male'
+              ) {
+                  return product.gender === 'men';
+              }
+
+              return true;
+          })
         : [];
 
     const items =
@@ -79,8 +104,13 @@ export default function SearchCategoryScreen() {
                             ) : (
                                 <View style={styles.productsGrid}>
                                     {saleProducts.map((product) => {
-                                        const imageKey = product.availableColors?.[0]?.imageKeys?.[0] ?? product.images?.[0];
-                                        const imageSource = imageKey ? productImages[imageKey] : null;
+                                        const imageKey =
+                                            product.availableColors?.[0]?.imageKeys?.[0] ??
+                                            product.images?.[0];
+
+                                        const imageSource = imageKey
+                                            ? productImages[imageKey]
+                                            : null;
 
                                         return (
                                             <TouchableOpacity
@@ -90,37 +120,64 @@ export default function SearchCategoryScreen() {
                                                     router.push({
                                                         pathname: '/(tabs)/product_detail',
                                                         params: {
-                                                            productId: product.id,
-                                                            category: product.mainCategory,
-                                                            subcategory: product.subCategory,
-                                                            gender: selectedGender,
+                                                            productId: String(product.id),
+                                                            category: String(product.mainCategory ?? ''),
+                                                            subcategory: String(product.subCategory ?? ''),
+                                                            gender:
+                                                                typeof selectedGender === 'string'
+                                                                    ? selectedGender
+                                                                    : '',
                                                         },
                                                     })
                                                 }
                                             >
-                                                {imageSource ? (
-                                                    <Image
-                                                        source={imageSource}
-                                                        style={styles.productImage}
-                                                        resizeMode="cover"
-                                                    />
-                                                ) : (
-                                                    <View style={[styles.productImage, styles.productImagePlaceholder]}>
-                                                        <Feather name="image" size={24} color="#ccc" />
-                                                    </View>
-                                                )}
+                                                <View style={styles.imageWrapper}>
+                                                    {imageSource ? (
+                                                        <Image
+                                                            source={imageSource}
+                                                            style={styles.productImage}
+                                                            resizeMode="cover"
+                                                        />
+                                                    ) : (
+                                                        <View
+                                                            style={[
+                                                                styles.productImage,
+                                                                styles.productImagePlaceholder,
+                                                            ]}
+                                                        >
+                                                            <Feather
+                                                                name="image"
+                                                                size={24}
+                                                                color="#ccc"
+                                                            />
+                                                        </View>
+                                                    )}
 
-                                                <View style={styles.discountBadge}>
-                                                    <Text style={styles.discountText}>-{product.discountPercent}%</Text>
+                                                    {!!product.discountPercent && (
+                                                        <View style={styles.discountBadge}>
+                                                            <Text style={styles.discountText}>
+                                                                -{product.discountPercent}%
+                                                            </Text>
+                                                        </View>
+                                                    )}
                                                 </View>
 
                                                 <Text style={styles.productName} numberOfLines={2}>
                                                     {product.name}
                                                 </Text>
+
                                                 <View style={styles.priceRow}>
-                                                    <Text style={styles.salePrice}>€{product.price.toFixed(2)}</Text>
-                                                    {product.oldPrice && (
-                                                        <Text style={styles.oldPrice}>€{product.oldPrice.toFixed(2)}</Text>
+                                                    <Text style={styles.salePrice}>
+                                                        €
+                                                        {typeof product.price === 'number'
+                                                            ? product.price.toFixed(2)
+                                                            : '0.00'}
+                                                    </Text>
+
+                                                    {typeof product.oldPrice === 'number' && (
+                                                        <Text style={styles.oldPrice}>
+                                                            €{product.oldPrice.toFixed(2)}
+                                                        </Text>
                                                     )}
                                                 </View>
                                             </TouchableOpacity>
@@ -133,25 +190,42 @@ export default function SearchCategoryScreen() {
                         <>
                             <Text style={styles.subtitle}>Browse products</Text>
 
-                            {items.map((item, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={styles.itemRow}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: '/search_items',
-                                            params: {
-                                                category: categoryName,
-                                                subcategory: item,
-                                                gender: selectedGender,
-                                            },
-                                        })
-                                    }
-                                >
-                                    <Text style={styles.itemText}>{item}</Text>
-                                    <Feather name="chevron-right" size={20} color="#111" />
-                                </TouchableOpacity>
-                            ))}
+                            {items.length === 0 ? (
+                                <View style={styles.emptyState}>
+                                    <Feather name="search" size={40} color="#ccc" />
+                                    <Text style={styles.emptyText}>No subcategories available</Text>
+                                </View>
+                            ) : (
+                                items.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={`${item}-${index}`}
+                                        style={styles.itemRow}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/search_items',
+                                                params: {
+                                                    category:
+                                                        typeof categoryName === 'string'
+                                                            ? categoryName
+                                                            : '',
+                                                    subcategory: item,
+                                                    gender:
+                                                        typeof selectedGender === 'string'
+                                                            ? selectedGender
+                                                            : '',
+                                                },
+                                            })
+                                        }
+                                    >
+                                        <Text style={styles.itemText}>{item}</Text>
+                                        <Feather
+                                            name="chevron-right"
+                                            size={20}
+                                            color="#111"
+                                        />
+                                    </TouchableOpacity>
+                                ))
+                            )}
                         </>
                     )}
                 </View>
@@ -227,19 +301,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        gap: 12,
         marginTop: 8,
     },
     productCard: {
         width: '48%',
-        marginBottom: 4,
+        marginBottom: 16,
+    },
+    imageWrapper: {
+        position: 'relative',
+        marginBottom: 8,
     },
     productImage: {
         width: '100%',
         height: 200,
         borderRadius: 14,
         backgroundColor: '#e9e9e9',
-        marginBottom: 8,
     },
     productImagePlaceholder: {
         justifyContent: 'center',
@@ -264,6 +340,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: '#111',
         marginBottom: 4,
+        minHeight: 34,
     },
     priceRow: {
         flexDirection: 'row',
