@@ -37,7 +37,6 @@ Then choose how to open the app:
 
 > ⚠️ Make sure your phone and computer are connected to the **same Wi-Fi network or hotspot** when using Expo Go.
 
-
 ---
 
 ### Testing Notes
