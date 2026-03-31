@@ -29,6 +29,7 @@ type CartContextType = {
     createCart: (name: string, budget: number) => BudgetCart | null;
     updateCart: (cartId: string, name: string, budget: number) => void;
     addProductToCart: (cartId: string, product: CartProduct) => void;
+    addProductsToCart: (cartId: string, products: CartProduct[]) => void;
     addBuilderFeedback: () => void;
     isUnlimitedUnlocked: boolean;
 };
@@ -37,7 +38,6 @@ const CartContext = React.createContext<CartContextType | undefined>(undefined);
 
 const TEST_EMAIL = 'test@test.com';
 
-// ✅ Jednotný kľúč pre feedback
 const FEEDBACK_KEY = (email: string) => `feedback_count_${email}`;
 
 const DEFAULT_CARTS: BudgetCart[] = [
@@ -118,7 +118,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             const cartsKey = `carts_${user.email}`;
 
             const savedCartsRaw = await AsyncStorage.getItem(cartsKey);
-            // ✅ Používame jednotný kľúč, čítame cez parseInt
             const savedFeedbackRaw = await AsyncStorage.getItem(FEEDBACK_KEY(user.email));
             const parsedFeedback = savedFeedbackRaw ? parseInt(savedFeedbackRaw) : 0;
             setBuilderFeedbackCount(parsedFeedback);
@@ -133,7 +132,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     const defaultCarts = DEFAULT_CARTS.map(def => {
                         const saved = savedCarts.find((s: BudgetCart) => s.id === def.id);
                         if (!saved) return def;
-
                         return {
                             ...saved,
                             products: saved.products.map((p: CartProduct, i: number) => ({
@@ -172,7 +170,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const saveBuilderFeedbackCount = async (count: number, email: string | null) => {
         if (!email) return;
-        // ✅ Ukladáme ako string, konzistentné s parseInt pri čítaní
         await AsyncStorage.setItem(FEEDBACK_KEY(email), count.toString());
     };
 
@@ -229,19 +226,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateCarts(newCarts);
     };
 
-    // ✅ isUnlimitedUnlocked vypočítané z builderFeedbackCount
     const isUnlimitedUnlocked = builderFeedbackCount >= 6;
 
     const createCart = (name: string, budget: number) => {
         if (!isUnlimitedUnlocked && carts.length >= 5) return null;
-
         const newCart: BudgetCart = {
             id: Date.now().toString(),
             name,
             budget,
             products: [],
         };
-
         updateCarts([...carts, newCart]);
         return newCart;
     };
@@ -253,13 +247,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateCarts(newCarts);
     };
 
+    // Pridá jednu položku – ak už existuje, zvýši quantity
     const addProductToCart = (cartId: string, product: CartProduct) => {
         const newCarts = carts.map((cart) => {
             if (cart.id !== cartId) return cart;
-
-            const existingProduct = cart.products.find((p) => p.id === product.id);
-
-            if (existingProduct) {
+            const existing = cart.products.find((p) => p.id === product.id);
+            if (existing) {
                 return {
                     ...cart,
                     products: cart.products.map((p) =>
@@ -269,14 +262,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                     ),
                 };
             }
-
             return { ...cart, products: [...cart.products, product] };
         });
-
         updateCarts(newCarts);
     };
 
-    // ✅ Odstránený Math.min limit, count rastie prirodzene
+    // Pridá viacero položiek naraz v jednom setState – oprava builder add to cart
+    const addProductsToCart = (cartId: string, products: CartProduct[]) => {
+        const newCarts = carts.map((cart) => {
+            if (cart.id !== cartId) return cart;
+            const merged = [...cart.products];
+            products.forEach(product => {
+                const existing = merged.find(p => p.id === product.id);
+                if (existing) {
+                    existing.quantity += product.quantity;
+                } else {
+                    merged.push(product);
+                }
+            });
+            return { ...cart, products: merged };
+        });
+        updateCarts(newCarts);
+    };
+
     const addBuilderFeedback = () => {
         const newCount = builderFeedbackCount + 1;
         setBuilderFeedbackCount(newCount);
@@ -297,6 +305,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 createCart,
                 updateCart,
                 addProductToCart,
+                addProductsToCart,
                 addBuilderFeedback,
                 isUnlimitedUnlocked,
             }}
@@ -308,10 +317,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCart() {
     const context = React.useContext(CartContext);
-
     if (!context) {
         throw new Error('useCart must be used inside CartProvider');
     }
-
     return context;
 }
