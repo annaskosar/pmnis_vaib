@@ -875,7 +875,7 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.brandsSection}>
+                    {/* <View style={styles.brandsSection}>
                         <Text style={styles.brandsTitle}>Brand picks</Text>
                         <Text style={styles.brandsSubtitle}>
                             All your fave brands, one place
@@ -900,7 +900,7 @@ export default function HomeScreen() {
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-                    </View>
+                    </View> */}
                 </ScrollView>
             </View>
         </SafeAreaView>

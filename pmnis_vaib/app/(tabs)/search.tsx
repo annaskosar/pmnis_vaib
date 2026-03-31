@@ -9,13 +9,13 @@ import {
     ScrollView,
     ImageBackground,
     Alert,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { categoryMap, useProducts } from '../../context/product_context';
-import { useFocusEffect } from 'expo-router';
 
 export default function SearchScreen() {
     const router = useRouter();
@@ -23,7 +23,6 @@ export default function SearchScreen() {
 
     const categories = Object.keys(categoryMap);
 
-    const [selected, setSelected] = React.useState<'WOMAN' | 'MAN'>('WOMAN');
     const [searchText, setSearchText] = React.useState('');
     const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
     const [isSearchFocused, setIsSearchFocused] = React.useState(false);
@@ -34,13 +33,12 @@ export default function SearchScreen() {
 
         await saveSearch(trimmed);
 
-        const results = searchProducts(trimmed, selected);
+        const results = searchProducts(trimmed);
 
         router.push({
             pathname: '/search_items',
             params: {
                 query: trimmed,
-                gender: selected,
                 results: JSON.stringify(results),
                 noResults: results.length === 0 ? 'true' : 'false',
             },
@@ -81,7 +79,6 @@ export default function SearchScreen() {
         }
     };
 
-
     useFocusEffect(
         React.useCallback(() => {
             setSearchText('');
@@ -104,7 +101,7 @@ export default function SearchScreen() {
 
         const updated = [
             trimmed,
-            ...existing.filter(item => item.toLowerCase() !== trimmed.toLowerCase()),
+            ...existing.filter((item) => item.toLowerCase() !== trimmed.toLowerCase()),
         ].slice(0, 10);
 
         setRecentSearches(updated);
@@ -127,7 +124,12 @@ export default function SearchScreen() {
                 <View style={styles.container}>
                     <View style={styles.topBar}>
                         <View style={styles.searchWrapper}>
-                            <Feather name="search" size={18} color="#393939" style={styles.searchIcon} />
+                            <Feather
+                                name="search"
+                                size={18}
+                                color="#393939"
+                                style={styles.searchIcon}
+                            />
                             <TextInput
                                 placeholder="Search"
                                 placeholderTextColor="#393939"
@@ -151,7 +153,10 @@ export default function SearchScreen() {
                             <View style={styles.recentHeader}>
                                 <Text style={styles.recentTitle}>Recent searches</Text>
                                 {recentSearches.length > 0 && (
-                                    <TouchableOpacity style={styles.clearButton} onPress={clearRecentSearches}>
+                                    <TouchableOpacity
+                                        style={styles.clearButton}
+                                        onPress={clearRecentSearches}
+                                    >
                                         <Text style={styles.clearText}>Clear</Text>
                                     </TouchableOpacity>
                                 )}
@@ -160,7 +165,9 @@ export default function SearchScreen() {
                             {recentSearches.length === 0 ? (
                                 <View style={styles.emptyWrapper}>
                                     <Feather name="search" size={34} color="#8a8a8a" />
-                                    <Text style={styles.emptyText}>You have no recent searches</Text>
+                                    <Text style={styles.emptyText}>
+                                        You have no recent searches
+                                    </Text>
                                 </View>
                             ) : (
                                 <ScrollView
@@ -175,13 +182,12 @@ export default function SearchScreen() {
                                                 await saveSearch(item);
                                                 setSearchText(item);
 
-                                                const results = searchProducts(item, selected);
+                                                const results = searchProducts(item);
 
                                                 router.push({
                                                     pathname: '/search_items',
                                                     params: {
                                                         query: item,
-                                                        gender: selected,
                                                         results: JSON.stringify(results),
                                                         noResults: results.length === 0 ? 'true' : 'false',
                                                     },
@@ -200,81 +206,57 @@ export default function SearchScreen() {
                     )}
 
                     {!isSearchFocused && (
-                        <>
-                            <View style={styles.genderWrapper}>
-                                <TouchableOpacity
-                                    style={styles.genderButton}
-                                    onPress={() => setSelected('WOMAN')}
-                                >
-                                    <Text style={[styles.genderText, selected === 'WOMAN' && styles.activeText]}>
-                                        WOMAN
-                                    </Text>
-                                    {selected === 'WOMAN' && <View style={styles.activeLine} />}
-                                </TouchableOpacity>
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollContent}
+                        >
+                            {categories.map((item, index) => {
+                                const isSale = item === 'SALE: HOT DEALS';
 
-                                <TouchableOpacity
-                                    style={styles.genderButton}
-                                    onPress={() => setSelected('MAN')}
-                                >
-                                    <Text style={[styles.genderText, selected === 'MAN' && styles.activeText]}>
-                                        MAN
-                                    </Text>
-                                    {selected === 'MAN' && <View style={styles.activeLine} />}
-                                </TouchableOpacity>
-                            </View>
+                                const content = (
+                                    <View style={styles.categoryRow}>
+                                        {getIcon(item)}
+                                        <Text style={[styles.categoryText, isSale && styles.saleText]}>
+                                            {item}
+                                        </Text>
+                                    </View>
+                                );
 
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                contentContainerStyle={styles.scrollContent}
-                            >
-                                {categories.map((item, index) => {
-                                    const isSale = item === 'SALE: HOT DEALS';
-
-                                    const content = (
-                                        <View style={styles.categoryRow}>
-                                            {getIcon(item)}
-                                            <Text style={[styles.categoryText, isSale && styles.saleText]}>
-                                                {item}
-                                            </Text>
-                                        </View>
-                                    );
-
-                                    return isSale ? (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.saleWrapper}
-                                            onPress={() =>
-                                                router.push({
-                                                    pathname: '/search_category',
-                                                    params: { category: item, gender: selected },
-                                                })
-                                            }
-                                        >
-                                            <ImageBackground
-                                                source={require('../../assets/images_app/search.jpg')}
-                                                style={styles.saleCard}
-                                                imageStyle={{ borderRadius: 14 }}
-                                            >
-                                                {content}
-                                            </ImageBackground>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.categoryCard}
-                                            onPress={() =>
-                                                router.push({
-                                                    pathname: '/search_category',
-                                                    params: { category: item, gender: selected },
-                                                })
-                                            }
+                                return isSale ? (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.saleWrapper}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/search_category',
+                                                params: { category: item },
+                                            })
+                                        }
+                                    >
+                                        <ImageBackground
+                                            source={require('../../assets/images_app/search.jpg')}
+                                            style={styles.saleCard}
+                                            imageStyle={{ borderRadius: 14 }}
                                         >
                                             {content}
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </ScrollView>
-                        </>
+                                        </ImageBackground>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.categoryCard}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/search_category',
+                                                params: { category: item },
+                                            })
+                                        }
+                                    >
+                                        {content}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
                     )}
                 </View>
             </SafeAreaView>
@@ -331,39 +313,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    genderWrapper: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e5e5',
-        marginBottom: 20,
-    },
-
-    genderButton: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-    },
-
-    genderText: {
-        fontSize: 16,
-        color: '#888',
-        fontWeight: '500',
-    },
-
-    activeText: {
-        color: '#111',
-    },
-
-    activeLine: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        height: 3,
-        backgroundColor: '#df2518',
-    },
-
     scrollContent: {
         paddingBottom: 24,
     },
@@ -388,7 +337,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-
 
     saleWrapper: {
         marginBottom: 12,
@@ -473,7 +421,6 @@ const styles = StyleSheet.create({
         color: '#111',
     },
 
-
     emptyText: {
         marginTop: 10,
         fontSize: 15,
@@ -485,10 +432,8 @@ const styles = StyleSheet.create({
         gap: 2,
     },
 
-
     recentItemText: {
         fontSize: 15,
         color: '#111',
     },
-
 });
